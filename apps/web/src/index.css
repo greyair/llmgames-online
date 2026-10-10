@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/geist-pixel";
+@import "./design/tokens.css";
+@import "./design/dither-masks.css";
+@import "./design/theme.css";
+@import "./design/base.css";
+@import "./design/dither.css";
+@import "./design/motion.css";
+@import "./design/components.css";
+@import "./design/games.css";
+@import "./design/shell.css";
+@import "./design/site-bar.css";
+@import "./design/doodle.css";
+
+@theme inline {
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-code);
+  --color-background: var(--canvas);
+  --color-foreground: var(--text);
+  --color-muted-foreground: var(--text-muted);
+  --color-border: var(--line);
+}

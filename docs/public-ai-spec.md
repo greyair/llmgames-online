@@ -1,0 +1,13 @@
+# Public AI specification
+
+`/ai-spec` is the public Jev and MCP guide. It uses the existing web theme, Jev/MCP tabs and an eight-game picker. Each selection shows a short overview and the outgoing and incoming payloads. It links from Connect AI, game information pages and the homepage footer. `/ai-spec.json` serves the complete downloadable application contract, including the field guide.
+
+The page component is `apps/web/src/interface/AiSpec.tsx`. Explanations and field descriptions live in `aiSpecData.ts`. The generated snapshot lives in `content/ai-spec.json` alongside it.
+
+Run `pnpm generate:ai-spec` after changing MCP tools, game actions, compact projections or Jev requests. The exporter uses MCP's in-memory transport to call the actual server's `tools/list`, reads the shared action catalog, and runs deterministic room projections through the Jev adapter. All eight games use in-memory room handlers and their real seat projections. Checkers includes all opening legal moves, Pokémon includes a seeded six-Pokémon team, and Contexto ranks come from the ranking engine. Battleship examples exercise actual placement and battle actions through the shared MCP/Jev projection. It replaces fetch with a local response stub and never opens a live room or calls a provider. No real credentials or customer data are read. Large candidate lists are shortened and carry omission counts. Responses are illustrative stub selections.
+
+`pnpm check:ai-spec` compares the checked-in snapshot against a fresh offline export. Root lint includes this check. Update the prose in `aiSpecData.ts` when semantics change; a generated schema alone cannot keep explanations current. All eight games need entries, and Codenames must remain marked as unavailable for hosted Jev until the server supports it.
+
+Verification for page changes: web build, web lint, the spec freshness check, and a browser review at desktop and mobile widths in the existing light and dark themes. The initial example is prerendered. Hydration enables the tabs, game picker and copy buttons; game URL fragments select the requested game. The JSON download contains all games without requiring JavaScript.
+
+Board previews render the displayed Jev request state or MCP decision state directly, using existing game components and styling. Positions use synthetic players and deterministic fixtures; the displayed state comes from the room projection rather than handwritten payloads. Battleship placement and battle are available on both tabs. Placement offers six distinct deterministic valid layouts as structured objects. Battle shows the seat’s own grid, including an armed mine, and its projected enemy target grid. Radar observations, known attacks and all five affordable weapons are exercised.

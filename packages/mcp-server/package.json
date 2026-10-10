@@ -1,0 +1,37 @@
+{
+  "name": "@llmgames/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional local stdio MCP over agent-client. Prefer remote MCP: GET/POST {API}/api/v1/mcp on @llmgames/workers",
+  "bin": {
+    "llmgames-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm --filter @llmgames/agent-client --filter @llmgames/game-catalog --filter @llmgames/mcp-server build && node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@llmgames/agent-client": "*",
+    "@llmgames/game-catalog": "*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

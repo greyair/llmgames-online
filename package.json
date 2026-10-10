@@ -1,0 +1,50 @@
+{
+  "name": "llmgames-online",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.21.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --filter=@llmgames/web --filter=@llmgames/workers",
+    "dev:web": "turbo run dev --filter=@llmgames/web",
+    "dev:workers": "turbo run dev --filter=@llmgames/workers",
+    "build": "turbo run build --filter=@llmgames/web && node scripts/copy-web-dist.mjs",
+    "build:all": "turbo run build",
+    "lint": "pnpm lint:anti-slop && turbo run lint && node scripts/check-strict-types.mjs && pnpm check:ai-spec",
+    "preview": "turbo run preview --filter=@llmgames/web",
+    "deploy": "pnpm run deploy:workers && pnpm run deploy:web",
+    "deploy:workers": "pnpm --filter @llmgames/workers deploy:prod",
+    "deploy:web": "pnpm run build && pnpm exec wrangler pages deploy dist --project-name llmgames-online --branch main --commit-dirty=true",
+    "db:migrate": "pnpm --filter @llmgames/workers db:migrate",
+    "db:migrate:prod": "pnpm --filter @llmgames/workers db:migrate:prod",
+    "agent": "pnpm --filter @llmgames/cli start --",
+    "mcp": "pnpm --filter @llmgames/mcp-server start",
+    "example:remote-mcp": "pnpm exec tsx examples/remote-mcp-connect4.ts",
+    "generate:contexto-ranks": "pnpm --filter @llmgames/game-catalog build && node scripts/generate-contexto-ranks.mjs",
+    "generate:ai-spec": "pnpm --filter @llmgames/game-catalog build && pnpm exec tsx apps/workers/scripts/export-ai-spec.ts",
+    "check:ai-spec": "pnpm --filter @llmgames/game-catalog build && pnpm exec tsx apps/workers/scripts/export-ai-spec.ts --check",
+    "lint:anti-slop": "oxlint -c .oxlintrc.json .",
+    "lint:anti-slop:fix": "pnpm lint:anti-slop --fix",
+    "format:code": "oxfmt --write \"**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}\"",
+    "format:code:check": "oxfmt --check \"**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}\"",
+    "setup": "node scripts/setup.mjs",
+    "test": "pnpm --filter @llmgames/game-catalog build && pnpm -r --if-present test",
+    "assets:pokemon": "node scripts/pokemon/fetch-assets.mjs"
+  },
+  "devDependencies": {
+    "@llmgames/game-catalog": "*",
+    "@oxlint/plugins": "1.87.0",
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
+    "tsx": "^4.20.0",
+    "turbo": "^2.5.4",
+    "zod": "4.4.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "MIT"
+}

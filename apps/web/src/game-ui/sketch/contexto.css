@@ -1,0 +1,119 @@
+/* contexto, drawn like the landing arcade: every guess is a paper track with
+   a flat pastel rank bar ending in an ink edge. Track and bar each wobble on
+   their own pseudo-element so the words and ranks stay crisp. Paper and
+   pastels stay light in dark mode, so their text is always ink. */
+
+.contexto-stage {
+  --ink-w: var(--stroke-3);
+}
+.contexto-rival,
+.contexto-replay-player {
+  --ink-w: var(--stroke-2);
+}
+
+:is(.contexto-rank-row, .contexto-last-guess),
+:root[data-theme="dark"] :is(.contexto-rank-row, .contexto-last-guess) {
+  --bar: color-mix(in oklab, var(--rank-fill, var(--sketch-paper)) 85%, var(--palette-white));
+}
+:is(.contexto-rank-row, .contexto-last-guess) {
+  --track: var(--sketch-paper);
+}
+:is(.contexto-rank-row[data-latest], .contexto-last-guess) {
+  --track: color-mix(in oklab, var(--palette-sun) 55%, var(--palette-white));
+}
+
+/* Guess rows: the row itself is transparent; ::after is the track, ::before the bar. */
+.contexto-stage :is(.contexto-rank-row, .contexto-last-guess) {
+  background: none;
+  color: var(--sketch-ink);
+  outline: none;
+  overflow: visible;
+}
+.contexto-stage :is(.contexto-rank-row, .contexto-last-guess)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: inherit;
+  background: var(--track);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  pointer-events: none;
+}
+.contexto-stage :is(.contexto-rank-row, .contexto-last-guess)::before {
+  background: var(--bar);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  -webkit-mask-image: none;
+  mask-image: none;
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  pointer-events: none;
+}
+.contexto-stage .contexto-last-guess {
+  --ink-w: var(--stroke-4);
+}
+.contexto-stage :is(.contexto-rank-row, .contexto-last-guess) > :is(em, small) {
+  color: var(--sketch-ink);
+}
+.contexto-stage .contexto-last-guess[data-status="not_in_pool"] {
+  --track: color-mix(in oklab, var(--palette-rank-cold) 45%, var(--palette-white));
+}
+.contexto-stage .contexto-last-guess[data-status="not_in_pool"] > b {
+  color: var(--sketch-ink);
+}
+
+/* Rival and spectator rank pills: a full pastel chip with an ink ring. */
+.contexto-stage .contexto-rival .contexto-rank-row::before {
+  width: 100%;
+}
+.contexto-stage .contexto-rival .contexto-rank-row::after {
+  display: none;
+}
+
+/* Guesses left: sun cells for guesses remaining, paper for spent ones, all inked. */
+.contexto-meter-track {
+  gap: var(--space-2);
+}
+.contexto-meter-track i {
+  height: var(--space-12);
+  border-radius: var(--space-2);
+  background: var(--sketch-paper);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.contexto-meter-track i[data-left] {
+  background: var(--palette-sun);
+}
+.contexto-meter[data-low] .contexto-meter-track i[data-left] {
+  background: var(--palette-rank-cold);
+}
+.contexto-meter-track {
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+}
+
+/* The reveal: flat hot ink, no gloss, a thick ink ring. */
+.contexto-stage .contexto-secret {
+  background: var(--palette-rank-hot);
+  box-shadow: inset 0 0 0 var(--stroke-4) var(--sketch-ink);
+  color: var(--sketch-ink);
+}
+.contexto-stage .contexto-secret::before {
+  display: none;
+}
+
+/* Per-player guess counts in replays and streams become paper chips. */
+.contexto-stage .contexto-guess-count {
+  background: var(--sketch-paper);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+  color: var(--sketch-ink);
+}
+
+/* The shared input only gets a heavier pencil line inside Contexto. */
+.contexto-form .ui-input {
+  border-width: var(--stroke-2);
+  border-color: var(--doodle-ink);
+}
+.contexto-form .ui-input:focus {
+  border-color: var(--focus);
+}

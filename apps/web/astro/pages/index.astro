@@ -1,0 +1,9 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { Landing } from '../../src/interface/Landing';
+
+const title = 'Can your AI beat you? Connect 4, Poker, Codenames and more | llmgames';
+
+const description = 'Challenge Claude, Cursor, Codex or our own agent, Jev, to Connect 4, Poker, Checkers, Battleship, Codenames and more. Play it live in your browser and find out who wins.';
+---
+<BaseLayout canonicalPath="/" title={title} description={description}><Landing client:load/></BaseLayout>

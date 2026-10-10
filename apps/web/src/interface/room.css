@@ -1,0 +1,451 @@
+/* Room entry, loading, and in-match notices. The game arrives as a dark art
+   banner; the settings below are grey pill tracks with one ink Create pill. */
+
+.site-content:has(> .room-stage) {
+  max-width: none;
+  padding: var(--space-0);
+}
+.room-stage {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-height: calc(100dvh - var(--bar-height));
+  background: var(--stage);
+  color: var(--text);
+}
+
+/* Entry */
+.room-entry-layout {
+  display: grid;
+  gap: var(--space-24);
+  width: 100%;
+  max-width: var(--content-max);
+  margin: var(--space-0) auto;
+  padding: var(--space-24) var(--space-gutter) var(--space-64);
+}
+
+/* Banner: the library card, grown up. */
+.room-entry-game-summary {
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  display: grid;
+  justify-items: start;
+  align-content: end;
+  gap: var(--space-12);
+  min-height: 340px;
+  padding: var(--space-40) var(--space-40) var(--space-64);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--palette-g900);
+  color: var(--text);
+}
+:root[data-theme="dark"] .room-entry-game-summary {
+  background: var(--palette-g850);
+}
+.room-entry-game-summary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: radial-gradient(
+    55% 80% at 80% 100%,
+    color-mix(in oklab, var(--game) 42%, var(--palette-clear)),
+    var(--palette-clear) 72%
+  );
+}
+.room-entry-game-summary > .game-glyph {
+  position: absolute;
+  z-index: -1;
+  right: 2%;
+  bottom: -10%;
+  width: min(42%, 480px);
+}
+.room-entry-mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+.room-entry-meta {
+  padding: var(--space-6) var(--space-12);
+  border-radius: var(--radius-pill);
+  background: var(--palette-white-08);
+  color: var(--text-muted);
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+.room-entry-game-summary h1 {
+  max-width: min(100%, 52cqw);
+  margin-top: var(--space-8);
+  font-size: var(--type-display);
+  line-height: var(--leading-none);
+  text-wrap: balance;
+}
+.room-entry-lead {
+  max-width: min(34ch, 48cqw);
+  color: var(--text-muted);
+  font-size: var(--type-lead);
+  font-weight: 500;
+  line-height: var(--leading-snug);
+}
+
+/* Settings */
+.room-entry-settings {
+  display: grid;
+  align-content: start;
+  gap: var(--space-24);
+  min-width: 0;
+  padding: var(--space-32);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.room-create-form {
+  display: grid;
+  gap: var(--space-24);
+}
+.room-choice-group {
+  min-width: 0;
+  margin: var(--space-0);
+  padding: var(--space-0);
+  border: 0;
+}
+.room-choice-group > legend {
+  margin-bottom: var(--space-12);
+  padding: var(--space-0);
+  font-size: var(--type-lead);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+/* One grey pill track; the ink fill slides between options. */
+.room-pace-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-4);
+  max-width: 520px;
+  padding: var(--space-4);
+  border-radius: var(--radius-pill);
+  --doodle-fill: var(--surface-2);
+}
+.room-choice {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  height: 52px;
+  padding: var(--space-0);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--palette-clear);
+  color: var(--text-muted);
+  font-size: var(--type-lead);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition:
+    color var(--dur-2),
+    background-color var(--dur-2);
+}
+.room-choice:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.room-choice:active .room-choice-label {
+  scale: 0.92;
+}
+.room-choice:focus-visible {
+  outline: var(--stroke-2) solid var(--focus);
+  outline-offset: var(--space-2);
+}
+.room-choice-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.room-choice-label {
+  position: relative;
+  transition:
+    color var(--dur-2),
+    scale var(--dur-1);
+}
+.room-choice[aria-pressed="true"],
+.room-choice[aria-pressed="true"] .room-choice-label {
+  color: var(--accent-text);
+}
+
+.room-create-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12) var(--space-20);
+  margin-top: var(--space-8);
+}
+.room-create-button.ui-button {
+  min-height: 64px;
+  padding: var(--space-0) var(--space-24) var(--space-0) var(--space-32);
+  font-size: var(--type-title);
+}
+.room-opponent-help {
+  max-width: 32ch;
+  color: var(--text-muted);
+  font-size: var(--type-small);
+  font-weight: 500;
+}
+
+.room-join-form {
+  display: grid;
+  gap: var(--space-12);
+  padding-top: var(--space-24);
+  border-top: var(--stroke-1) solid var(--line);
+}
+.room-join-form > label {
+  font-size: var(--type-lead);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+.room-join-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 360px) auto;
+  gap: var(--space-8);
+}
+.room-join-form .ui-input {
+  min-height: 60px;
+  padding: var(--space-0) var(--space-24);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-family: var(--font-pixel);
+  font-size: var(--type-title);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.room-join-form .ui-input::placeholder {
+  color: var(--text-faint);
+  letter-spacing: 0.12em;
+}
+.room-join-form .ui-input:focus {
+  box-shadow: 0 0 0 var(--stroke-2) var(--focus);
+}
+.room-join-controls .ui-button {
+  min-height: 60px;
+  padding: var(--space-0) var(--space-24);
+  font-size: var(--type-lead);
+}
+
+/* Rules */
+.room-entry-rules {
+  align-self: start;
+  min-width: 0;
+  padding: var(--space-32);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.room-entry-rules h2 {
+  margin-bottom: var(--space-20);
+  font-size: var(--type-title);
+}
+.room-entry-rules ol {
+  display: grid;
+  gap: var(--space-16);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+.room-entry-rules li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-12);
+  color: var(--text-muted);
+  font-size: var(--type-body);
+  line-height: var(--leading-snug);
+}
+.room-entry-rules li strong {
+  color: var(--text);
+  font-weight: 700;
+}
+.room-rule-number {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--type-lead);
+}
+
+.room-unavailable {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-12);
+  color: var(--text-muted);
+}
+.room-connection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-12);
+  min-height: 220px;
+  color: var(--text-muted);
+}
+.room-connection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-10);
+}
+.room-entry-settings > .ui-loader {
+  align-items: flex-start;
+  min-height: 220px;
+  justify-content: center;
+}
+
+@media (min-width: 960px) {
+  .room-entry-layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+    padding-top: var(--space-32);
+  }
+  .room-entry-game-summary {
+    grid-column: 1 / -1;
+  }
+  .room-entry-settings {
+    grid-column: 1;
+  }
+  .room-entry-rules {
+    grid-column: 2;
+    position: sticky;
+    top: calc(var(--bar-height) + var(--space-16));
+  }
+}
+@media (max-width: 600px) {
+  .room-entry-layout {
+    gap: var(--space-16);
+    padding-top: var(--space-16);
+  }
+  .room-entry-game-summary {
+    min-height: 0;
+    align-content: start;
+    padding: var(--space-24) var(--space-24) 64cqw;
+    border-radius: var(--radius-lg);
+  }
+  .room-entry-game-summary > .game-glyph {
+    width: 92%;
+    right: -4%;
+    bottom: -6%;
+  }
+  .room-entry-game-summary h1 {
+    max-width: 100%;
+  }
+  .room-entry-lead {
+    max-width: 100%;
+    font-size: var(--type-body);
+  }
+  .room-entry-settings,
+  .room-entry-rules {
+    padding: var(--space-20);
+    border-radius: var(--radius-lg);
+  }
+  .room-choice {
+    height: 44px;
+    font-size: var(--type-body);
+  }
+  .room-create-button.ui-button {
+    width: 100%;
+  }
+  .room-join-controls {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+/* Loading */
+.room-loading {
+  display: grid;
+  place-items: center;
+  padding: var(--space-16) var(--space-gutter);
+}
+.room-loading .ui-loading-panel {
+  margin: var(--space-0);
+  background: var(--surface);
+}
+.room-loading-note {
+  color: var(--text-muted);
+  font-size: var(--type-small);
+}
+.room-loading .ui-loading-actions {
+  flex-direction: column;
+  align-items: center;
+}
+
+.room-error {
+  padding: var(--space-10) var(--space-16);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--danger) 14%, var(--surface));
+  color: var(--danger-ink);
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+.room-entry-settings > .room-error {
+  justify-self: start;
+}
+
+/* In-match notices float over the board */
+.room-match-notices {
+  position: absolute;
+  z-index: 45;
+  top: var(--space-8);
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-8);
+  width: max-content;
+  max-width: calc(100% - 16px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.room-match-notices:empty {
+  display: none;
+}
+.room-match-notices > * {
+  pointer-events: auto;
+  animation: drop-in var(--dur-3) var(--ease-snap) both;
+  --drop-from: -1;
+}
+.room-match-notices .room-error {
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.room-reconnect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-10);
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  font-size: var(--type-small);
+}
+
+/* Host and replay controls (options menu, replay dock, or result). */
+.room-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+.room-controls:empty {
+  display: none;
+}
+.room-controls > label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  font-family: var(--font-code);
+  font-size: var(--type-caption);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,209 @@
+/* Motion language: things fade and rise in, move in short stepped snaps,
+   and confirm with a one-shot dithered scan. Dither is kept for those
+   deliberate moments (and button hovers), never for routine entrances. */
+
+@keyframes pixel-rise {
+  from {
+    translate: 0 calc(var(--px) * 3);
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes pixel-drop {
+  from {
+    translate: 0 calc(var(--px) * -3);
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes pixel-pop {
+  0% {
+    scale: 0.86;
+  }
+  60% {
+    scale: 1.04;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes shake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  20% {
+    translate: calc(var(--px) * -2) 0;
+  }
+  40% {
+    translate: calc(var(--px) * 2) 0;
+  }
+  60% {
+    translate: calc(var(--px) * -1) 0;
+  }
+  80% {
+    translate: var(--px) 0;
+  }
+}
+/* Legacy names kept for game components; all are stepped and use the
+   individual translate/scale properties so they never fight centering transforms. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 calc(var(--px) * 3);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    scale: 0.8;
+  }
+  60% {
+    opacity: 1;
+    scale: 1.04;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes drop-in {
+  from {
+    translate: 0 calc(var(--drop-from, -6) * 100%);
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    translate: 0 100%;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes flip-in {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+/* Geist Pixel morphs its cells from round dots to squares. */
+@keyframes elsh-settle {
+  from {
+    font-variation-settings: "ELSH" 100;
+  }
+  to {
+    font-variation-settings: "ELSH" 0;
+  }
+}
+/* A dithered band that sweeps once across an element. */
+@keyframes scan-sweep {
+  from {
+    background-position: -60% 0;
+  }
+  to {
+    background-position: 160% 0;
+  }
+}
+
+.enter {
+  animation: rise-in var(--dur-4) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.enter-pop {
+  animation: pixel-pop var(--dur-3) var(--ease-snap) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.reveal,
+.reveal-fade {
+  animation: fade-in var(--dur-4) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.reveal-pop {
+  animation: pixel-pop var(--dur-3) var(--ease-snap) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.settle {
+  animation: elsh-settle var(--dur-5) var(--ease-out) both;
+}
+.is-shaking {
+  animation: shake 320ms steps(5, end);
+}
+
+/* One-shot scan used for confirmations and turn hand-offs. Add the class, then remove it. */
+.scan {
+  position: relative;
+  overflow: hidden;
+}
+.scan::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+      90deg,
+      var(--palette-clear) 0 40%,
+      var(--signal) 40% 60%,
+      var(--palette-clear) 60%
+    )
+    0 0 / 50% 100% no-repeat;
+  -webkit-mask: var(--bayer-6) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  mask: var(--bayer-6) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  animation: scan-sweep var(--dur-5) var(--ease-in-out) both;
+}
+
+::view-transition-old(root) {
+  animation: fade-in var(--dur-2) linear reverse both;
+}
+::view-transition-new(root) {
+  animation: fade-in var(--dur-3) linear both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter,
+  .enter-pop,
+  .reveal,
+  .reveal-fade,
+  .reveal-pop,
+  .settle,
+  .scan::after {
+    animation: none;
+    -webkit-mask: none;
+    mask: none;
+  }
+  /* The global rule uses *, which does not match view-transition pseudo-elements. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

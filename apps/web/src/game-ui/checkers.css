@@ -1,0 +1,570 @@
+/* Checkers: a parlour board in clean pastel finishes. Smooth maple and
+   walnut squares sit inside a polished walnut frame; the men you play with
+   are ebony and ivory pieces with milled edges and a soft shade as the
+   accent, and kings wear a pixel gold crown. Captions and the captured-piece
+   tray are monochrome chrome. */
+
+.checkers-stage {
+  --sq-light: var(--palette-maple);
+  --sq-light-grain: var(--palette-maple-deep);
+  --sq-dark: var(--palette-walnut);
+  --sq-dark-grain: var(--palette-walnut-deep);
+  --frame-wood: var(--palette-walnut-deep);
+  --frame-grain: var(--palette-walnut);
+  --frame-shade: color-mix(in oklab, var(--palette-walnut-deep) 60%, var(--palette-black));
+  --frame-shine: color-mix(in oklab, var(--palette-walnut) 70%, var(--palette-maple));
+  --mark: var(--palette-grass);
+  --mark-capture: var(--palette-tangerine);
+  --caption-h: 0px;
+  --tray-w: 0px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4);
+  container-type: size;
+}
+.checkers-stage[data-readonly="false"] {
+  --caption-h: calc(var(--control) + var(--space-16));
+}
+@container (min-aspect-ratio:23/20) and (min-height:420px) {
+  .checkers-stage[data-scored="true"] .checkers-fit {
+    --tray-w: calc(200px + var(--space-24));
+  }
+}
+.checkers-fit {
+  --side: min(100cqh - var(--caption-h), 100cqw - var(--tray-w), 920px);
+  --u: calc(var(--side) / 100);
+  --cell: calc(var(--u) * 11);
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-16);
+}
+.checkers-table {
+  display: flex;
+  align-items: center;
+  gap: var(--space-24);
+}
+
+/* Frame: thick walnut with grain, a bevel catching light on the top-left. */
+.checkers-frame {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: calc(var(--u) * 6) minmax(0, 1fr) calc(var(--u) * 6);
+  grid-template-rows: calc(var(--u) * 6) minmax(0, 1fr) calc(var(--u) * 6);
+  width: var(--side);
+  aspect-ratio: 1;
+  border-radius: calc(var(--u) * 3);
+  background: var(--frame-wood);
+  box-shadow:
+    inset 0 calc(var(--u) * 0.5) 0 color-mix(in oklab, var(--frame-shine) 55%, var(--palette-clear)),
+    inset 0 calc(var(--u) * -0.6) 0
+      color-mix(in oklab, var(--frame-shade) 80%, var(--palette-clear)),
+    0 calc(var(--u) * 1.2) 0 var(--frame-shade),
+    0 calc(var(--u) * 3) calc(var(--u) * 5) calc(var(--u) * -2) var(--palette-black-30);
+}
+.checkers-frame::before,
+.checkers-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* Long grain streaks running around the frame. */
+.checkers-frame::before {
+  background: repeating-linear-gradient(
+    88deg,
+    color-mix(in oklab, var(--frame-grain) 55%, var(--palette-clear)) 0 calc(var(--u) * 0.4),
+    var(--palette-clear) calc(var(--u) * 0.4) calc(var(--u) * 2.1),
+    color-mix(in oklab, var(--frame-shade) 40%, var(--palette-clear)) calc(var(--u) * 2.1)
+      calc(var(--u) * 2.35),
+    var(--palette-clear) calc(var(--u) * 2.35) calc(var(--u) * 3.8)
+  );
+}
+/* Varnish sheen across the upper face. */
+.checkers-frame::after {
+  background: linear-gradient(
+    158deg,
+    color-mix(in oklab, var(--frame-shine) 30%, var(--palette-clear)) 0,
+    var(--palette-clear) 45%
+  );
+}
+.checkers-ranks,
+.checkers-files {
+  display: flex;
+  font-family: var(--font-pixel);
+  font-size: clamp(var(--type-micro), calc(var(--u) * 2.6), var(--type-title));
+  font-weight: 500;
+  line-height: var(--leading-none);
+  color: var(--palette-g150);
+  user-select: none;
+}
+.checkers-ranks {
+  grid-column: 1;
+  grid-row: 2;
+  flex-direction: column;
+}
+.checkers-files {
+  grid-column: 2;
+  grid-row: 3;
+}
+.checkers-ranks > span,
+.checkers-files > span {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+.checkers-board {
+  position: relative;
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: calc(var(--u) * 0.6);
+  box-shadow: 0 0 0 calc(var(--u) * 0.5) var(--frame-shade);
+}
+
+/* Squares with smooth grain streaks; alternate rows turn the grain so it reads as inlay. */
+.checkers-cell {
+  --sq: var(--sq-light);
+  --grain: var(--sq-light-grain);
+  --grain-angle: 92deg;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: var(--space-0);
+  border: 0;
+  border-radius: 0;
+  background: var(--sq);
+  color: inherit;
+}
+.checkers-cell[data-dark="true"] {
+  --sq: var(--sq-dark);
+  --grain: var(--sq-dark-grain);
+}
+.checkers-cell:is([data-row="1"], [data-row="3"], [data-row="5"], [data-row="7"]) {
+  --grain-angle: 2deg;
+}
+.checkers-cell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      var(--grain-angle),
+      color-mix(in oklab, var(--grain) 45%, var(--palette-clear)) 0 calc(var(--u) * 0.3),
+      var(--palette-clear) calc(var(--u) * 0.3) calc(var(--u) * 1.1),
+      color-mix(in oklab, var(--grain) 30%, var(--palette-clear)) calc(var(--u) * 1.1)
+        calc(var(--u) * 1.5),
+      var(--palette-clear) calc(var(--u) * 1.5) calc(var(--u) * 2.6)
+    ),
+    linear-gradient(
+      calc(var(--grain-angle) + 90deg),
+      color-mix(in oklab, var(--palette-white) 10%, var(--palette-clear)) 0,
+      var(--palette-clear) 60%
+    );
+}
+/* Burst used by the capture animation (pseudoElement ::after). */
+.checkers-cell::after {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    var(--palette-clear) 0 52%,
+    var(--palette-sun) 52% 70%,
+    var(--palette-tomato) 70% 100%
+  );
+  opacity: 0;
+}
+.checkers-cell:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.checkers-cell:is([data-last-move="true"], [data-last-from="true"]) {
+  background: color-mix(in oklab, var(--sq) 66%, var(--palette-sun));
+}
+.checkers-cell[data-last-from="true"] {
+  box-shadow: inset 0 0 0 calc(var(--u) * 0.6)
+    color-mix(in oklab, var(--palette-sun) 70%, var(--palette-clear));
+}
+.checkers-cell:focus-visible {
+  outline: var(--stroke-3) solid var(--palette-white);
+  outline-offset: calc(var(--stroke-3) * -1);
+  z-index: 4;
+}
+
+/* Men: an ebony or ivory face with a milled edge, a turned groove and a
+   soft shade, standing on two hard edges that read as thickness. */
+.checker-piece {
+  --face: var(--palette-ebony);
+  --face-hi: var(--palette-ebony-light);
+  --edge: var(--palette-black);
+  --edge-2: color-mix(in oklab, var(--palette-black) 70%, var(--palette-walnut-deep));
+  --shade: var(--palette-black);
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 76%;
+  height: 76%;
+  translate: 0 calc(var(--u) * -0.6);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, var(--face-hi) 0 18%, var(--palette-clear) 18.5%),
+    var(--face);
+  box-shadow:
+    0 calc(var(--u) * 0.6) 0 var(--edge),
+    0 calc(var(--u) * 1.1) 0 var(--edge-2),
+    0 calc(var(--u) * 1.4) 0 var(--palette-black-30);
+  transition:
+    translate var(--dur-2) var(--ease-snap),
+    scale var(--dur-2) var(--ease-snap);
+}
+.checker-white {
+  --face: var(--palette-ivory);
+  --face-hi: var(--palette-white);
+  --edge: var(--palette-ivory-deep);
+  --edge-2: color-mix(in oklab, var(--palette-ivory-deep) 60%, var(--palette-walnut-deep));
+  --shade: var(--palette-ivory-deep);
+}
+/* Milled edge */
+.checker-piece::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-conic-gradient(var(--edge) 0 7deg, var(--palette-clear) 7deg 15deg);
+  opacity: 0.85;
+  -webkit-mask: radial-gradient(
+    circle closest-side,
+    var(--palette-clear) 0 84%,
+    var(--palette-ink) 85%
+  );
+  mask: radial-gradient(circle closest-side, var(--palette-clear) 0 84%, var(--palette-ink) 85%);
+}
+.checker-black::before {
+  background: repeating-conic-gradient(var(--face-hi) 0 7deg, var(--palette-clear) 7deg 15deg);
+}
+/* Soft shade on the lower right */
+.checker-piece::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--shade);
+  opacity: 0.21;
+  -webkit-mask: radial-gradient(
+    circle at 38% 32%,
+    var(--palette-clear) 0 58%,
+    var(--palette-ink) 59%
+  );
+  mask: radial-gradient(circle at 38% 32%, var(--palette-clear) 0 58%, var(--palette-ink) 59%);
+}
+.checker-ring {
+  position: relative;
+  width: 58%;
+  height: 58%;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 calc(var(--u) * 0.35) 0 var(--edge),
+    0 calc(var(--u) * 0.3) 0 var(--face-hi);
+}
+.checker-white .checker-ring {
+  box-shadow:
+    inset 0 calc(var(--u) * 0.35) 0 var(--edge),
+    0 calc(var(--u) * 0.3) 0 var(--palette-white);
+}
+.checker-crown {
+  position: relative;
+  z-index: 1;
+  width: 56%;
+  height: 56%;
+  fill: var(--palette-crown);
+  shape-rendering: crispEdges;
+  filter: drop-shadow(0 calc(var(--u) * 0.35) 0 var(--palette-sun-deep));
+}
+
+/* Turn states: movable men lift on hover; the selected or forced man rises
+   off the board; destinations glow with a clean green ring. */
+.checkers-cell[data-source="true"] {
+  cursor: pointer;
+}
+.checkers-cell[data-source="true"]:hover .checker-piece {
+  translate: 0 calc(var(--u) * -1.2);
+}
+.checkers-board[data-must-capture="true"] .checkers-cell[data-source="true"] .checker-piece {
+  outline: calc(var(--u) * 0.6) solid var(--mark-capture);
+  outline-offset: calc(var(--u) * 0.5);
+  animation: checkers-must 900ms steps(2, end) infinite;
+}
+.checkers-cell[data-selected="true"] .checker-piece,
+.checkers-cell[data-selected="true"]:hover .checker-piece {
+  translate: 0 calc(var(--u) * -1.8);
+  scale: 1.06;
+  box-shadow:
+    0 calc(var(--u) * 0.6) 0 var(--edge),
+    0 calc(var(--u) * 1.1) 0 var(--edge-2),
+    0 calc(var(--u) * 2.6) 0 var(--palette-black-30);
+}
+.checkers-cell[data-selected="true"]::before {
+  background: var(--palette-white);
+  opacity: 0.3;
+}
+.checkers-cell[data-forced="true"] .checker-piece {
+  outline: calc(var(--u) * 0.6) solid var(--palette-sun);
+  outline-offset: calc(var(--u) * 0.5);
+}
+.checkers-cell[data-source="true"]:active .checker-piece {
+  translate: 0 0;
+}
+@keyframes checkers-must {
+  50% {
+    outline-offset: calc(var(--u) * 1);
+  }
+}
+
+.checkers-cell[data-destination="true"] {
+  cursor: pointer;
+}
+.checker-destination {
+  position: relative;
+  z-index: 1;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    var(--mark) 0 16%,
+    var(--palette-clear) 18% 58%,
+    color-mix(in oklab, var(--mark) 85%, var(--palette-clear)) 62%,
+    var(--mark) 68% 76%,
+    var(--palette-clear) 78%
+  );
+  animation: pop-in var(--dur-2) steps(3, end) both;
+  transition: scale var(--dur-2) steps(3, end);
+}
+.checkers-cell[data-capture="true"] .checker-destination {
+  background: radial-gradient(
+    circle closest-side,
+    var(--mark-capture) 0 24%,
+    var(--palette-clear) 26% 55%,
+    color-mix(in oklab, var(--mark) 85%, var(--palette-clear)) 60%,
+    var(--mark-capture) 66% 76%,
+    var(--palette-clear) 78%
+  );
+}
+.checkers-cell[data-destination="true"]::before {
+  background: radial-gradient(
+    circle closest-side,
+    var(--palette-clear) 0 55%,
+    color-mix(in oklab, var(--mark) 40%, var(--palette-clear)) 100%
+  );
+}
+.checkers-cell[data-destination="true"]:is(:hover, :focus-visible) .checker-destination {
+  scale: 1.12;
+}
+
+/* Captured tray: two piles of taken men, counted in pixel numbers. */
+.checkers-tray {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-16);
+  width: 200px;
+  align-self: stretch;
+}
+@container (min-aspect-ratio:23/20) and (min-height:420px) {
+  .checkers-stage[data-scored="true"] .checkers-tray {
+    display: flex;
+  }
+}
+.checkers-captured {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: end;
+  gap: var(--space-8) var(--space-12);
+  padding: var(--space-20);
+  border-radius: var(--radius-xl);
+  background: var(--surface-2);
+}
+.checkers-captured-label {
+  grid-column: 1 / -1;
+  font-size: var(--type-caption);
+  font-weight: 650;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.checkers-captured strong {
+  grid-column: 2;
+  grid-row: 2;
+  font-family: var(--font-pixel);
+  font-size: var(--type-display);
+  font-weight: 500;
+  line-height: var(--leading-none);
+  font-variant-numeric: tabular-nums;
+}
+.checkers-captured-stack {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  min-height: var(--control-xl);
+  padding-top: var(--space-12);
+}
+/* Men seen edge-on, piled into a short tower. */
+.checkers-captured-man {
+  --face: var(--palette-ebony-light);
+  --edge: var(--palette-ebony);
+  display: block;
+  width: var(--control-lg);
+  height: var(--space-12);
+  margin-top: calc(var(--space-4) * -1);
+  border-radius: var(--radius-pill);
+  background: var(--face);
+  box-shadow: 0 var(--space-4) 0 var(--edge);
+}
+.checkers-captured-man:nth-child(even) {
+  translate: var(--space-2) 0;
+}
+.checkers-captured-man.checker-white {
+  --face: var(--palette-ivory);
+  --edge: var(--palette-ivory-deep);
+}
+.checkers-captured-man[data-taken="false"] {
+  --face: var(--surface-3);
+  --edge: var(--line-strong);
+  opacity: 0.6;
+}
+
+/* Caption: a monochrome pill under the board. */
+.checkers-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control);
+  max-width: 100%;
+  margin: var(--space-0);
+  padding: var(--space-0) var(--space-24);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--type-lead);
+  font-weight: 650;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-snug);
+  text-align: center;
+}
+.checkers-board[data-must-capture="true"] ~ .checkers-caption,
+.checkers-fit:has([data-must-capture="true"], [data-forced="true"]) .checkers-caption {
+  background: var(--invert);
+  color: var(--invert-text);
+}
+.checkers-caption[data-empty="true"] {
+  visibility: hidden;
+}
+.checkers-stage[data-readonly="true"] .checkers-caption {
+  display: none;
+}
+
+:is(.result-board, .spec-board) .checkers-tray {
+  display: none !important;
+}
+.result-board .checkers-fit {
+  --side: min(96cqw, 100cqh - var(--space-12));
+  --caption-h: 0px;
+}
+.spec-board .checkers-fit {
+  --side: min(320px, 80vw);
+  --caption-h: 0px;
+}
+:is(.result-board, .spec-board) .checkers-caption {
+  display: none;
+}
+
+/* Desk: plates stack in a side column left of the board on wide screens. */
+@media (min-width: 1000px) and (min-height: 501px) {
+  .match-desk[data-game="checkers"]:not([data-phase="waiting"]) .desk-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) minmax(
+        0,
+        calc(100dvh - var(--desk-bar-height) + 120px)
+      );
+    grid-template-rows: minmax(0, 1fr) auto;
+    justify-content: center;
+    gap: var(--space-16) var(--space-32);
+  }
+  .match-desk[data-game="checkers"]:not([data-phase="waiting"]) .desk-players {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-12);
+    overflow: visible;
+  }
+  .match-desk[data-game="checkers"]:not([data-phase="waiting"]) .desk-play {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .match-desk[data-game="checkers"]:not([data-phase="waiting"]) .desk-replay-controls {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .match-desk[data-game="checkers"] .desk-players > .desk-player {
+    flex: none;
+    min-height: 96px;
+    padding: var(--space-16) var(--space-20) var(--space-20) var(--space-16);
+  }
+}
+
+.match-desk[data-stream="true"] .checkers-caption {
+  font-size: var(--type-title);
+}
+
+@media (max-width: 650px) {
+  .checkers-stage[data-readonly="false"] {
+    --caption-h: calc(var(--control-sm) + var(--space-12));
+  }
+  .checkers-fit {
+    gap: var(--space-10);
+  }
+  .checkers-caption {
+    min-height: var(--control-sm);
+    padding: var(--space-0) var(--space-16);
+    font-size: var(--type-body);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checker-destination,
+  .checkers-board[data-must-capture="true"] .checkers-cell[data-source="true"] .checker-piece {
+    animation: none;
+  }
+  .checker-piece,
+  .checker-destination {
+    transition: none;
+  }
+}

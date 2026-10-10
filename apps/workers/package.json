@@ -1,0 +1,34 @@
+{
+  "name": "@llmgames/workers",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "predev": "pnpm --filter @llmgames/game-catalog build",
+    "dev": "wrangler dev --config wrangler.json --port 6787 --persist-to .wrangler/state",
+    "build": "wrangler deploy --dry-run --config wrangler.json --outdir dist/worker",
+    "deploy": "wrangler deploy --config wrangler-prod.json",
+    "deploy:prod": "wrangler deploy --config wrangler-prod.json",
+    "db:migrate": "wrangler d1 migrations apply llmgames-online-db --local --config wrangler.json",
+    "db:migrate:prod": "wrangler d1 migrations apply llmgames-online-db --remote --config wrangler-prod.json",
+    "test": "vitest run --maxWorkers=2",
+    "lint": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.production.json --noEmit",
+    "cf:check": "wrangler deploy --dry-run --config wrangler.json"
+  },
+  "dependencies": {
+    "@llmgames/game-catalog": "*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@pkmn/randoms": "0.10.11",
+    "@pkmn/sim": "0.10.11",
+    "hono": "^4.13.5",
+    "obscenity": "^0.4.6",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260917.1",
+    "@types/node": "^24.13.3",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.11",
+    "wrangler": "4.146.0"
+  }
+}

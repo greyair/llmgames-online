@@ -1,0 +1,55 @@
+[
+  {
+    "slot": 1,
+    "name": "Super Fang",
+    "type": "Normal",
+    "category": "Physical",
+    "power": 1,
+    "accuracy": 90,
+    "pp": 10,
+    "maxpp": 10,
+    "disabled": false,
+    "description": "Damage = 1/2 target's current HP. Hits Ghosts.",
+    "fullDescription": "Deals damage to the target equal to half of its current HP, rounded down, but not less than 1 HP. This move ignores type immunity.",
+    "damage": "Half the target’s current HP"
+  },
+  {
+    "slot": 2,
+    "name": "Leech Seed",
+    "type": "Grass",
+    "category": "Status",
+    "power": 0,
+    "accuracy": 90,
+    "pp": 10,
+    "maxpp": 10,
+    "disabled": false,
+    "description": "1/16 of target's HP is restored to user every turn.",
+    "fullDescription": "At the end of each of the target's turns, The Pokemon at the user's position steals 1/16 of the target's maximum HP, rounded down and multiplied by the target's current Toxic counter if it has one, even if the target currently has less than that amount of HP remaining. If the target switches out or any Pokemon uses Haze, this effect ends. Grass-type Pokemon are immune to this move."
+  },
+  {
+    "slot": 3,
+    "name": "Confuse Ray",
+    "type": "Ghost",
+    "category": "Status",
+    "power": 0,
+    "accuracy": 100,
+    "pp": 10,
+    "maxpp": 10,
+    "disabled": false,
+    "description": "Confuses the target.",
+    "fullDescription": "Causes the target to become confused."
+  },
+  {
+    "slot": 4,
+    "name": "Rest",
+    "type": "Psychic",
+    "category": "Status",
+    "power": 0,
+    "accuracy": true,
+    "pp": 10,
+    "maxpp": 10,
+    "disabled": false,
+    "description": "User sleeps 2 turns and restores HP and status.",
+    "fullDescription": "The user falls asleep for the next two turns and restores all of its HP, curing itself of any non-volatile status condition in the process. This does not remove the user's stat penalty for burn or paralysis. Fails if the user has full HP."
+  }
+]

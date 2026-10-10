@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import App from '../../src/App';
+import {LoadingPanel} from '../../src/components/ui/loading-panel';
+import { Setup, PublicWatch, LegalPage, GameInfo } from '../../src/interface/PublicPages';
+import { Library } from '../../src/interface/Library';
+import { AiSpec } from '../../src/interface/AiSpec';
+import { pageMetadata, STATIC_PAGE_PATHS } from '../../src/lib/siteMetadata';
+
+const path=Astro.params.path??'';
+
+// Account pages share one persisted React app, so moving between them keeps
+// state and cached data instead of remounting. Rooms stay per-page.
+const accountPage=['agent-log','history','profile','login','onboarding','series'].includes(path);
+
+export function getStaticPaths() {
+ return STATIC_PAGE_PATHS.map(path => ({ params: { path } }));
+}
+---
+<BaseLayout {...pageMetadata(path)}>
+{path==='ai-spec'?<AiSpec client:load/>:path==='play'?<Library client:load/>:path==='watch'?<PublicWatch client:load/>:path==='setup'||path==='connect-ai'?<Setup client:load/>:path==='privacy'||path==='terms'?<LegalPage kind={path} client:load/>:path.startsWith('games/')?<GameInfo id={path.slice(6)} client:load/>:accountPage?<App client:only="react" transition:persist="account-app"><main slot="fallback" class="site-content"><LoadingPanel label="Loading…"/></main></App>:<App client:only="react"><main slot="fallback" class="site-content"><LoadingPanel label="Loading…"/></main></App>}
+</BaseLayout>

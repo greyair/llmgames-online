@@ -1,0 +1,122 @@
+/* codenames, drawn like the landing arcade. */
+/* Flat card stock with a thick ink outline, flat team tiles once revealed and
+   inked spymaster key tabs. The doodle filter on .words-board supplies the boil. */
+
+.word-workspace {
+  --ink-w: clamp(var(--stroke-2), 0.28cqw, var(--stroke-4));
+}
+
+/* Word cards ------------------------------------------------------- */
+.words-board {
+  padding-bottom: var(--space-0);
+}
+.words-board .word-card {
+  background: var(--card-face);
+  box-shadow: none;
+}
+.words-board .word-card::before {
+  display: none;
+}
+.word-workspace .words-board .word-card::after {
+  inset: 0;
+  z-index: 2;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  opacity: 1;
+  box-shadow: inset 0 0 0 var(--card-ink-w, var(--ink-w)) var(--sketch-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  pointer-events: none;
+}
+.words-board[data-guessing] .word-card:enabled:hover {
+  translate: 0 calc(var(--depth-1) * -1);
+  background: color-mix(in oklab, var(--palette-sun) 70%, var(--palette-white));
+  box-shadow: none;
+}
+.words-board[data-guessing] .word-card:enabled:active {
+  --card-ink-w: calc(var(--ink-w) * 1.6);
+  translate: 0 0;
+  box-shadow: none;
+}
+
+/* Spymaster key: flat corner tabs, each hemmed by an ink diagonal. */
+.words-board .word-card[data-revealed="false"]:not([data-team="hidden"]) {
+  --tab: clamp(var(--space-10), 14cqmin, var(--space-24));
+  background:
+    linear-gradient(
+        135deg,
+        var(--card-key) 0 var(--tab),
+        var(--sketch-ink) var(--tab) calc(var(--tab) + var(--ink-w)),
+        var(--palette-clear) 0
+      )
+      top left / 100% 100% no-repeat,
+    linear-gradient(
+        -45deg,
+        var(--card-key) 0 var(--tab),
+        var(--sketch-ink) var(--tab) calc(var(--tab) + var(--ink-w)),
+        var(--palette-clear) 0
+      )
+      bottom right / 100% 100% no-repeat,
+    var(--card-face);
+}
+
+/* Revealed agent tiles: the team's flat pastel, the word on a paper label. */
+.words-board .word-card[data-revealed="true"][data-team="red"] {
+  --art-shade: color-mix(in oklab, var(--palette-cn-red-deep) 55%, var(--palette-cn-red));
+}
+.words-board .word-card[data-revealed="true"][data-team="blue"] {
+  --art-shade: color-mix(in oklab, var(--palette-cn-blue-deep) 55%, var(--palette-cn-blue));
+}
+.words-board .word-card[data-revealed="true"][data-team="hidden"] {
+  --card-face: color-mix(in oklab, var(--palette-g300) 70%, var(--palette-white));
+}
+.words-board .word-card[data-revealed="true"] .word-card-word {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 max(var(--stroke-1), calc(var(--ink-w) * 0.7)) var(--sketch-ink);
+}
+/* The assassin is the one dark card; a paper ring keeps its edge visible on the dark table. */
+.words-board .word-card[data-revealed="true"][data-team="assassin"] {
+  box-shadow:
+    inset 0 0 0 var(--ink-w) var(--sketch-ink),
+    inset 0 0 0 calc(var(--ink-w) * 1.8) var(--palette-tomato);
+}
+
+/* Team benches ----------------------------------------------------- */
+.word-workspace .word-team::before {
+  top: 0;
+  height: auto;
+  background: color-mix(in oklab, var(--team) 16%, var(--palette-clear));
+}
+:root[data-theme="dark"] .word-workspace .word-team::before {
+  background: color-mix(in oklab, var(--team) 24%, var(--palette-clear));
+}
+.word-workspace .word-team-score {
+  background: var(--team);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+
+/* Clue tile -------------------------------------------------------- */
+.word-workspace .words-clue-tile {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.word-workspace .words-clue-tile > b {
+  background: var(--team);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+
+/* Team swatches beside the turn heading and the result. */
+.word-workspace .words-turn-heading > i,
+.word-workspace .words-result::before {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.word-workspace .words-result::before {
+  box-shadow:
+    inset 0 0 0 var(--stroke-2) var(--sketch-ink),
+    0 0 0 var(--stroke-1) var(--invert-text);
+}

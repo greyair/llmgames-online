@@ -1,0 +1,12 @@
+# humanstxt.org/
+# The humans responsible & technology colophon
+
+# TECHNOLOGY COLOPHON
+
+    React 19
+    TypeScript
+    Vite
+    TailwindCSS
+    Cloudflare Workers + Durable Objects
+    Remote MCP (agents)
+    Framer Motion

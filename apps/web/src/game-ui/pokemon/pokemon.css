@@ -1,0 +1,2173 @@
+/* Pokémon Gen 1 battle screen: a Game Boy Color battle, upscaled.
+   The battlefield, HP boxes, party balls, text box and effects are game art
+   in pastel overworld colors shaded with flat pastel tones,
+   like cartridge art. The move menu and party cards are monochrome chrome;
+   the official type color shows only as a chip and a solid stripe. */
+
+/* ── Native inks ──────────────────────────────────────────────────────── */
+.poke-workspace,
+.poke-status,
+.spec-pokemon,
+.poke-move-tooltip,
+.poke-detail-dialog {
+  --pk-ink: var(--palette-ink);
+  --pk-paper: var(--palette-white);
+  --pk-sky: var(--palette-pk-sky);
+  --pk-sky-deep: var(--palette-pk-sky-deep);
+  --pk-grass: var(--palette-pk-grass);
+  --pk-grass-deep: var(--palette-pk-grass-deep);
+  --pk-ground: var(--palette-pk-ground);
+  --pk-ground-deep: color-mix(in oklab, var(--palette-pk-ground) 62%, var(--palette-pk-grass-deep));
+  --pk-cloud: var(--palette-white);
+  --pk-hp-empty: color-mix(in oklab, var(--palette-ink) 14%, var(--palette-white));
+  --pk-ball: var(--palette-tomato);
+}
+/* Dusk over the same field in the dark theme. */
+:root[data-theme="dark"] :is(.poke-workspace, .spec-pokemon) {
+  --pk-sky: color-mix(in oklab, var(--palette-sky-deep) 62%, var(--palette-g900));
+  --pk-sky-deep: color-mix(in oklab, var(--palette-sky-deep) 38%, var(--palette-g950));
+  --pk-grass: color-mix(in oklab, var(--palette-pk-grass) 80%, var(--palette-g950));
+  --pk-grass-deep: color-mix(in oklab, var(--palette-pk-grass-deep) 70%, var(--palette-g950));
+  --pk-ground: color-mix(in oklab, var(--palette-pk-ground) 80%, var(--palette-g950));
+  --pk-ground-deep: color-mix(in oklab, var(--palette-pk-ground) 42%, var(--palette-g950));
+  --pk-cloud: color-mix(in oklab, var(--palette-white) 55%, var(--palette-pk-sky-deep));
+}
+
+/* ── Official type colors ─────────────────────────────────────────────── */
+:is(.poke-type-badge, .poke-move) {
+  --mon-type: var(--palette-type-normal);
+  --mon-type-ink: var(--palette-ink);
+}
+:is(.poke-type-badge, .poke-move)[data-type="fire"] {
+  --mon-type: var(--palette-type-fire);
+}
+:is(.poke-type-badge, .poke-move)[data-type="water"] {
+  --mon-type: var(--palette-type-water);
+}
+:is(.poke-type-badge, .poke-move)[data-type="electric"] {
+  --mon-type: var(--palette-type-electric);
+}
+:is(.poke-type-badge, .poke-move)[data-type="grass"] {
+  --mon-type: var(--palette-type-grass);
+}
+:is(.poke-type-badge, .poke-move)[data-type="ice"] {
+  --mon-type: var(--palette-type-ice);
+}
+:is(.poke-type-badge, .poke-move)[data-type="fighting"] {
+  --mon-type: var(--palette-type-fighting);
+  --mon-type-ink: var(--palette-white);
+}
+:is(.poke-type-badge, .poke-move)[data-type="poison"] {
+  --mon-type: var(--palette-type-poison);
+  --mon-type-ink: var(--palette-white);
+}
+:is(.poke-type-badge, .poke-move)[data-type="ground"] {
+  --mon-type: var(--palette-type-ground);
+}
+:is(.poke-type-badge, .poke-move)[data-type="flying"] {
+  --mon-type: var(--palette-type-flying);
+}
+:is(.poke-type-badge, .poke-move)[data-type="psychic"] {
+  --mon-type: var(--palette-type-psychic);
+}
+:is(.poke-type-badge, .poke-move)[data-type="bug"] {
+  --mon-type: var(--palette-type-bug);
+}
+:is(.poke-type-badge, .poke-move)[data-type="rock"] {
+  --mon-type: var(--palette-type-rock);
+}
+:is(.poke-type-badge, .poke-move)[data-type="ghost"] {
+  --mon-type: var(--palette-type-ghost);
+  --mon-type-ink: var(--palette-white);
+}
+:is(.poke-type-badge, .poke-move)[data-type="dragon"] {
+  --mon-type: var(--palette-type-dragon);
+  --mon-type-ink: var(--palette-white);
+}
+
+/* A type chip: the type's own color, like the cartridge's type labels. */
+.poke-type-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: var(--space-0) var(--space-8);
+  border-radius: var(--radius-xs);
+  background: var(--mon-type);
+  color: var(--mon-type-ink);
+  font: 700 var(--type-micro)/var(--leading-none) var(--font-ui);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── Workspace ────────────────────────────────────────────────────────── */
+.pokemon-stage.poke-workspace {
+  --poke-controls-h: calc(var(--space-80) * 2 + var(--space-12));
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  gap: var(--space-16);
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 380px);
+  grid-template-rows: minmax(0, 1fr) var(--poke-controls-h);
+  grid-template-areas: "field log" "controls log";
+  color: var(--text);
+}
+.poke-workspace > .poke-field {
+  grid-area: field;
+}
+.poke-workspace > .poke-controls,
+.poke-workspace > .poke-spectator-announcement {
+  grid-area: controls;
+}
+.poke-workspace > .poke-observer-sidebar {
+  grid-area: log;
+}
+.pokemon-stage.poke-workspace[data-spectating="true"] {
+  grid-template-columns: clamp(220px, 18vw, 280px) minmax(0, 1fr) clamp(220px, 18vw, 280px);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "left field right" "left controls right";
+}
+.poke-team-rail-left {
+  grid-area: left;
+}
+.poke-team-rail-right {
+  grid-area: right;
+}
+
+/* ── Battlefield: pastel sky over overworld grass ────────────── */
+.poke-field {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  container-type: size;
+  border-radius: var(--radius-xl);
+  background: var(--pk-grass);
+}
+.poke-sky {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 48%;
+  z-index: -2;
+  pointer-events: none;
+  background: var(--pk-sky);
+}
+/* The deeper pastel blue settles at the top in a soft fade. */
+.poke-sky::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--ramp-length);
+  background: var(--pk-sky-deep);
+  -webkit-mask: linear-gradient(var(--palette-ink), var(--palette-clear)) top / 100%
+    var(--ramp-length) no-repeat;
+  mask: linear-gradient(var(--palette-ink), var(--palette-clear)) top / 100% var(--ramp-length)
+    no-repeat;
+}
+/* Pixel clouds: hard ellipses as translucent pastel puffs. */
+.poke-sky::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 7% 9% at 14% 36%, var(--pk-cloud) 96%, var(--palette-clear) 100%),
+    radial-gradient(ellipse 9% 7% at 20% 42%, var(--pk-cloud) 96%, var(--palette-clear) 100%),
+    radial-gradient(ellipse 6% 7% at 26% 40%, var(--pk-cloud) 96%, var(--palette-clear) 100%),
+    radial-gradient(ellipse 6% 8% at 46% 58%, var(--pk-cloud) 96%, var(--palette-clear) 100%),
+    radial-gradient(ellipse 8% 6% at 51% 63%, var(--pk-cloud) 96%, var(--palette-clear) 100%);
+  opacity: 0.68;
+}
+/* Ground: grass rises into the sky through a soft fade at the horizon. */
+.poke-horizon {
+  position: absolute;
+  inset: calc(48% - var(--ramp-length)) 0 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--pk-grass);
+  -webkit-mask:
+    linear-gradient(var(--palette-ink), var(--palette-ink)) bottom / 100%
+      calc(100% - var(--ramp-length)) no-repeat,
+    linear-gradient(var(--palette-clear), var(--palette-ink)) top / 100% var(--ramp-length)
+      no-repeat;
+  mask:
+    linear-gradient(var(--palette-ink), var(--palette-ink)) bottom / 100%
+      calc(100% - var(--ramp-length)) no-repeat,
+    linear-gradient(var(--palette-clear), var(--palette-ink)) top / 100% var(--ramp-length)
+      no-repeat;
+}
+/* Deeper grass bands drawn in a translucent tone across the field. */
+.poke-horizon::before {
+  content: "";
+  position: absolute;
+  inset: var(--ramp-length) 0 0;
+  opacity: 0.34;
+  background: repeating-linear-gradient(
+    var(--palette-clear) 0 16%,
+    var(--pk-grass-deep) 16% 24%,
+    var(--palette-clear) 24% 44%
+  );
+}
+/* The near ground darkens toward the bottom edge. */
+.poke-horizon::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--ramp-length);
+  background: var(--pk-grass-deep);
+  -webkit-mask: linear-gradient(var(--palette-clear), var(--palette-ink)) bottom / 100%
+    var(--ramp-length) no-repeat;
+  mask: linear-gradient(var(--palette-clear), var(--palette-ink)) bottom / 100% var(--ramp-length)
+    no-repeat;
+}
+.poke-turn {
+  position: absolute;
+  z-index: 3;
+  top: var(--space-16);
+  left: 50%;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  height: var(--control-xs);
+  padding: var(--space-0) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--invert);
+  color: var(--invert-text);
+  font: 700 var(--type-small)/var(--leading-none) var(--font-pixel);
+  letter-spacing: var(--tracking-pixel);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Combatants and HUD ───────────────────────────────────────────────── */
+.poke-combatant {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.poke-hud {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+  width: min(400px, 44cqw);
+  pointer-events: auto;
+}
+.poke-combatant[data-own="false"] .poke-hud {
+  top: var(--space-20);
+  left: var(--space-20);
+}
+.poke-combatant[data-own="true"] .poke-hud {
+  bottom: var(--space-20);
+  right: var(--space-20);
+  flex-direction: column-reverse;
+  align-items: stretch;
+}
+
+.poke-trainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+  max-width: 100%;
+}
+.poke-combatant[data-own="true"] .poke-trainer {
+  flex-direction: row-reverse;
+}
+.poke-trainer .game-player-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+  min-height: var(--control-sm);
+  padding: var(--space-4) var(--space-16) var(--space-4) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--raised);
+  color: var(--text);
+}
+.poke-combatant[data-own="true"] .poke-trainer .game-player-identity {
+  flex-direction: row-reverse;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-16);
+}
+.poke-trainer .player-name-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: var(--leading-tight);
+}
+.poke-trainer .player-name-label > strong {
+  font: 700 var(--type-small)/var(--leading-tight) var(--font-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poke-trainer .player-name-label > small {
+  font: 500 var(--type-micro)/var(--leading-snug) var(--font-ui);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poke-combatant[data-own="true"] .poke-trainer .player-name-label {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* Party balls: one Poké Ball per team member, greyed once fainted. */
+.poke-roster {
+  display: flex;
+  gap: var(--space-4);
+  flex: none;
+}
+.poke-roster-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: var(--space-0);
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  --ball-top: var(--pk-ball);
+  --ball-bottom: var(--pk-paper);
+  background: linear-gradient(var(--ball-top) 0 42%, var(--pk-ink) 42% 58%, var(--ball-bottom) 58%);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--pk-ink);
+  transition: translate var(--dur-2) steps(2, end);
+}
+/* Rim shadow, lower right. */
+.poke-roster-slot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 32% 28%,
+    var(--palette-clear) 58%,
+    var(--palette-ink-55) 60%
+  );
+  opacity: 0.5;
+}
+.poke-roster-slot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--pk-paper);
+  box-shadow: 0 0 0 var(--stroke-2) var(--pk-ink);
+}
+.poke-roster-slot > :is(.poke-sprite, .poke-unknown) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+.poke-roster-slot[data-active="true"] {
+  translate: 0 calc(var(--px) * -1);
+  outline: var(--stroke-2) solid var(--text);
+  outline-offset: var(--space-2);
+}
+.poke-roster-slot[data-fainted="true"] {
+  --ball-top: var(--palette-g400);
+  --ball-bottom: var(--palette-g200);
+  opacity: 0.7;
+}
+.poke-inspect-roster {
+  cursor: pointer;
+}
+.poke-inspect-roster:hover {
+  translate: 0 calc(var(--px) * -1);
+}
+.poke-inspect-roster:focus-visible {
+  outline: var(--stroke-3) solid var(--focus);
+  outline-offset: var(--space-2);
+}
+.poke-roster-inspect {
+  display: block;
+}
+
+/* ── HP box: white plate, ink frame, angled tail ──────────────────────── */
+.poke-status {
+  position: relative;
+  display: grid;
+  gap: var(--space-8);
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-12) var(--space-16) var(--space-12);
+  border: var(--stroke-4) solid var(--pk-ink);
+  border-radius: var(--radius-sm);
+  background: var(--pk-paper);
+  color: var(--pk-ink);
+  transition: opacity var(--dur-3) steps(3, end);
+}
+/* The tail continues the bottom frame into a point, as on the cartridge. */
+.poke-status::after {
+  content: "";
+  position: absolute;
+  bottom: calc(var(--stroke-4) * -1);
+  right: calc(var(--space-20) * -1);
+  width: var(--space-20);
+  height: var(--space-20);
+  background: var(--pk-ink);
+  clip-path: polygon(0 calc(100% - var(--space-20)), 100% 100%, 0 100%);
+}
+.poke-status[data-own="true"]::after {
+  right: auto;
+  left: calc(var(--space-20) * -1);
+  clip-path: polygon(100% calc(100% - var(--space-20)), 100% 100%, 0 100%);
+}
+.poke-status[data-hidden="true"] {
+  color: var(--palette-g600);
+  font: 700 var(--type-body)/var(--leading-snug) var(--font-pixel);
+}
+.poke-status[data-fainted="true"] {
+  opacity: 0.72;
+}
+.poke-mon-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  min-width: 0;
+}
+.poke-mon-name strong {
+  min-width: 0;
+  font: 700 var(--type-title)/var(--leading-tight) var(--font-pixel);
+  letter-spacing: var(--tracking-pixel);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poke-level {
+  flex: none;
+  margin-left: auto;
+  font: 700 var(--type-body)/var(--leading-none) var(--font-pixel);
+  font-variant-numeric: tabular-nums;
+}
+.poke-status-sticker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: var(--space-0) var(--space-6);
+  border-radius: var(--radius-xs);
+  background: var(--status, var(--palette-g500));
+  color: var(--status-ink, var(--palette-white));
+  font: 700 var(--type-micro)/var(--leading-none) var(--font-pixel);
+  letter-spacing: var(--tracking-label);
+  animation: pixel-pop var(--dur-3) var(--ease-snap) both;
+}
+.poke-status-sticker[data-status="psn"],
+.poke-status-sticker[data-status="tox"] {
+  --status: var(--palette-type-poison);
+}
+.poke-status-sticker[data-status="brn"] {
+  --status: var(--palette-type-fire);
+  --status-ink: var(--palette-ink);
+}
+.poke-status-sticker[data-status="par"] {
+  --status: var(--palette-type-electric);
+  --status-ink: var(--palette-ink);
+}
+.poke-status-sticker[data-status="frz"] {
+  --status: var(--palette-type-ice);
+  --status-ink: var(--palette-ink);
+}
+.poke-status-sticker[data-status="slp"] {
+  --status: var(--palette-g500);
+}
+.poke-status-sticker[data-status="fnt"] {
+  --status: var(--palette-g700);
+}
+
+.poke-hp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.poke-hp-tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: var(--space-0) var(--space-6);
+  border-radius: var(--radius-xs);
+  background: var(--pk-ink);
+  color: var(--palette-sun);
+  font: 700 var(--type-micro)/var(--leading-none) var(--font-pixel);
+  letter-spacing: var(--tracking-pixel);
+}
+.poke-hp-row > .poke-health {
+  flex: 1;
+}
+.poke-hp-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-width: 0;
+  font: 700 var(--type-small)/var(--leading-none) var(--font-pixel);
+  font-variant-numeric: tabular-nums;
+}
+.poke-hp-line > span {
+  color: var(--palette-g600);
+}
+.poke-hp-line > strong {
+  font-weight: 700;
+}
+/* Your own HP reads as numbers, large, like the cartridge. */
+.poke-status[data-own="true"] .poke-hp-line > span {
+  color: var(--pk-ink);
+  font-size: var(--type-title);
+}
+.poke-status[data-own="true"] .poke-hp-line > strong {
+  color: var(--palette-g600);
+}
+.poke-mon-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+  min-width: 0;
+}
+.poke-mon-chips:not(:has(span)) {
+  display: none;
+}
+.poke-mon-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.poke-status-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.poke-status-tags:empty {
+  display: none;
+}
+.poke-status-tags > span {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: var(--space-0) var(--space-8);
+  border-radius: var(--radius-xs);
+  background: var(--palette-g100);
+  color: var(--palette-g950);
+  font: 700 var(--type-micro)/var(--leading-none) var(--font-ui);
+  white-space: nowrap;
+  animation: pixel-pop var(--dur-3) var(--ease-snap) both;
+}
+.poke-status-tags > span[data-negative="true"] {
+  color: var(--palette-tomato-ink);
+}
+.poke-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin: var(--space-0);
+}
+.poke-stats > div {
+  display: grid;
+  gap: var(--space-2);
+}
+.poke-stats dt {
+  font-size: var(--type-micro);
+  color: var(--palette-g600);
+}
+.poke-stats dd {
+  margin: var(--space-0);
+  font: 700 var(--type-caption) var(--font-pixel);
+}
+
+/* HP bar: a solid pastel fill with a soft highlight, shade, and a stepped drain. */
+.poke-health {
+  position: relative;
+  height: 12px;
+  overflow: hidden;
+  border: var(--stroke-2) solid var(--pk-ink, var(--palette-ink));
+  border-radius: var(--radius-pill);
+  background: var(--pk-hp-empty, var(--palette-g200));
+}
+.poke-health > span {
+  position: relative;
+  display: block;
+  height: 100%;
+  background: var(--palette-hp-high);
+  transition:
+    width var(--dur-5) steps(12, end),
+    background-color var(--dur-3) steps(2, end);
+}
+.poke-health > span::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 55%;
+  background: var(--palette-white);
+  opacity: 0.13;
+}
+.poke-health > span::after {
+  content: "";
+  position: absolute;
+  inset: 55% 0 0;
+  background: var(--palette-ink);
+  opacity: 0.05;
+}
+.poke-health > span[data-range="medium"] {
+  background-color: var(--palette-hp-mid);
+}
+.poke-health > span[data-range="low"] {
+  background-color: var(--palette-hp-low);
+}
+
+/* ── Platforms and sprites ────────────────────────────────────────────── */
+.poke-platform {
+  position: absolute;
+  z-index: 1;
+  aspect-ratio: 1;
+}
+.poke-combatant[data-own="false"] .poke-platform {
+  width: min(40cqh, 26cqw);
+  right: 9cqw;
+  top: 12cqh;
+}
+.poke-combatant[data-own="true"] .poke-platform {
+  width: min(54cqh, 34cqw);
+  left: 6cqw;
+  bottom: 6cqh;
+}
+/* A stepped oval of packed pastel earth with a soft rim. The class name is historical. */
+.poke-platform-glow {
+  position: absolute;
+  left: -18%;
+  right: -18%;
+  bottom: -8%;
+  height: 26%;
+  z-index: -1;
+  clip-path: polygon(
+    20% 0,
+    80% 0,
+    80% 8%,
+    90% 8%,
+    90% 20%,
+    97% 20%,
+    97% 35%,
+    100% 35%,
+    100% 65%,
+    97% 65%,
+    97% 80%,
+    90% 80%,
+    90% 92%,
+    80% 92%,
+    80% 100%,
+    20% 100%,
+    20% 92%,
+    10% 92%,
+    10% 80%,
+    3% 80%,
+    3% 65%,
+    0 65%,
+    0 35%,
+    3% 35%,
+    3% 20%,
+    10% 20%,
+    10% 8%,
+    20% 8%
+  );
+  background: var(--pk-ground);
+}
+.poke-platform-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 38%,
+    var(--palette-clear) 62%,
+    var(--pk-ground-deep) 64%
+  );
+  opacity: 0.62;
+}
+/* Contact shadow under the battler's feet. */
+.poke-platform-glow::after {
+  content: "";
+  position: absolute;
+  inset: 22% 26% 30%;
+  background: var(--pk-ink);
+  opacity: 0.12;
+  border-radius: 50%;
+}
+.poke-platform[data-fainted="true"] .poke-platform-glow::after {
+  opacity: 0;
+}
+.poke-battler-motion {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+}
+.poke-battler-motion > .poke-sprite,
+.poke-battler-motion > .poke-unknown {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.poke-sprite {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  image-rendering: pixelated;
+}
+.poke-platform[data-fainted="true"] .poke-sprite {
+  opacity: 0;
+}
+.poke-unknown {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.poke-unknown-shell {
+  fill: var(--pk-paper, var(--palette-white));
+  stroke: var(--pk-ink, var(--palette-ink));
+  stroke-width: 2;
+}
+.poke-unknown-top {
+  fill: color-mix(in oklab, var(--palette-tomato) 55%, var(--palette-g300));
+  stroke: var(--pk-ink, var(--palette-ink));
+  stroke-width: 2;
+}
+.poke-unknown-band {
+  stroke: var(--pk-ink, var(--palette-ink));
+  stroke-width: 2.5;
+}
+.poke-unknown-core {
+  fill: var(--pk-paper, var(--palette-white));
+  stroke: var(--pk-ink, var(--palette-ink));
+  stroke-width: 2;
+}
+.poke-battler-motion > .poke-unknown {
+  width: 46%;
+  height: 46%;
+  margin: auto auto 6%;
+}
+
+/* Cue reactions. The Showdown layer redraws sprites for move, hit, heal and
+   status cues, so those flash the platform; enter, exit and faint animate the
+   real sprite. Everything moves in steps. */
+.poke-platform[data-animation="hit"] .poke-platform-glow {
+  animation: poke-ground-flash var(--dur-5) steps(1, end);
+}
+.poke-platform:is([data-animation="move"], [data-animation="heal"], [data-animation="status"])
+  .poke-platform-glow {
+  animation: poke-ground-pulse var(--dur-4) steps(3, end);
+}
+.poke-platform[data-animation="enter"] .poke-sprite {
+  animation:
+    poke-enter var(--dur-4) steps(5, end) both,
+    poke-blink-in var(--dur-4) steps(1, end) both;
+}
+.poke-platform[data-animation="exit"] .poke-sprite {
+  animation: poke-exit 180ms steps(4, end) both;
+}
+.poke-platform[data-animation="faint"] .poke-sprite {
+  animation: poke-faint 380ms steps(6, end) both;
+}
+@keyframes poke-ground-pulse {
+  50% {
+    scale: 1.08 1.16;
+  }
+}
+@keyframes poke-ground-flash {
+  0%,
+  40% {
+    filter: brightness(1.8);
+  }
+  20%,
+  60%,
+  100% {
+    filter: none;
+  }
+}
+@keyframes poke-enter {
+  0% {
+    scale: 0.1;
+  }
+  100% {
+    scale: 1;
+  }
+}
+/* A new battler flickers on like a sprite being switched in. */
+@keyframes poke-blink-in {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  20%,
+  60%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes poke-exit {
+  to {
+    scale: 0.06;
+    opacity: 0;
+  }
+}
+/* Faint: the battler slides down into its platform and is cut off. */
+@keyframes poke-faint {
+  0% {
+    translate: 0 0;
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    translate: 0 60%;
+    clip-path: inset(0 0 60% 0);
+    filter: grayscale(1);
+  }
+}
+
+/* Field-wide flashes */
+.poke-effects {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.poke-effects::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: var(--flash, var(--palette-white));
+}
+.poke-effects[data-kind="hit"]::before {
+  animation: poke-flash var(--dur-5) steps(1, end);
+}
+.poke-effects[data-kind="status"]::before {
+  --flash: var(--palette-sun);
+  animation: poke-flash var(--dur-5) steps(1, end);
+}
+.poke-effects[data-kind="heal"]::before {
+  --flash: var(--palette-grass);
+  animation: poke-flash var(--dur-5) steps(1, end);
+}
+.poke-effects[data-kind="faint"]::before {
+  --flash: var(--palette-ink);
+  animation: poke-flash var(--dur-4) steps(1, end);
+}
+@keyframes poke-flash {
+  0%,
+  50% {
+    opacity: 0.6;
+  }
+  25%,
+  75%,
+  100% {
+    opacity: 0;
+  }
+}
+.poke-cue-label {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  max-width: min(72%, 560px);
+  translate: -50% -50%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-20);
+  border: var(--stroke-4) solid var(--pk-ink);
+  border-radius: var(--radius-sm);
+  background: var(--pk-paper);
+  color: var(--pk-ink);
+  font: 700 var(--type-lead)/var(--leading-snug) var(--font-ui);
+  text-align: center;
+  animation: pixel-pop var(--dur-3) var(--ease-snap) both;
+}
+.poke-cue-label::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background: var(--cue, var(--pk-ink));
+}
+.poke-effects[data-kind="hit"] {
+  --cue: var(--palette-hp-low);
+}
+.poke-effects[data-kind="heal"] {
+  --cue: var(--palette-hp-high);
+}
+.poke-effects[data-kind="status"] {
+  --cue: var(--palette-sun);
+}
+
+/* Showdown animation layer (vendored renderer) */
+.showdown-animation-layer {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 4;
+  transform-origin: top left;
+  pointer-events: none;
+}
+.showdown-animation-layer > img {
+  position: absolute;
+  image-rendering: pixelated;
+}
+.showdown-fx,
+.showdown-background-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.showdown-background-effects > .background {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.showdown-fx {
+  z-index: 2;
+}
+.showdown-fx img {
+  image-rendering: auto;
+}
+.poke-impact-accent {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: var(--stroke-4) solid var(--palette-hp-low);
+  pointer-events: none;
+  z-index: 3;
+}
+.poke-impact-accent--heal {
+  border-color: var(--palette-hp-high);
+  width: 100px;
+  height: 100px;
+}
+
+/* ── Controls: centered move row over the party cards ─────────────────── */
+.poke-controls {
+  container: poke-controls / inline-size;
+  display: grid;
+  gap: var(--space-16);
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--radius-xl);
+  outline: none;
+}
+.poke-controls[data-has-moves="true"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--space-10);
+}
+.poke-controls:focus-visible {
+  outline: var(--stroke-3) solid var(--focus);
+  outline-offset: var(--space-4);
+}
+.poke-control-group {
+  display: grid;
+  align-content: start;
+  gap: var(--space-8);
+  min-width: 0;
+  min-height: 0;
+}
+.poke-controls-label {
+  margin: var(--space-0);
+  font: 700 var(--type-lead)/var(--leading-tight) var(--font-ui);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text);
+}
+.poke-control-moves {
+  grid-template-rows: minmax(0, 1fr);
+}
+.poke-moves {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: var(--space-12);
+  height: 100%;
+}
+@container poke-controls (max-width:640px) {
+  .poke-moves {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.poke-move-anchor {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The pointer dither uses a mid tone of the move's type, mixed into the
+   surface so ink text keeps its contrast. Pressing ripples in the full type color. */
+.poke-controls .poke-move.ui-button {
+  --touch-ink: color-mix(in oklab, var(--mon-type) 70%, var(--surface));
+  --touch-ripple-ink: var(--mon-type);
+  --touch-alpha: 0.4;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-content: stretch;
+  justify-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+  min-height: var(--space-56);
+  height: auto;
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  white-space: normal;
+  animation: pixel-pop var(--dur-3) var(--ease-snap) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+.poke-controls .poke-move.ui-button:active:not(:disabled) {
+  --touch-alpha: 0.55;
+}
+.poke-controls .poke-move.ui-button:active:not(:disabled) {
+  scale: 0.98;
+}
+.poke-controls .poke-move.ui-button:disabled {
+  opacity: 0.42;
+}
+.poke-move-title {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+}
+.poke-move-title > strong {
+  display: block;
+  font: 700 var(--type-lead)/var(--leading-tight) var(--font-ui);
+  letter-spacing: var(--tracking-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poke-move-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4) var(--space-8);
+  min-width: 0;
+}
+.poke-move .poke-type-badge {
+  gap: var(--space-6);
+  padding: var(--space-0) var(--space-8) var(--space-0) var(--space-6);
+  background: var(--raised);
+  color: var(--text-muted);
+}
+.poke-move .poke-type-badge::before {
+  content: "";
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--mon-type);
+}
+.poke-move-pp {
+  font: 700 var(--type-small)/var(--leading-none) var(--font-pixel);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.poke-move[data-empty="true"] .poke-move-pp {
+  color: var(--danger-ink);
+}
+
+.poke-switches {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: var(--space-12);
+  height: var(--poke-controls-h);
+}
+.poke-switch-card {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.poke-controls .poke-switch.ui-button {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--space-40) minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  grid-template-areas: "sprite name" "sprite hp" "sprite small";
+  align-content: center;
+  align-items: center;
+  justify-content: stretch;
+  gap: var(--space-4) var(--space-8);
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  padding: var(--space-8) var(--space-12) var(--space-8) var(--space-8);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  white-space: nowrap;
+  line-height: var(--leading-snug);
+}
+.poke-controls .poke-switch.ui-button:disabled {
+  opacity: 0.5;
+}
+.poke-controls .poke-switch.ui-button[data-state="fainted"] > .poke-sprite {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+/* The Pokémon in battle inverts to an ink card, like any selected chrome. */
+.poke-controls .poke-switch.ui-button[data-state="active"] {
+  --btn-bg: var(--invert);
+  --btn-fg: var(--invert-text);
+  opacity: 1;
+}
+.poke-controls .poke-switch.ui-button[data-state="active"] > small {
+  color: var(--invert-muted);
+}
+.poke-switch > strong {
+  grid-area: name;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 700 var(--type-body)/var(--leading-tight) var(--font-ui);
+}
+.poke-switch > :is(.poke-sprite, .poke-unknown) {
+  grid-area: sprite;
+  width: var(--space-40);
+  height: var(--space-40);
+  align-self: center;
+}
+.poke-switch > .poke-health {
+  grid-area: hp;
+  height: 10px;
+}
+.poke-switch > small {
+  grid-area: small;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 700 var(--type-micro)/var(--leading-snug) var(--font-pixel);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.poke-controls[data-has-moves="true"] .poke-switches {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  height: auto;
+  gap: var(--space-8);
+}
+.poke-controls[data-has-moves="true"] .poke-switch.ui-button {
+  min-height: var(--control-lg);
+  grid-template-columns: var(--space-32) minmax(0, 1fr);
+  grid-template-areas: "sprite name" "sprite hp";
+  gap: var(--space-2) var(--space-6);
+  padding: var(--space-4) var(--space-10) var(--space-4) var(--space-4);
+}
+.poke-controls[data-has-moves="true"] .poke-switch > :is(.poke-sprite, .poke-unknown) {
+  width: var(--space-32);
+  height: var(--space-32);
+}
+.poke-controls[data-has-moves="true"] .poke-switch > strong {
+  font-size: var(--type-small);
+}
+.poke-controls[data-has-moves="true"] .poke-switch > small {
+  display: none;
+}
+@container poke-controls (max-width:640px) {
+  .poke-controls[data-has-moves="true"] .poke-switches {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Forced replacement: one row of tall cards, name over sprite over HP. */
+.poke-controls[data-force-switch="true"] .poke-control-switches {
+  grid-template-rows: auto minmax(0, 1fr);
+  height: var(--poke-controls-h);
+}
+.poke-controls[data-force-switch="true"] .poke-switches {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  height: auto;
+  min-height: 0;
+}
+.poke-controls[data-force-switch="true"] .poke-switch.ui-button {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(80px, 1fr) auto;
+  grid-template-areas: "name name" "sprite sprite" "hp small";
+  align-content: stretch;
+  align-items: center;
+  gap: var(--space-4) var(--space-6);
+  padding: var(--space-8) var(--space-12);
+}
+.poke-controls[data-force-switch="true"] .poke-control-switches {
+  gap: var(--space-6);
+}
+.poke-controls[data-force-switch="true"] .poke-controls-label {
+  font-size: var(--type-body);
+}
+.poke-controls[data-force-switch="true"] .poke-switch > :is(.poke-sprite, .poke-unknown) {
+  width: 100%;
+  height: 100%;
+  min-height: 80px;
+}
+.poke-controls[data-force-switch="true"] .poke-switch.ui-button:not(:disabled) {
+  animation: pixel-pop var(--dur-3) var(--ease-snap) both;
+}
+
+.poke-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
+  height: 100%;
+  margin: var(--space-0);
+  padding: var(--space-16) var(--space-24);
+  border-radius: var(--radius-xl);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font: 600 var(--type-lead)/var(--leading-snug) var(--font-ui);
+  text-align: center;
+  animation: fade-in var(--dur-3) steps(2, end) both;
+}
+.poke-waiting-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  animation: blink 1.2s steps(1, end) infinite;
+}
+
+/* ── Battle log: the classic double-framed text box ───────────────────── */
+.poke-observer-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.poke-log {
+  --box-bg: var(--pk-paper);
+  --box-ink: var(--pk-ink);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: var(--space-8);
+  padding: var(--space-16) var(--space-8) var(--space-12) var(--space-20);
+  border: var(--stroke-4) solid var(--box-ink);
+  border-radius: var(--radius-md);
+  background: var(--box-bg);
+  color: var(--box-ink);
+  box-shadow:
+    inset 0 0 0 var(--stroke-3) var(--box-bg),
+    inset 0 0 0 calc(var(--stroke-3) + var(--stroke-2)) var(--box-ink);
+}
+:root[data-theme="dark"] .poke-log {
+  --box-bg: var(--palette-g900);
+  --box-ink: var(--palette-g100);
+}
+.poke-log h2 {
+  margin: var(--space-0);
+  font: 700 var(--type-caption)/var(--leading-none) var(--font-pixel);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--box-ink) 60%, var(--box-bg));
+}
+.poke-log-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-4) var(--space-12) var(--space-8) var(--space-0);
+  font: 600 var(--type-lead)/var(--leading-snug) var(--font-ui);
+  scrollbar-width: thin;
+  scrollbar-color: var(--box-ink) var(--palette-clear);
+}
+.poke-log-scroll {
+  display: flex;
+  flex-direction: column;
+}
+.poke-log-scroll > :first-child {
+  margin-top: auto;
+}
+.poke-log-scroll:focus-visible {
+  outline: var(--stroke-3) solid var(--focus);
+  outline-offset: var(--space-2);
+  border-radius: var(--radius-xs);
+}
+.poke-log-scroll h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  margin: var(--space-16) var(--space-0) var(--space-8);
+  font: 700 var(--type-small)/var(--leading-none) var(--font-pixel);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--box-ink) 60%, var(--box-bg));
+  font-variant-numeric: tabular-nums;
+}
+.poke-log-scroll h3:first-child {
+  margin-top: var(--space-0);
+}
+.poke-log-scroll h3::after {
+  content: "";
+  flex: 1;
+  height: var(--px);
+  background: repeating-linear-gradient(
+    90deg,
+    currentColor 0 calc(var(--px) * 2),
+    var(--palette-clear) calc(var(--px) * 2) calc(var(--px) * 4)
+  );
+}
+.poke-log-scroll p {
+  margin: var(--space-0) var(--space-0) var(--space-6);
+  color: color-mix(in oklab, var(--box-ink) 78%, var(--box-bg));
+}
+/* The newest line types itself in, then waits on a blinking arrow. */
+.poke-log-scroll p:last-child {
+  color: var(--box-ink);
+  animation: poke-type-in var(--dur-5) steps(14, end) both;
+}
+.poke-log-scroll p:last-child::after {
+  content: "▼";
+  display: inline-block;
+  margin-left: var(--space-8);
+  color: var(--palette-hp-low);
+  font-size: var(--type-caption);
+  animation: blink 1s steps(1, end) infinite;
+}
+@keyframes poke-type-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.poke-log-scroll p:is([data-kind="crit"], [data-kind="supereffective"]) {
+  color: var(--box-ink);
+  font-weight: 800;
+}
+.poke-log-scroll p[data-kind="faint"] {
+  color: var(--danger-ink);
+}
+.poke-log-scroll p[data-kind="win"] {
+  color: var(--box-ink);
+  font-weight: 800;
+}
+.poke-log-name {
+  color: var(--box-ink);
+  font-weight: 800;
+}
+.poke-log-empty {
+  color: color-mix(in oklab, var(--box-ink) 60%, var(--box-bg));
+}
+
+/* ── Spectator rails ──────────────────────────────────────────────────── */
+.poke-team-rail {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.poke-spectator-teams {
+  display: grid;
+  gap: var(--space-12);
+}
+.poke-team-panel {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.poke-team-panel > header {
+  display: grid;
+  gap: var(--space-4);
+}
+.poke-team-panel > header .player-name-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.poke-team-panel > header .player-name-label > strong {
+  font: 700 var(--type-title)/var(--leading-tight) var(--font-ui);
+  letter-spacing: var(--tracking-tight);
+  overflow-wrap: anywhere;
+}
+.poke-team-panel > header .player-name-label > small {
+  font: 500 var(--type-small)/var(--leading-snug) var(--font-ui);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.poke-team-count {
+  font: 700 var(--type-small)/var(--leading-none) var(--font-pixel);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.poke-last-move {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.poke-last-move small {
+  font: 700 var(--type-micro)/var(--leading-none) var(--font-ui);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.poke-last-move strong {
+  font: 700 var(--type-lead)/var(--leading-tight) var(--font-ui);
+  overflow-wrap: anywhere;
+}
+.poke-last-move > span {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+.poke-last-move > strong + span {
+  display: none;
+}
+.poke-spectator-roster {
+  display: grid;
+  gap: var(--space-6);
+}
+.poke-team-member {
+  display: grid;
+  grid-template-columns: var(--space-48) minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: var(--space-2) var(--space-10);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-6) var(--space-12) var(--space-6) var(--space-6);
+  border-radius: var(--radius-lg);
+  transition:
+    background-color var(--dur-2) steps(2, end),
+    opacity var(--dur-3) steps(3, end);
+}
+.poke-team-member > :is(.poke-sprite, .poke-unknown) {
+  grid-column: 1;
+  grid-row: 1/4;
+  width: var(--space-48);
+  height: var(--space-48);
+}
+.poke-team-member > .poke-unknown {
+  padding: var(--space-8);
+}
+.poke-team-member > strong {
+  grid-column: 2;
+  font: 700 var(--type-body)/var(--leading-snug) var(--font-ui);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poke-team-member > small {
+  grid-column: 2;
+  font: 600 var(--type-micro)/var(--leading-snug) var(--font-ui);
+  color: var(--text-muted);
+}
+.poke-team-member > .poke-health {
+  grid-column: 2;
+  height: 10px;
+}
+.poke-team-member[data-state="active"] {
+  background: var(--invert);
+  color: var(--invert-text);
+}
+.poke-team-member[data-state="active"] > small {
+  color: var(--invert-muted);
+}
+.poke-team-member[data-state="fainted"] {
+  opacity: 0.5;
+}
+.poke-team-member[data-state="fainted"] > .poke-sprite {
+  filter: grayscale(1);
+}
+.poke-spectator-announcement {
+  display: grid;
+  place-items: center;
+  min-height: var(--space-96);
+  padding: var(--space-16) var(--space-24);
+  border: var(--stroke-4) solid var(--pk-ink);
+  border-radius: var(--radius-md);
+  background: var(--pk-paper);
+  color: var(--pk-ink);
+  text-align: center;
+  box-shadow:
+    inset 0 0 0 var(--stroke-3) var(--pk-paper),
+    inset 0 0 0 calc(var(--stroke-3) + var(--stroke-2)) var(--pk-ink);
+}
+:root[data-theme="dark"] .poke-spectator-announcement {
+  --pk-paper: var(--palette-g900);
+  --pk-ink: var(--palette-g100);
+}
+.poke-spectator-announcement > strong {
+  font: 700 var(--type-title)/var(--leading-tight) var(--font-ui);
+  animation: poke-type-in var(--dur-5) steps(14, end) both;
+}
+.poke-workspace[data-spectating="true"] .poke-cue-label {
+  display: none;
+}
+.poke-workspace[data-spectating="true"] .poke-roster {
+  display: none;
+}
+
+/* Broadcast: readable from across the room. */
+.match-desk[data-stream="true"] .poke-spectator-announcement > strong {
+  font-size: var(--type-section);
+}
+.match-desk[data-stream="true"] .poke-mon-name strong {
+  font-size: var(--type-section);
+}
+.match-desk[data-stream="true"] .poke-turn {
+  height: var(--control);
+  font-size: var(--type-lead);
+}
+.match-desk[data-stream="true"] .poke-health {
+  height: 16px;
+}
+.match-desk[data-stream="true"] .poke-team-member > strong {
+  font-size: var(--type-lead);
+}
+.match-desk[data-stream="true"] .poke-trainer .player-name-label > strong {
+  font-size: var(--type-body);
+}
+
+/* ── Inspect tooltip and dialog ───────────────────────────────────────── */
+.poke-move-tooltip {
+  position: fixed;
+  z-index: 1000;
+  display: grid;
+  gap: var(--space-6);
+  max-height: min(360px, 70vh);
+  overflow: auto;
+  padding: var(--space-16) var(--space-20);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--type-small);
+  line-height: var(--leading-body);
+  animation: fade-in var(--dur-2) steps(2, end) both;
+}
+.poke-move-tooltip > strong {
+  font: 700 var(--type-lead)/var(--leading-tight) var(--font-ui);
+  letter-spacing: var(--tracking-tight);
+}
+.poke-move-tooltip > span {
+  font: 600 var(--type-small)/var(--leading-snug) var(--font-ui);
+  color: var(--text-muted);
+}
+.poke-move-tooltip p {
+  margin: var(--space-4) var(--space-0);
+  color: var(--text-muted);
+}
+.poke-inspect-tooltip {
+  max-height: min(460px, 75vh);
+}
+.poke-inspect-tooltip h3 {
+  margin: var(--space-10) var(--space-0) var(--space-2);
+  font: 700 var(--type-small)/var(--leading-snug) var(--font-ui);
+  color: var(--text);
+}
+.poke-inspect-tooltip .poke-detail-summary {
+  grid-template-columns: 72px 1fr;
+  gap: var(--space-10);
+}
+.poke-inspect-tooltip .poke-detail-summary > .poke-sprite {
+  height: 72px;
+}
+.poke-move-facts,
+.poke-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: var(--space-8);
+  margin: var(--space-8) var(--space-0) var(--space-4);
+}
+.poke-move-facts > div,
+.poke-detail-stats > div {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-12);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.poke-move-facts dt,
+.poke-detail-stats dt {
+  font: 600 var(--type-micro)/var(--leading-snug) var(--font-ui);
+  color: var(--text-muted);
+}
+.poke-move-facts dd,
+.poke-detail-stats dd {
+  margin: var(--space-0);
+  font: 700 var(--type-body)/var(--leading-snug) var(--font-pixel);
+}
+.poke-move-unavailable {
+  color: var(--danger-ink);
+  font-weight: 700;
+}
+.poke-detail-summary {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: var(--space-12);
+  align-items: center;
+  margin: var(--space-8) var(--space-0);
+}
+.poke-detail-summary > .poke-sprite {
+  height: 96px;
+}
+.poke-detail-summary > div {
+  display: grid;
+  gap: var(--space-6);
+}
+.poke-detail-summary p {
+  margin: var(--space-0);
+  font: 700 var(--type-small)/var(--leading-snug) var(--font-pixel);
+}
+.poke-detail-summary small,
+.poke-detail-note {
+  color: var(--text-muted);
+}
+.poke-detail-summary .poke-health {
+  --pk-ink: var(--text);
+}
+.poke-detail-moves {
+  display: grid;
+  gap: var(--space-4);
+}
+.poke-detail-moves > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.poke-detail-moves span {
+  color: var(--text-muted);
+  font: 700 var(--type-caption)/var(--leading-snug) var(--font-pixel);
+}
+.poke-detail-dialog {
+  width: min(480px, calc(100vw - 24px));
+  max-height: 85dvh;
+  overflow: auto;
+}
+.poke-detail-dialog h3 {
+  margin: var(--space-16) var(--space-0) var(--space-8);
+  font: 700 var(--type-body)/var(--leading-snug) var(--font-ui);
+  color: var(--text);
+}
+.poke-detail-dialog p {
+  font-size: var(--type-small);
+  line-height: var(--leading-body);
+}
+.poke-detail-dialog > .ui-button {
+  margin-top: var(--space-16);
+}
+
+/* ── Laptop width ─────────────────────────────────────────────────────── */
+@media (max-width: 1360px) and (min-width: 701px) {
+  .poke-move-pp {
+    font-size: var(--type-caption);
+  }
+  .poke-switch > strong {
+    font-size: var(--type-small);
+  }
+  .poke-controls .poke-switch.ui-button {
+    padding-right: var(--space-10);
+    gap: var(--space-4) var(--space-6);
+  }
+}
+
+/* Reserve both wrapped move rows and both switch rows on narrow desktops. */
+@media (min-width: 701px) and (max-width: 1100px) and (min-height: 561px) {
+  .pokemon-stage.poke-workspace {
+    --poke-controls-h: calc(var(--space-80) * 3 + var(--space-32));
+  }
+}
+
+/* ── Laptop height ────────────────────────────────────────────────────── */
+@media (max-height: 780px) and (min-width: 701px) {
+  .pokemon-stage.poke-workspace {
+    --poke-controls-h: calc(var(--space-80) * 2);
+    gap: var(--space-12);
+  }
+  .poke-moves,
+  .poke-switches {
+    gap: var(--space-10);
+  }
+  .poke-mon-name strong {
+    font-size: var(--type-lead);
+  }
+  .poke-status {
+    gap: var(--space-6);
+    padding: var(--space-10) var(--space-12);
+  }
+  .poke-status[data-own="true"] .poke-hp-line > span {
+    font-size: var(--type-lead);
+  }
+  .poke-combatant[data-own="false"] .poke-hud {
+    top: var(--space-16);
+    left: var(--space-16);
+  }
+  .poke-combatant[data-own="true"] .poke-hud {
+    bottom: var(--space-16);
+    right: var(--space-16);
+  }
+}
+
+/* ── Short landscape ──────────────────────────────────────────────────── */
+@media (max-height: 500px) and (min-width: 701px) {
+  .pokemon-stage.poke-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 168px;
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "field controls log";
+    gap: var(--space-8);
+  }
+  .pokemon-stage.poke-workspace[data-spectating="true"] {
+    grid-template-columns: 160px minmax(0, 1fr) 160px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "left field right" "left controls right";
+  }
+  .poke-controls,
+  .poke-controls[data-has-moves="true"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: var(--space-8);
+    align-content: start;
+    overflow: auto;
+  }
+  .poke-moves,
+  .poke-switches,
+  .poke-controls[data-has-moves="true"] .poke-switches {
+    height: auto;
+    gap: var(--space-6);
+  }
+  .poke-controls .poke-move.ui-button {
+    min-height: var(--control-lg);
+    padding: var(--space-6) var(--space-10);
+    gap: var(--space-4);
+  }
+  .poke-move-title > strong {
+    font-size: var(--type-body);
+  }
+  .poke-move-meta {
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-6);
+  }
+  .poke-move .poke-type-badge {
+    height: 18px;
+    letter-spacing: var(--tracking-pixel);
+  }
+  .poke-move-pp {
+    font-size: var(--type-micro);
+  }
+  .poke-controls .poke-switch.ui-button {
+    min-height: var(--control);
+    grid-template-columns: var(--space-32) minmax(0, 1fr);
+    grid-template-areas: "sprite name" "sprite hp";
+    padding: var(--space-4) var(--space-8) var(--space-4) var(--space-4);
+  }
+  .poke-switch > :is(.poke-sprite, .poke-unknown) {
+    width: var(--space-32);
+    height: var(--space-32);
+  }
+  .poke-switch > strong {
+    font-size: var(--type-small);
+  }
+  .poke-switch > small {
+    display: none;
+  }
+  .poke-controls[data-force-switch="true"] .poke-control-switches {
+    height: auto;
+  }
+  .poke-controls[data-force-switch="true"] .poke-switches {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .poke-controls[data-force-switch="true"] .poke-switch.ui-button {
+    grid-template-rows: auto var(--space-56) auto;
+    grid-template-areas: "name name" "sprite sprite" "hp hp";
+  }
+  .poke-controls[data-force-switch="true"] .poke-switch > :is(.poke-sprite, .poke-unknown) {
+    min-height: 0;
+  }
+  .poke-waiting {
+    font-size: var(--type-body);
+  }
+  .poke-hud {
+    width: min(240px, 54cqw);
+    gap: var(--space-4);
+  }
+  .poke-combatant[data-own="false"] .poke-hud {
+    top: var(--space-8);
+    left: var(--space-8);
+  }
+  .poke-combatant[data-own="true"] .poke-hud {
+    bottom: var(--space-8);
+    right: var(--space-8);
+  }
+  .poke-status {
+    padding: var(--space-6) var(--space-10);
+    gap: var(--space-4);
+    border-width: var(--stroke-3);
+  }
+  .poke-mon-name strong {
+    font-size: var(--type-small);
+  }
+  .poke-level {
+    font-size: var(--type-micro);
+  }
+  .poke-status[data-own="true"] .poke-hp-line > span {
+    font-size: var(--type-body);
+  }
+  .poke-mon-chips,
+  .poke-roster,
+  .poke-stats,
+  .poke-trainer {
+    display: none;
+  }
+  .poke-turn {
+    top: var(--space-8);
+    left: auto;
+    right: var(--space-8);
+    translate: none;
+    height: var(--space-24);
+    padding: var(--space-0) var(--space-10);
+    font-size: var(--type-micro);
+  }
+  .poke-log {
+    padding: var(--space-10) var(--space-4) var(--space-8) var(--space-12);
+  }
+  .poke-log-scroll {
+    font-size: var(--type-small);
+  }
+  .poke-team-panel {
+    padding: var(--space-10);
+    gap: var(--space-8);
+  }
+  .poke-team-panel > header .player-name-label > strong {
+    font-size: var(--type-body);
+  }
+  .poke-team-member {
+    grid-template-columns: var(--space-32) minmax(0, 1fr);
+    padding: var(--space-4);
+  }
+  .poke-team-member > :is(.poke-sprite, .poke-unknown) {
+    width: var(--space-32);
+    height: var(--space-32);
+  }
+  .poke-spectator-announcement {
+    min-height: 0;
+    padding: var(--space-8);
+  }
+  .poke-spectator-announcement > strong {
+    font-size: var(--type-body);
+  }
+}
+
+/* ── Phone ────────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .pokemon-stage.poke-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(272px, 1fr) auto 104px;
+    grid-template-areas: "field" "controls" "log";
+    gap: var(--space-10);
+    overflow: auto;
+  }
+  .pokemon-stage.poke-workspace[data-spectating="true"] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(240px, 1fr) auto minmax(0, 0.9fr);
+    grid-template-areas: "field field" "controls controls" "left right";
+  }
+  /* The team rails share a capped row and scroll internally, so a broadcast
+    phone frame never pushes the workspace past its desk. */
+  .pokemon-stage.poke-workspace[data-spectating="true"] .poke-team-rail {
+    overflow: auto;
+    min-height: 0;
+  }
+  .pokemon-stage.poke-workspace[data-spectating="true"] .poke-team-member > small {
+    display: none;
+  }
+  .poke-field {
+    border-radius: var(--radius-lg);
+  }
+  .poke-controls,
+  .poke-controls[data-has-moves="true"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    gap: var(--space-8);
+  }
+  .poke-controls-label {
+    font-size: var(--type-body);
+  }
+  .poke-moves {
+    height: auto;
+    gap: var(--space-8);
+  }
+  .poke-controls .poke-move.ui-button {
+    min-height: var(--space-56);
+    padding: var(--space-8) var(--space-10);
+    gap: var(--space-6);
+    border-radius: var(--radius-md);
+  }
+  .poke-move-title > strong {
+    font-size: var(--type-body);
+  }
+  .poke-move .poke-type-badge {
+    height: 20px;
+    letter-spacing: var(--tracking-pixel);
+    padding: var(--space-0) var(--space-6) var(--space-0) var(--space-4);
+  }
+  .poke-move-meta {
+    gap: var(--space-4);
+  }
+  .poke-move-pp {
+    font-size: var(--type-micro);
+  }
+  .poke-switches,
+  .poke-controls[data-has-moves="true"] .poke-switches {
+    height: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-6);
+  }
+  .poke-controls .poke-switch.ui-button {
+    min-height: var(--control);
+    grid-template-columns: var(--space-32) minmax(0, 1fr);
+    grid-template-areas: "sprite name" "sprite hp";
+    gap: var(--space-2) var(--space-6);
+    padding: var(--space-4) var(--space-8) var(--space-4) var(--space-4);
+    border-radius: var(--radius-md);
+  }
+  .poke-switch > :is(.poke-sprite, .poke-unknown) {
+    width: var(--space-32);
+    height: var(--space-32);
+  }
+  .poke-switch > strong {
+    font-size: var(--type-caption);
+  }
+  .poke-switch > .poke-health {
+    height: 8px;
+    border-width: var(--stroke-1);
+  }
+  .poke-switch > small {
+    display: none;
+  }
+  .poke-controls[data-force-switch="true"] .poke-control-switches {
+    height: auto;
+  }
+  .poke-controls[data-force-switch="true"] .poke-switches {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .poke-controls[data-force-switch="true"] .poke-switch.ui-button {
+    grid-template-rows: auto var(--space-64) auto;
+    grid-template-areas: "name name" "sprite sprite" "hp hp";
+    padding: var(--space-8);
+  }
+  .poke-controls[data-force-switch="true"] .poke-switch > :is(.poke-sprite, .poke-unknown) {
+    min-height: 0;
+  }
+  .poke-controls[data-force-switch="true"] .poke-switch > strong {
+    font-size: var(--type-small);
+  }
+  .poke-waiting {
+    min-height: var(--space-80);
+    padding: var(--space-12);
+    font-size: var(--type-body);
+  }
+  .poke-hud {
+    width: min(232px, 60cqw);
+    gap: var(--space-6);
+  }
+  .poke-combatant[data-own="false"] .poke-hud {
+    top: var(--space-10);
+    left: var(--space-10);
+  }
+  .poke-combatant[data-own="true"] .poke-hud {
+    bottom: var(--space-10);
+    right: var(--space-10);
+  }
+  .poke-combatant[data-own="false"] .poke-platform {
+    width: min(34cqh, 34cqw);
+    right: 6cqw;
+    top: 20cqh;
+  }
+  .poke-combatant[data-own="true"] .poke-platform {
+    width: min(44cqh, 42cqw);
+    left: 2cqw;
+    bottom: 12cqh;
+  }
+  .poke-turn {
+    top: auto;
+    bottom: var(--space-10);
+    left: var(--space-10);
+    translate: none;
+    height: var(--space-24);
+    padding: var(--space-0) var(--space-10);
+    font-size: var(--type-micro);
+  }
+  .poke-status {
+    padding: var(--space-6) var(--space-10) var(--space-8);
+    gap: var(--space-4);
+    border-width: var(--stroke-3);
+  }
+  .poke-status::after {
+    width: var(--space-12);
+    height: var(--space-12);
+    right: calc(var(--space-12) * -1);
+    bottom: calc(var(--stroke-3) * -1);
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+  }
+  .poke-status[data-own="true"]::after {
+    left: calc(var(--space-12) * -1);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  }
+  .poke-mon-name strong {
+    font-size: var(--type-body);
+  }
+  .poke-level {
+    font-size: var(--type-caption);
+  }
+  .poke-status[data-own="true"] .poke-hp-line > span {
+    font-size: var(--type-body);
+  }
+  .poke-hp-line {
+    font-size: var(--type-micro);
+  }
+  .poke-health {
+    height: 10px;
+  }
+  .poke-mon-chips {
+    display: none;
+  }
+  .poke-trainer {
+    flex-wrap: wrap;
+    gap: var(--space-4) var(--space-6);
+  }
+  .poke-trainer .game-player-identity {
+    min-height: 0;
+    padding: var(--space-2) var(--space-10);
+  }
+  .poke-combatant[data-own="true"] .poke-trainer .game-player-identity {
+    padding: var(--space-2) var(--space-10);
+  }
+  .poke-trainer .game-player-identity > :first-child {
+    display: none;
+  }
+  .poke-trainer .player-name-label > strong {
+    font-size: var(--type-caption);
+  }
+  .poke-stats {
+    display: none;
+  }
+  .poke-roster {
+    gap: var(--space-2);
+    margin: var(--space-0);
+  }
+  .poke-roster-slot {
+    width: 18px;
+    height: 18px;
+  }
+  .poke-roster-slot::after {
+    width: 6px;
+    height: 6px;
+  }
+  .poke-cue-label {
+    max-width: 86%;
+    padding: var(--space-8) var(--space-12);
+    font-size: var(--type-body);
+    border-width: var(--stroke-3);
+  }
+  .poke-log {
+    padding: var(--space-10) var(--space-4) var(--space-6) var(--space-12);
+    border-width: var(--stroke-3);
+  }
+  .poke-log h2 {
+    display: none;
+  }
+  .poke-log-scroll {
+    font-size: var(--type-body);
+  }
+  .poke-team-rail {
+    overflow: visible;
+  }
+  .poke-team-panel {
+    padding: var(--space-10);
+    gap: var(--space-8);
+    border-radius: var(--radius-lg);
+  }
+  .poke-team-panel > header .player-name-label > strong {
+    font-size: var(--type-body);
+  }
+  .poke-last-move {
+    padding: var(--space-8) var(--space-10);
+  }
+  .poke-last-move strong {
+    font-size: var(--type-body);
+  }
+  .poke-team-member {
+    grid-template-columns: var(--space-32) minmax(0, 1fr);
+    padding: var(--space-4);
+    gap: var(--space-2) var(--space-6);
+  }
+  .poke-team-member > :is(.poke-sprite, .poke-unknown) {
+    width: var(--space-32);
+    height: var(--space-32);
+  }
+  .poke-team-member > strong {
+    font-size: var(--type-small);
+  }
+  .poke-spectator-announcement {
+    min-height: 0;
+    padding: var(--space-10) var(--space-12);
+    border-width: var(--stroke-3);
+  }
+  .poke-spectator-announcement > strong {
+    font-size: var(--type-body);
+  }
+  .poke-workspace[data-spectating="true"] .poke-combatant[data-own="false"] .poke-platform {
+    width: min(36cqh, 36cqw);
+    right: 6cqw;
+    top: 20cqh;
+  }
+  .poke-workspace[data-spectating="true"] .poke-combatant[data-own="true"] .poke-platform {
+    width: min(40cqh, 42cqw);
+    left: 4cqw;
+    bottom: 16cqh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .showdown-animation-layer {
+    display: none;
+  }
+  .poke-platform[data-animation] :is(.poke-sprite, .poke-platform-glow),
+  .poke-effects::before,
+  .poke-cue-label,
+  .poke-status-sticker,
+  .poke-status-tags > span,
+  .poke-controls .poke-move.ui-button,
+  .poke-controls[data-force-switch="true"] .poke-switch.ui-button,
+  .poke-waiting,
+  .poke-waiting-dot,
+  .poke-log-scroll p:last-child,
+  .poke-log-scroll p:last-child::after,
+  .poke-spectator-announcement > strong,
+  .poke-move-tooltip {
+    animation: none;
+    -webkit-mask: none;
+    mask: none;
+    clip-path: none;
+  }
+  .poke-health > span {
+    transition: none;
+  }
+}
+
+/* Replays share the viewport with the move slider. */
+.match-desk[data-replay="true"] .pokemon-stage.poke-workspace {
+  overflow: hidden;
+}

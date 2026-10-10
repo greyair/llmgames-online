@@ -1,0 +1,2285 @@
+/* Battleship · Mono Dither.
+   The chrome around the boards (headers, trays, weapon dock, log, placement
+   tools) is monochrome. The two sea grids are the colorful part: a navy
+   plotting-table bezel with pixel coordinates, translucent swell, steel hulls,
+   red and white pegs, yellow contact mines and aqua radar sweeps.
+   Every overlay (ships, wrecks, trails, scans, effects) shares the 10 x 10
+   water box, so the percentage positions written by the component line up. */
+
+.ships-stage {
+  --coord: 30px;
+  --bezel: 10px;
+  --sea-gap: var(--space-24);
+  --row-gap: var(--space-16);
+  --head-h: 48px;
+  --dock-h: 132px;
+  --notice-h: 28px;
+
+  /* Native sea and steel */
+  --sea: var(--palette-sea);
+  --sea-deep: var(--palette-sea-deep);
+  --sea-light: var(--palette-sea-light);
+  --foam: var(--palette-sea-foam);
+  --bezel-ink: color-mix(in oklab, var(--palette-sea-deep) 82%, var(--palette-black));
+  --bezel-rim: color-mix(in oklab, var(--palette-sea-deep) 60%, var(--palette-sea));
+  --coord-ink: var(--palette-sea-foam);
+  --sea-line: color-mix(in oklab, var(--palette-sea-foam) 34%, var(--palette-clear));
+  --marker: var(--palette-sea-foam);
+  --hull: var(--palette-steel);
+  --hull-top: var(--palette-steel-light);
+  --hull-shade: var(--palette-steel-deep);
+  --hull-edge: color-mix(in oklab, var(--palette-steel-deep) 70%, var(--palette-ink));
+  --hull-detail: var(--palette-steel-deep);
+  --hull-glint: var(--palette-steel-light);
+  --ship-shadow: color-mix(in oklab, var(--palette-sea-deep) 70%, var(--palette-black));
+  --wreck: color-mix(in oklab, var(--palette-steel-deep) 40%, var(--palette-g900));
+  --wreck-top: color-mix(in oklab, var(--palette-steel-deep) 55%, var(--palette-g800));
+  --wreck-edge: var(--palette-g950);
+  --soot: var(--palette-g950);
+  --ember: var(--palette-tangerine);
+  --hit: var(--palette-peg-red);
+  --hit-deep: color-mix(in oklab, var(--palette-peg-red) 62%, var(--palette-black));
+  --hit-glint: color-mix(in oklab, var(--palette-peg-red) 45%, var(--palette-white));
+  --peg: var(--palette-peg-white);
+  --peg-shade: color-mix(in oklab, var(--palette-peg-white) 70%, var(--palette-steel-deep));
+  --flame: var(--palette-tangerine);
+  --flame-core: var(--palette-sun);
+  --radar: var(--palette-aqua);
+  --radar-2: var(--palette-grass);
+  --aim: var(--palette-sun);
+  --mine: var(--palette-mine);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  container: ships / size;
+  color: var(--text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+:root[data-theme="dark"] .ships-stage,
+[data-surface="dark"] .ships-stage {
+  --bezel-ink: color-mix(in oklab, var(--palette-sea-deep) 55%, var(--palette-black));
+  --bezel-rim: color-mix(in oklab, var(--palette-sea-deep) 80%, var(--palette-sea));
+  --sea: color-mix(in oklab, var(--palette-sea) 82%, var(--palette-black));
+}
+.ships-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+.ship-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bs-p-shade {
+  fill: var(--hull);
+}
+.bs-p-shadow {
+  fill: var(--ship-shadow);
+}
+.bs-p-glint {
+  fill: var(--hull-glint);
+}
+.bs-p-soot {
+  fill: var(--soot);
+}
+.bs-p-ember {
+  fill: var(--ember);
+}
+
+/* ── Headings (monochrome) ───────────────────────────────────────────── */
+.ships-heading {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-12);
+  min-height: var(--control-xs);
+}
+.ships-heading-tag {
+  font-size: var(--type-lead);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--text);
+}
+.ships-heading-meta {
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.seas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  justify-content: center;
+  align-content: center;
+  column-gap: var(--sea-gap);
+  row-gap: var(--row-gap);
+}
+.sea {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+  min-height: 0;
+  width: var(--board);
+}
+.sea > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  height: var(--head-h);
+  min-width: 0;
+  padding-left: var(--coord);
+  padding-right: var(--bezel);
+}
+.sea h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  min-width: 0;
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-none);
+  white-space: nowrap;
+}
+.sea[data-board="own"] h2::before,
+.sea[data-board="target"] h2::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+}
+.ships-stage[data-battle="true"] .sea[data-board="target"] h2::before {
+  background: var(--palette-clear);
+  box-shadow: inset 0 0 0 var(--stroke-3) var(--text);
+}
+.sea > header .sea-fleet-count {
+  display: none;
+}
+.sea-fit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-16);
+  min-width: 0;
+}
+
+/* ── The sea grid: a navy plotting table ─────────────────────────────── */
+.sea-grid {
+  position: relative;
+  isolation: isolate;
+  flex: none;
+  display: grid;
+  grid-template-columns: var(--coord) repeat(10, minmax(0, 1fr));
+  grid-template-rows: var(--coord) repeat(10, minmax(0, 1fr));
+  width: var(--board);
+  height: var(--board);
+  padding: var(--space-0) var(--bezel) var(--bezel) var(--space-0);
+  border-radius: var(--radius-md);
+  background: var(--bezel-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--bezel-rim);
+}
+.sea-water,
+.doodle-fleet,
+.weapon-trails,
+.radar-scans,
+.bombed-areas,
+.ships-effects {
+  position: absolute;
+  top: var(--coord);
+  left: var(--coord);
+  right: var(--bezel);
+  bottom: var(--bezel);
+  pointer-events: none;
+}
+.sea-water {
+  z-index: -1;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--sea);
+}
+/* Swell: scalloped wave crests drifting in steps. */
+.sea-water::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sea-light);
+  opacity: 0.14;
+  -webkit-mask: radial-gradient(
+      circle at 50% 100%,
+      var(--palette-clear) 46%,
+      var(--palette-ink) 47% 62%,
+      var(--palette-clear) 63%
+    )
+    0 0 / 36px 15px repeat;
+  mask: radial-gradient(
+      circle at 50% 100%,
+      var(--palette-clear) 46%,
+      var(--palette-ink) 47% 62%,
+      var(--palette-clear) 63%
+    )
+    0 0 / 36px 15px repeat;
+  animation: sea-swell 6s steps(6, end) infinite;
+}
+/* Depth: the far edge of the water darkens in a soft fade. */
+.sea-water::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sea-deep);
+  -webkit-mask:
+    linear-gradient(var(--palette-ink), var(--palette-clear)) top / 100% var(--ramp-length)
+      no-repeat,
+    linear-gradient(var(--palette-clear), var(--palette-ink)) bottom / 100% var(--ramp-length)
+      no-repeat;
+  mask:
+    linear-gradient(var(--palette-ink), var(--palette-clear)) top / 100% var(--ramp-length)
+      no-repeat,
+    linear-gradient(var(--palette-clear), var(--palette-ink)) bottom / 100% var(--ramp-length)
+      no-repeat;
+  opacity: 0.7;
+}
+@keyframes sea-swell {
+  from {
+    -webkit-mask-position:
+      0 0,
+      0 0;
+    mask-position:
+      0 0,
+      0 0;
+  }
+  to {
+    -webkit-mask-position:
+      36px 0,
+      0 0;
+    mask-position:
+      36px 0,
+      0 0;
+  }
+}
+
+.sea-corner {
+  grid-row: 1;
+  grid-column: 1;
+}
+.sea-coordinate {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  font-family: var(--font-pixel);
+  font-size: var(--type-body);
+  font-weight: 600;
+  line-height: var(--leading-none);
+  color: var(--coord-ink);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--dur-1);
+}
+
+.sea-cell {
+  --lx: -1px;
+  --ly: -1px;
+  --cell-line: inset var(--lx) var(--ly) 0 var(--sea-line);
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-0);
+  border: 0;
+  border-radius: 0;
+  background: var(--palette-clear);
+  color: var(--text);
+  cursor: default;
+  box-shadow: var(--cell-line);
+}
+.sea-cell[data-col="9"] {
+  --lx: 0px;
+}
+.sea-cell[data-row="9"] {
+  --ly: 0px;
+}
+.sea-cell:focus {
+  outline: none;
+}
+.sea-cell:focus-visible {
+  z-index: 5;
+  box-shadow:
+    var(--cell-line),
+    inset 0 0 0 var(--stroke-3) var(--aim);
+}
+.sea-cell:enabled {
+  cursor: pointer;
+}
+.sea[data-board="target"] .sea-cell:enabled {
+  cursor: crosshair;
+}
+.sea-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--aim);
+  -webkit-mask: var(--bayer-4) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  mask: var(--bayer-4) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  transition: opacity var(--dur-2) steps(3, end);
+}
+
+/* Target reticle: dithered sun glow and pixel corner brackets on the hovered cell. */
+.ships-stage[data-battle="true"] .sea[data-board="target"] .sea-cell:enabled:hover::after {
+  opacity: 0.55;
+}
+.ships-stage[data-battle="true"] .sea[data-board="target"] .sea-cell:enabled:hover::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-2);
+  z-index: 2;
+  pointer-events: none;
+  --b: var(--aim);
+  background:
+    linear-gradient(var(--b), var(--b)) top left / 30% var(--px) no-repeat,
+    linear-gradient(var(--b), var(--b)) top left / var(--px) 30% no-repeat,
+    linear-gradient(var(--b), var(--b)) top right / 30% var(--px) no-repeat,
+    linear-gradient(var(--b), var(--b)) top right / var(--px) 30% no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom left / 30% var(--px) no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom left / var(--px) 30% no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom right / 30% var(--px) no-repeat,
+    linear-gradient(var(--b), var(--b)) bottom right / var(--px) 30% no-repeat;
+}
+.ships-stage[data-battle="true"][data-weapon="cannon"]
+  .sea[data-board="target"]
+  .sea-cell:enabled:active::after {
+  opacity: 0.9;
+}
+.sea[data-board="own"] .sea-cell:enabled:hover::after {
+  opacity: 0.55;
+}
+.ships-stage[data-placement="true"] .sea-cell:enabled:hover:not([data-ship="true"])::after {
+  opacity: 0.35;
+  background: var(--foam);
+}
+/* Placed ships start a pointer drag; without this, touch browsers claim the gesture for panning and cancel it. */
+.ships-stage[data-placement="true"] .sea-cell[data-ship="true"]:enabled {
+  touch-action: none;
+}
+
+/* Placement ghost and weapon area previews: dithered targeting overlays. */
+.sea-cell:is([data-drop="valid"], [data-effect="valid"])::after {
+  opacity: 0.7;
+}
+.sea-cell[data-drop="valid"]::after {
+  background: var(--foam);
+}
+.sea-cell[data-effect="valid"] {
+  box-shadow:
+    var(--cell-line),
+    inset 0 0 0 var(--stroke-2) var(--aim);
+}
+.sea-cell:is([data-drop="invalid"], [data-effect="invalid"])::after {
+  opacity: 0.8;
+  background: var(--palette-tomato);
+  -webkit-mask-image: var(--bayer-8);
+  mask-image: var(--bayer-8);
+}
+.sea-cell[data-drop="invalid"] {
+  animation: shake 320ms steps(5, end);
+}
+
+/* ── Pegs. A hit is a dithered red plate with a bold white pixel cross,
+   so it reads at a glance and still lets a ship or wreck show through.
+   A miss stirs the water darker and drops a big white peg in a foam ring. ── */
+.sea-peg,
+.sea-miss-peg,
+.sea-mine {
+  position: absolute;
+  pointer-events: none;
+}
+.sea-peg,
+.sea-miss-peg {
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+}
+.sea-peg::before {
+  content: "";
+  position: absolute;
+  inset: var(--stroke-2);
+  background: var(--hit);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--hit-deep);
+  -webkit-mask: var(--bayer-12) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  mask: var(--bayer-12) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  animation: peg-in var(--dur-3) steps(3, end) both;
+}
+.sea-peg::after {
+  content: "";
+  position: relative;
+  width: 58%;
+  aspect-ratio: 1;
+  background: var(--palette-white);
+  clip-path: polygon(
+    22% 0,
+    50% 28%,
+    78% 0,
+    100% 22%,
+    72% 50%,
+    100% 78%,
+    78% 100%,
+    50% 72%,
+    22% 100%,
+    0 78%,
+    28% 50%,
+    0 22%
+  );
+  filter: drop-shadow(var(--px) var(--px) 0 var(--hit-deep));
+  animation: peg-strike var(--dur-3) steps(3, end) both;
+}
+.sea-cell[data-hit="true"] {
+  background: var(--hit-deep);
+}
+.sea-cell[data-miss="true"] {
+  background: color-mix(in oklab, var(--sea-deep) 45%, var(--palette-clear));
+}
+.sea-miss-peg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: var(--stroke-2) dotted var(--palette-white);
+  animation: peg-in var(--dur-4) steps(4, end) both;
+}
+.sea-miss-peg::after {
+  content: "";
+  position: relative;
+  width: 20%;
+  aspect-ratio: 1;
+  background: var(--palette-white);
+  border-radius: var(--radius-pill);
+  animation: peg-in var(--dur-3) steps(3, end) both;
+}
+.sea-cell:is([data-mine-return="true"], [data-triggered-mine="true"]) .sea-miss-peg {
+  display: none;
+}
+@keyframes peg-in {
+  from {
+    scale: 0.3;
+    opacity: 0;
+  }
+}
+@keyframes peg-strike {
+  0% {
+    scale: 1.8;
+    opacity: 0;
+  }
+  60% {
+    scale: 0.9;
+    opacity: 1;
+  }
+}
+
+/* Mines: spiky pixel contact mines */
+.sea-mine {
+  z-index: 3;
+  inset: 14%;
+}
+.mine-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(var(--space-2) var(--space-2) 0 var(--ship-shadow));
+}
+.mine-spike {
+  fill: var(--palette-ink);
+}
+.mine-body {
+  fill: var(--mine);
+}
+.mine-shade {
+  fill: var(--palette-sun-deep);
+}
+.mine-glint {
+  fill: var(--palette-white);
+}
+.mine-lamp {
+  fill: var(--palette-tomato);
+  animation: blink 1.4s steps(1, end) infinite;
+}
+
+/* ── Ships ───────────────────────────────────────────────────────────── */
+.doodle-fleet {
+  z-index: 2;
+  width: calc(100% - var(--coord) - var(--bezel));
+  height: calc(100% - var(--coord) - var(--bezel));
+  overflow: visible;
+  shape-rendering: crispEdges;
+}
+.ship-cell-boundary {
+  fill: none;
+  stroke: var(--aim);
+  stroke-width: 6;
+  stroke-dasharray: 12 12;
+  shape-rendering: crispEdges;
+}
+.doodle-fleet [data-highlighted="true"] .ship-deck {
+  fill: var(--hull-top);
+}
+.ship-drag-preview {
+  opacity: 0.75;
+}
+.ship-drag-preview :is(.ship-shadow, .ship-wake) {
+  display: none;
+}
+.ship-drag-preview[data-valid="false"] .ship-hull,
+.ship-drag-preview[data-valid="false"] .ship-deck {
+  fill: var(--palette-tomato);
+}
+/* Animate the wrapper: transform-origin on .doodle-ship would also re-pivot its translate/rotate attribute and misplace rotated ships. */
+.ships-stage[data-placement="true"] .doodle-fleet > g {
+  animation: ship-drop var(--dur-3) steps(3, end) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes ship-drop {
+  from {
+    opacity: 0;
+    scale: 1.08;
+  }
+}
+.sunken-fleet {
+  z-index: 2;
+}
+
+.fleet-handles {
+  z-index: 7;
+  pointer-events: none;
+}
+.ship-rotate-handle {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: var(--control-xs);
+  height: var(--control-xs);
+  padding: var(--space-0);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--palette-g950);
+  color: var(--palette-white);
+  box-shadow: 0 0 0 var(--stroke-2) var(--palette-white);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    background-color var(--dur-2);
+}
+.ship-rotate-handle svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--dur-3) var(--ease-out);
+}
+.ship-rotate-handle:hover:not(:disabled),
+.ship-rotate-handle[data-active="true"] {
+  background: var(--palette-g700);
+}
+.ship-rotate-handle:hover:not(:disabled) svg {
+  transform: rotate(90deg);
+}
+.ship-rotate-handle:active:not(:disabled) {
+  transform: translate(-50%, -50%) scale(0.9);
+}
+.ship-rotate-handle:focus-visible {
+  outline: var(--stroke-3) solid var(--aim);
+  outline-offset: var(--space-2);
+}
+.ship-rotate-handle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Weapon history on the board ─────────────────────────────────────── */
+.weapon-trails {
+  z-index: 4;
+}
+.weapon-trails > * {
+  position: absolute;
+}
+.triggered-mine {
+  width: 10%;
+  height: 10%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.triggered-mine-art {
+  width: 82%;
+  height: 82%;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mine-burst {
+  stroke: var(--palette-sun);
+  stroke-width: 2;
+}
+.spent-mine-spikes {
+  stroke: var(--palette-black);
+  stroke-width: 2.5;
+}
+.spent-mine-body {
+  fill: var(--palette-sun);
+  stroke: var(--palette-black);
+}
+.spent-mine-dither {
+  fill: var(--palette-black);
+  opacity: 0.4;
+}
+.spent-mine-crack {
+  stroke: var(--palette-black);
+}
+.torpedo-path {
+  border: var(--stroke-2) solid var(--marker);
+  border-radius: var(--radius-xs);
+}
+.torpedo-path::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--foam);
+  opacity: 0.05;
+}
+.torpedo-path::after {
+  content: "";
+  position: absolute;
+  inset: 50% 6% auto;
+  height: 0;
+  border-top: var(--stroke-2) dashed var(--marker);
+}
+.torpedo-path[data-axis="v"]::after {
+  inset: 6% auto 6% 50%;
+  width: 0;
+  height: auto;
+  border-top: 0;
+  border-left: var(--stroke-2) dashed var(--marker);
+}
+.torpedo-start {
+  width: 6%;
+  height: 6%;
+  fill: none;
+  stroke: var(--marker);
+  stroke-width: 3;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+.mine-shot-outline {
+  width: 10%;
+  height: 10%;
+  border: var(--stroke-2) dotted var(--palette-sun);
+}
+.mine-shot-outline::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20%;
+  height: 20%;
+  border-radius: var(--radius-pill);
+  background: var(--palette-sun);
+  translate: -50% -50%;
+}
+.mine-shot-outline[data-hit="true"]::after {
+  left: 80%;
+  top: 20%;
+}
+.bombed-areas {
+  z-index: 3;
+}
+.bombed-area {
+  position: absolute;
+  width: 20%;
+  height: 20%;
+  border: var(--stroke-2) dashed var(--marker);
+}
+.bombed-area::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--soot);
+  opacity: 0.11;
+}
+.radar-scans {
+  z-index: 3;
+}
+.radar-scan-area {
+  position: absolute;
+  border: var(--stroke-2) solid var(--radar);
+  border-radius: var(--radius-xs);
+}
+.radar-scan-area::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(var(--radar), var(--radar-2));
+  opacity: 0.11;
+}
+.radar-scan-area::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    var(--palette-clear) 0 var(--space-6),
+    color-mix(in oklab, var(--radar) 35%, var(--palette-clear)) var(--space-6)
+      calc(var(--space-6) + var(--px))
+  );
+}
+.radar-scan-count {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-width: clamp(16px, calc(var(--board) / 16), 28px);
+  height: clamp(16px, calc(var(--board) / 16), 28px);
+  padding: var(--space-0) clamp(var(--space-2), calc(var(--board) / 60), var(--space-8));
+  border-radius: var(--radius-pill);
+  background: var(--palette-white);
+  color: var(--palette-black);
+  box-shadow: 0 0 0 var(--stroke-2) var(--palette-black);
+  font-family: var(--font-pixel);
+  font-size: clamp(var(--type-micro), calc(var(--board) / 24), var(--type-lead));
+  font-weight: 700;
+  line-height: var(--leading-none);
+  translate: -50% -50%;
+  animation: pop-in var(--dur-3) steps(3, end) both;
+}
+.radar-scan[data-radar-count="0"] .radar-scan-area {
+  border-color: var(--sea-light);
+}
+.radar-scan[data-radar-count="0"] .radar-scan-area::before {
+  opacity: 0.05;
+}
+
+/* ── Live effects ────────────────────────────────────────────────────── */
+.ships-effects {
+  z-index: 6;
+}
+.ship-fx {
+  position: absolute;
+  width: 10%;
+  height: 10%;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  shape-rendering: crispEdges;
+}
+.ship-fx * {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+.fx-bomb {
+  width: 20%;
+  height: 20%;
+}
+.fx-radar {
+  width: 30%;
+  height: 30%;
+  translate: -33.333% -33.333%;
+}
+
+.fx-trail {
+  stroke: var(--palette-white);
+  stroke-width: 4;
+  stroke-dasharray: 110;
+  animation: fx-trail 340ms steps(5, end) both;
+}
+.fx-shell {
+  fill: var(--palette-ink);
+}
+.fx-flash {
+  fill: var(--flame-core);
+  opacity: 0;
+  animation: fx-flash 420ms steps(4, end) 300ms both;
+}
+@keyframes fx-trail {
+  from {
+    stroke-dashoffset: 110;
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+@keyframes fx-flash {
+  0% {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+.fx-burst {
+  fill: var(--flame);
+  stroke: var(--hit);
+  stroke-width: 4;
+  animation: fx-burst 900ms steps(6, end) both;
+}
+.fx-core {
+  fill: var(--flame-core);
+  animation: fx-burst 900ms steps(6, end) 40ms both;
+}
+.fx-ember {
+  fill: var(--hit);
+  animation: fx-ember 900ms steps(6, end) both;
+}
+@keyframes fx-burst {
+  0% {
+    transform: scale(0.2) rotate(-25deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.25) rotate(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+@keyframes fx-ember {
+  0% {
+    transform: rotate(var(--a)) translateY(0) scale(1.4);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a)) translateY(-70px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.fx-ring {
+  stroke: var(--foam);
+  stroke-width: 4;
+  stroke-dasharray: 6 6;
+  animation: fx-ripple 1000ms steps(6, end) both;
+}
+.fx-ring-late {
+  animation-delay: 180ms;
+}
+.fx-drop {
+  fill: var(--peg);
+  animation: fx-flash 600ms steps(4, end) both;
+}
+@keyframes fx-ripple {
+  0% {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.fx-blast {
+  fill: var(--flame);
+  stroke: var(--flame-core);
+  stroke-width: 4;
+  animation: fx-blast 900ms steps(6, end) both;
+}
+.fx-shock {
+  stroke: var(--foam);
+  stroke-width: 4;
+  stroke-dasharray: 8 6;
+  animation: fx-ripple 900ms steps(6, end) both;
+}
+.fx-shock-late {
+  animation-delay: 140ms;
+}
+@keyframes fx-blast {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.fx-radar-grid {
+  stroke: var(--radar);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.fx-radar-sweep {
+  fill: color-mix(in oklab, var(--radar) 45%, var(--palette-clear));
+  animation: fx-spin 1s steps(12, end) 3 both;
+}
+.fx-radar-pulse {
+  stroke: var(--radar-2);
+  stroke-width: 3;
+  opacity: 0;
+  animation: fx-ping 1s steps(6, end) both;
+}
+.fx-radar-pulse:nth-of-type(2) {
+  animation-delay: 1s;
+}
+.fx-radar-pulse:nth-of-type(3) {
+  animation-delay: 2s;
+}
+.fx-radar-core {
+  fill: var(--radar);
+}
+@keyframes fx-spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes fx-ping {
+  0% {
+    transform: scale(0.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.fx-torpedo {
+  fill: var(--hull);
+  stroke: var(--palette-ink);
+  stroke-width: 4;
+  animation: fx-run 1000ms cubic-bezier(0.3, 0, 0.7, 1) both;
+}
+@keyframes fx-run {
+  0% {
+    transform: none;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(560px);
+    opacity: 0;
+  }
+}
+.fx-wake {
+  position: absolute;
+  z-index: -1;
+  border-radius: var(--radius-xs);
+  background: var(--foam);
+  animation: fx-wake 1000ms steps(6, end) both;
+  transform-origin: top;
+}
+.fx-wake[data-direction="n"] {
+  transform-origin: bottom;
+}
+.fx-wake[data-direction="e"] {
+  transform-origin: left;
+  animation-name: fx-wake-x;
+}
+.fx-wake[data-direction="w"] {
+  transform-origin: right;
+  animation-name: fx-wake-x;
+}
+@keyframes fx-wake {
+  0% {
+    transform: scaleY(0);
+    opacity: 0.38;
+  }
+  70% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+@keyframes fx-wake-x {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.38;
+  }
+  70% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+.fx-mine path.fx-mine {
+  fill: var(--mine);
+  stroke: var(--palette-ink);
+  stroke-width: 4;
+  animation: fx-burst 900ms steps(6, end) both;
+}
+.fx-spark {
+  stroke: var(--flame-core);
+  stroke-width: 5;
+  animation: fx-ripple 800ms steps(5, end) both;
+}
+
+.fx-sunk .fx-shock {
+  stroke: var(--flame);
+  stroke-width: 5;
+  animation-duration: 1400ms;
+}
+.fx-bubble {
+  fill: none;
+  stroke: var(--foam);
+  stroke-width: 3;
+  animation: fx-bubble 2200ms steps(8, end) both;
+}
+.fx-bubble:nth-of-type(3) {
+  animation-delay: 300ms;
+}
+.fx-bubble:nth-of-type(4) {
+  animation-delay: 600ms;
+}
+@keyframes fx-bubble {
+  0% {
+    transform: translateY(10px) scale(0.4);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+/* A floating label, so it may lift off the board with the shared shadow. */
+.ship-sunk-announcement {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-24);
+  border-radius: var(--radius-pill);
+  background: var(--invert);
+  color: var(--invert-text);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-pixel);
+  font-size: var(--type-title);
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  animation: sunk-banner 2500ms var(--ease-out) both;
+}
+.ship-sunk-announcement::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: var(--hit);
+}
+@keyframes sunk-banner {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
+  }
+  12% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -70%);
+    opacity: 0;
+  }
+}
+
+/* ── Grid tabs (narrow screens) ──────────────────────────────────────── */
+.ship-grid-tabs {
+  display: none;
+  flex: none;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.ship-grid-tab {
+  flex: 1;
+  min-height: var(--control-sm);
+  padding: var(--space-0) var(--space-12);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--palette-clear);
+  color: var(--text-muted);
+  font-size: var(--type-body);
+  font-weight: 600;
+  transition:
+    background-color var(--dur-2),
+    color var(--dur-2);
+}
+.ship-grid-tab:hover {
+  color: var(--text);
+}
+.ship-grid-tab[aria-pressed="true"] {
+  background: var(--invert);
+  color: var(--invert-text);
+}
+.ship-grid-tab:focus-visible {
+  outline: var(--stroke-2) solid var(--focus);
+  outline-offset: var(--space-2);
+}
+
+/* ── Weapon dock ───────────────────────────────────────────────────── */
+.ship-abilities {
+  grid-area: dock;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+  min-height: 0;
+}
+.ship-energy {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+  height: 40px;
+  padding: var(--space-0) var(--space-6) var(--space-0) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.energy-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--type-small);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.energy-bolt {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: currentColor;
+}
+.energy-cells {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: var(--space-4);
+  height: 18px;
+}
+.ship-energy[data-overflow="true"] .energy-cells {
+  height: auto;
+  grid-auto-rows: 12px;
+  max-height: 96px;
+  overflow-y: auto;
+}
+.ships-stage[data-battle="true"] .ship-energy[data-overflow="true"] {
+  height: auto;
+  min-height: 40px;
+  padding-block: var(--space-8);
+}
+.energy-cell {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--space-4);
+  background: var(--surface-3);
+  transition:
+    background-color var(--dur-2) steps(2, end),
+    opacity var(--dur-2);
+  transition-delay: calc(var(--i) * 18ms);
+}
+.energy-cell[data-on="true"] {
+  background: var(--palette-sun);
+  box-shadow: inset 0 calc(var(--px) * -1) 0 var(--palette-sun-deep);
+}
+.energy-cell[data-on="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 50%;
+  background: var(--palette-white);
+  opacity: 0.14;
+}
+.energy-cell[data-on="true"][data-spend="true"] {
+  animation: blink 900ms steps(1, end) infinite;
+  opacity: 0.5;
+}
+.energy-value {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: var(--space-0) var(--space-8);
+  border-radius: var(--radius-pill);
+  background: var(--invert);
+  color: var(--invert-text);
+  font-family: var(--font-pixel);
+  font-size: var(--type-lead);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-none);
+}
+
+.ship-weapons {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+.ship-weapons .weapon-card {
+  --btn-bg: var(--surface-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  grid-template-areas: "glyph" "label" "cost";
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-4);
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: var(--space-8) var(--space-4);
+  border-radius: var(--radius-md);
+  text-align: center;
+  white-space: nowrap;
+  touch-action: none;
+}
+.weapon-card[data-weapon="cannon"],
+.power-drag-ghost[data-weapon="cannon"] {
+  --utility-color: var(--palette-steel-light);
+}
+.weapon-card[data-weapon="mine"],
+.power-drag-ghost[data-weapon="mine"] {
+  --utility-color: var(--palette-sun);
+}
+.weapon-card[data-weapon="bomb"],
+.power-drag-ghost[data-weapon="bomb"] {
+  --utility-color: var(--palette-tomato);
+}
+.weapon-card[data-weapon="radar"],
+.power-drag-ghost[data-weapon="radar"] {
+  --utility-color: var(--palette-grass);
+}
+.weapon-card[data-weapon="torpedo"],
+.power-drag-ghost[data-weapon="torpedo"] {
+  --utility-color: var(--palette-sky);
+}
+.ship-weapons .weapon-card[aria-pressed="true"] {
+  --btn-bg: var(--utility-color);
+  --btn-fg: var(--palette-black);
+}
+.weapon-glyph {
+  grid-area: glyph;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  background: var(--utility-color);
+  color: var(--palette-black);
+  transition:
+    background-color var(--dur-2),
+    color var(--dur-2);
+}
+.weapon-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.weapon-icon .glyph-fill {
+  fill: currentColor;
+  stroke: none;
+}
+.power-label {
+  grid-area: label;
+  display: grid;
+  min-width: 0;
+}
+.power-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(var(--type-caption), calc(var(--board) / 27), var(--type-body));
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+}
+.power-description {
+  display: none;
+}
+.power-cost {
+  grid-area: cost;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  height: 14px;
+  color: inherit;
+}
+.power-cost-value {
+  font-family: var(--font-pixel);
+  font-size: var(--type-body);
+  font-weight: 700;
+  line-height: var(--leading-none);
+  font-variant-numeric: tabular-nums;
+}
+.power-cost[data-free="true"] {
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: var(--leading-none);
+  opacity: 0.6;
+}
+.power-pips {
+  display: flex;
+  gap: var(--space-2);
+}
+.power-pips i {
+  width: 4px;
+  height: 8px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.power-drag-ghost {
+  position: fixed;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  max-width: 240px;
+  padding: var(--space-10) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--invert);
+  color: var(--invert-text);
+  box-shadow: var(--shadow);
+  font-size: var(--type-small);
+  font-weight: 600;
+  pointer-events: none;
+  animation: pop-in var(--dur-2) steps(3, end) both;
+}
+.power-drag-ghost .weapon-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--utility-color);
+}
+
+/* ── Game log (monochrome) ───────────────────────────────────────────── */
+.ship-game-log {
+  grid-area: log;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+.ship-log-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  font-size: var(--type-body);
+  line-height: var(--leading-snug);
+  color: var(--text-muted);
+}
+.ship-log-content::-webkit-scrollbar {
+  display: none;
+}
+.ship-log-content:focus-visible {
+  outline: var(--stroke-2) solid var(--focus);
+  outline-offset: var(--space-2);
+}
+.ship-log-content h3 {
+  margin-bottom: var(--space-6);
+  font-size: var(--type-caption);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.ship-log-announcement {
+  margin-bottom: var(--space-6);
+  font-weight: 600;
+  color: var(--text);
+}
+.ship-log-content ol {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+}
+.ship-log-content li {
+  position: relative;
+  padding: var(--space-2) var(--space-0) var(--space-2) var(--space-20);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: rise-in var(--dur-3) steps(3, end) both;
+}
+.ship-log-content li::before {
+  content: "";
+  position: absolute;
+  left: var(--space-2);
+  top: calc(0.5lh - 4px + var(--space-2));
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--text-faint);
+}
+.ship-log-content li:is([data-outcome="hit"], [data-outcome="sunk"])::before {
+  background: var(--hit);
+  box-shadow: none;
+}
+.ship-log-content li[data-outcome="sunk"] {
+  color: var(--text);
+  font-weight: 600;
+}
+.ship-log-content strong {
+  font-family: var(--font-pixel);
+  font-weight: 600;
+  color: var(--text);
+}
+.ship-log-player {
+  font-weight: 700;
+  color: var(--text);
+}
+.ship-log-empty {
+  color: var(--text-muted);
+}
+
+/* ── Notice line ─────────────────────────────────────────────────────── */
+.ship-notice {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--notice-h);
+  padding: var(--space-0) var(--space-12);
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+}
+.ship-notice:empty {
+  visibility: hidden;
+}
+.ship-notice[data-tone="danger"] {
+  color: var(--danger-ink);
+  animation: shake 320ms steps(5, end);
+}
+
+/* ── Battle layout: your board left, target right; log under yours, weapons under the target ── */
+.ships-stage[data-battle="true"] > .ships-content {
+  --board: clamp(
+    200px,
+    min(
+      calc((100cqw - var(--sea-gap)) / 2),
+      calc(
+        100cqh - var(--notice-h) - var(--space-8) - var(--head-h) - var(--space-8) -
+          var(--row-gap) - var(--dock-h) - var(--space-12)
+      )
+    ),
+    680px
+  );
+  flex: none;
+  margin-block: auto var(--space-0);
+}
+.ships-stage[data-battle="true"] > .ship-notice {
+  margin-bottom: auto;
+}
+.ships-stage[data-battle="true"] .seas {
+  grid-template-columns: var(--board) var(--board);
+  grid-template-rows: auto var(--dock-h);
+  grid-template-areas: "own target" "log dock";
+}
+.ships-stage[data-battle="true"] .sea[data-board="own"] {
+  grid-area: own;
+}
+.ships-stage[data-battle="true"] .sea[data-board="target"] {
+  grid-area: target;
+}
+.ships-stage[data-battle="true"] :is(.ship-abilities, .ship-game-log) {
+  margin-left: var(--coord);
+  margin-right: var(--bezel);
+}
+
+/* ── Placement: big ship tray beside the grid, Ready below it ────────── */
+.ships-stage[data-placement="true"] > .ships-content {
+  --picker-w: 272px;
+  --ready-h: var(--control-lg);
+  --board: clamp(
+    160px,
+    min(
+      calc(100cqw - var(--picker-w) - var(--space-20)),
+      calc(
+        100cqh - var(--notice-h) - var(--space-8) - var(--head-h) - var(--space-8) -
+          var(--space-16) - var(--ready-h)
+      )
+    ),
+    640px
+  );
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-20);
+}
+.ships-stage[data-placement="true"] .seas {
+  flex: none;
+  align-content: start;
+}
+.ships-stage[data-placement="true"] > .ships-heading {
+  margin-bottom: var(--space-4);
+}
+.ships-stage[data-placement="true"] .sea > header {
+  justify-content: center;
+  padding: var(--space-0);
+}
+.ships-stage[data-placement="true"] .sea h2 {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: var(--type-section);
+}
+.ships-stage[data-placement="true"] .sea h2::before {
+  display: none;
+}
+.fleet-tools {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  width: var(--picker-w);
+  margin-top: calc(var(--head-h) + var(--space-8));
+  max-height: calc(var(--board) + var(--space-16) + var(--ready-h));
+  padding: var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.fleet-tools .ships-heading {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  min-height: 0;
+  padding: var(--space-0) var(--space-4);
+}
+.fleet-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+.fleet-picker::-webkit-scrollbar {
+  display: none;
+}
+.fleet-picker:empty {
+  display: none;
+}
+.fleet-picker .fleet-choice {
+  --btn-bg: var(--raised);
+  --btn-line: var(--palette-clear);
+  flex: none;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  justify-items: start;
+  gap: var(--space-12);
+  width: 100%;
+  min-height: 68px;
+  height: auto;
+  padding: var(--space-6) var(--space-12) var(--space-6) var(--space-6);
+  border-radius: var(--radius-md);
+  text-align: left;
+  touch-action: none;
+  animation: rise-in var(--dur-3) steps(3, end) both;
+  animation-delay: calc(var(--i) * 40ms);
+}
+:root[data-theme="dark"] .fleet-picker .fleet-choice {
+  --btn-bg: var(--surface-3);
+}
+.fleet-picker .fleet-choice[aria-pressed="true"] {
+  --btn-bg: var(--invert);
+  --btn-fg: var(--invert-text);
+}
+.fleet-choice-art {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--sea);
+}
+.fleet-choice-art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--sea-light);
+  opacity: 0.12;
+}
+.fleet-choice-art svg {
+  max-width: 62px;
+  max-height: 44px;
+  width: auto;
+  height: 44px;
+  overflow: visible;
+  shape-rendering: crispEdges;
+}
+.fleet-choice-text {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.fleet-choice-name {
+  font-size: var(--type-lead);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+.fleet-choice-size {
+  font-size: var(--type-small);
+  font-weight: 600;
+  opacity: 0.7;
+}
+.fleet-tools-hint {
+  padding: var(--space-0) var(--space-4);
+  font-size: var(--type-body);
+  line-height: var(--leading-snug);
+  color: var(--text-muted);
+}
+.fleet-ready.ui-button {
+  min-width: 240px;
+}
+.ships-stage[data-placement="true"] .ship-notice {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* ── Spectators: both public boards with fleet trays outside ─────────── */
+.ships-stage[data-watching="true"] > .ships-content {
+  --fleet-w: 104px;
+  --board: max(
+    150px,
+    min(
+      calc((100cqw - 2 * var(--fleet-w) - 2 * var(--space-12) - var(--sea-gap)) / 2),
+      calc(100cqh - var(--notice-h) - var(--space-8))
+    )
+  );
+}
+.ships-stage[data-watching="true"] .seas {
+  grid-template-columns: repeat(2, auto);
+  align-items: center;
+}
+.ships-stage[data-watching="true"] .sea {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-12);
+  width: auto;
+}
+.ships-stage[data-watching="true"] .sea:first-child {
+  flex-direction: row-reverse;
+}
+.ships-stage[data-watching="true"] .sea-fit {
+  flex: none;
+}
+
+/* ── Final result ────────────────────────────────────────────────────── */
+.ships-stage[data-result="true"] {
+  container-type: inline-size;
+  height: auto;
+}
+.ships-stage[data-result="true"] .seas {
+  grid-template-rows: none;
+  grid-template-areas: none;
+  align-items: start;
+  width: 100%;
+}
+.ships-stage[data-result="true"] .sea,
+.ships-stage[data-result="true"][data-watching="true"] .sea,
+.ships-stage[data-result="true"][data-watching="true"] .sea:first-child {
+  grid-area: auto;
+  flex-direction: column;
+  width: 100%;
+}
+.ships-stage[data-result="true"] .sea-fit {
+  width: 100%;
+}
+.ships-stage[data-result="true"] .sea-grid {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.ships-stage[data-result="true"] :is(.ship-abilities, .ship-game-log, .ship-grid-tabs) {
+  display: none;
+}
+.result-ship-player {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* ── Laptop and short screens: weapons and log in a column beside the boards ── */
+@container ships (max-height:620px) and (min-width:651px) {
+  .ships-content {
+    --side-w: clamp(200px, 21cqw, 300px);
+    --sea-gap: var(--space-16);
+  }
+  .ships-stage[data-battle="true"] > .ships-content {
+    --board: max(
+      140px,
+      min(
+        calc((100cqw - var(--side-w) - 2 * var(--sea-gap)) / 2),
+        calc(
+          100cqh - var(--notice-h) - var(--space-8) - var(--head-h) - var(--space-8) -
+            var(--space-12)
+        )
+      )
+    );
+  }
+  .ships-stage[data-battle="true"] .seas {
+    flex: none;
+    height: calc(var(--head-h) + var(--space-8) + var(--board));
+    grid-template-columns: var(--board) var(--board) var(--side-w);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "own target dock" "own target log";
+    row-gap: var(--space-8);
+  }
+  .ships-stage[data-battle="true"] :is(.ship-abilities, .ship-game-log) {
+    margin: var(--space-0);
+  }
+  .ships-stage[data-battle="true"] .ship-abilities {
+    margin-top: calc(var(--head-h) + var(--space-8));
+  }
+  .ships-stage[data-battle="true"] .ship-weapons {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+    gap: var(--space-6);
+  }
+  .ships-stage[data-battle="true"] .ship-weapons .weapon-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    grid-template-areas: "glyph label cost";
+    justify-items: start;
+    align-items: center;
+    gap: var(--space-10);
+    height: auto;
+    min-height: var(--control);
+    padding: var(--space-6) var(--space-16) var(--space-6) var(--space-6);
+    border-radius: var(--radius-pill);
+    text-align: left;
+  }
+  .ships-stage[data-battle="true"] .power-cost {
+    justify-self: end;
+  }
+  .ships-stage[data-battle="true"] .energy-label {
+    display: none;
+  }
+  .ships-stage[data-battle="true"] .ship-energy {
+    padding-left: var(--space-12);
+  }
+
+  .ships-stage[data-placement="true"] > .ships-content {
+    --picker-w: 244px;
+  }
+  .fleet-picker .fleet-choice {
+    grid-template-columns: 60px minmax(0, 1fr);
+    min-height: 52px;
+    padding: var(--space-4) var(--space-10) var(--space-4) var(--space-4);
+  }
+  .fleet-choice-art {
+    width: 60px;
+    height: 44px;
+  }
+  .fleet-choice-art svg {
+    height: 34px;
+    max-width: 50px;
+  }
+  .fleet-choice-name {
+    font-size: var(--type-body);
+  }
+  .ships-stage[data-watching="true"] > .ships-content {
+    --fleet-w: 80px;
+  }
+}
+@container ships (max-height:440px) and (min-width:651px) {
+  .ships-content {
+    --head-h: 28px;
+    --coord: 20px;
+    --bezel: 6px;
+    --notice-h: 20px;
+  }
+  .sea > header {
+    gap: var(--space-6);
+  }
+  .sea h2 {
+    font-size: var(--type-small);
+  }
+  .sea h2::before {
+    display: none;
+  }
+  .sea-coordinate {
+    font-size: var(--type-micro);
+  }
+  .sea-fleet-count {
+    display: none;
+  }
+  .ships-stage[data-battle="true"] .ship-abilities {
+    gap: var(--space-4);
+    margin-top: var(--space-0);
+  }
+  .ships-stage[data-battle="true"] .ship-energy {
+    height: 28px;
+  }
+  .ships-stage[data-battle="true"] .energy-value {
+    height: 22px;
+    min-width: 22px;
+    font-size: var(--type-body);
+  }
+  .ships-stage[data-battle="true"] .ship-weapons {
+    gap: var(--space-2);
+  }
+  .ships-stage[data-battle="true"] .ship-weapons .weapon-card {
+    min-height: 0;
+    padding: var(--space-2) var(--space-8) var(--space-2) var(--space-2);
+  }
+  .ships-stage[data-battle="true"] .weapon-glyph {
+    width: 24px;
+    height: 24px;
+  }
+  .ships-stage[data-battle="true"] .weapon-icon {
+    width: 16px;
+    height: 16px;
+  }
+  .ships-stage[data-battle="true"] .power-name {
+    font-size: var(--type-small);
+  }
+  .ships-stage[data-battle="true"] .power-pips {
+    display: none;
+  }
+  .ships-stage[data-battle="true"] .power-cost-value {
+    font-size: var(--type-body);
+  }
+  .ship-log-content {
+    padding: var(--space-6) var(--space-10);
+    font-size: var(--type-small);
+  }
+  .ship-log-content h3 {
+    display: none;
+  }
+  .ships-stage[data-placement="true"] > .ships-content {
+    --picker-w: 180px;
+    --ready-h: var(--control-sm);
+  }
+  .ships-stage[data-placement="true"] .sea h2 {
+    font-size: var(--type-lead);
+  }
+  .fleet-tools {
+    padding: var(--space-8);
+    gap: var(--space-6);
+  }
+  .fleet-tools .ships-heading,
+  .fleet-choice-size,
+  .fleet-tools-hint {
+    display: none;
+  }
+  .ships-stage[data-placement="true"] .fleet-ready.ui-button {
+    min-height: var(--control-sm);
+    min-width: 0;
+    width: min(220px, var(--board));
+    font-size: var(--type-body);
+  }
+  .fleet-picker {
+    gap: var(--space-4);
+  }
+  .fleet-picker .fleet-choice {
+    grid-template-columns: 40px minmax(0, 1fr);
+    min-height: 0;
+    gap: var(--space-8);
+    padding: var(--space-2) var(--space-8) var(--space-2) var(--space-2);
+  }
+  .fleet-choice-art {
+    width: 40px;
+    height: 30px;
+  }
+  .fleet-choice-art svg {
+    height: 22px;
+    max-width: 32px;
+  }
+  .fleet-choice-name {
+    font-size: var(--type-small);
+  }
+  .ships-stage[data-watching="true"] > .ships-content {
+    --fleet-w: 60px;
+  }
+}
+
+/* ── Phones: tabbed grids, weapons and log below ─────────────────────── */
+@container ships (max-width:650px) {
+  .ships-content {
+    --coord: 22px;
+    --bezel: 6px;
+    --head-h: 34px;
+    --sea-gap: var(--space-10);
+    --row-gap: var(--space-10);
+    --dock-h: 112px;
+    gap: var(--space-8);
+  }
+  .ship-grid-tabs {
+    display: flex;
+  }
+  .sea h2 {
+    font-size: var(--type-lead);
+  }
+  .sea h2::before {
+    width: 10px;
+    height: 10px;
+  }
+  .sea-coordinate {
+    font-size: var(--type-caption);
+  }
+  .sea-fleet-summary .sea-fleet-count {
+    display: none;
+  }
+  .ships-stage[data-battle="true"] > .ships-content {
+    --board: max(
+      160px,
+      min(
+        100cqw,
+        calc(
+          100cqh - var(--notice-h) - var(--space-8) - var(--control) - var(--space-8) -
+            var(--head-h) - var(--space-8) - 2 * var(--row-gap) - var(--dock-h) - 64px
+        )
+      )
+    );
+    flex: 1;
+    margin: var(--space-0);
+  }
+  .ships-stage[data-battle="true"] > .ship-notice {
+    margin: var(--space-0);
+  }
+  .ships-stage[data-battle="true"] .seas {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    align-content: normal;
+  }
+  .ships-stage[data-battle="true"] .sea:not([data-selected="true"]) {
+    display: none;
+  }
+  .ships-stage[data-battle="true"] :is(.ship-abilities, .ship-game-log) {
+    margin: var(--space-0);
+    width: var(--board);
+  }
+  .ships-stage[data-battle="true"] .ship-abilities {
+    order: 1;
+    flex: none;
+    height: var(--dock-h);
+  }
+  .ships-stage[data-battle="true"] .ship-game-log {
+    order: 2;
+    flex: 1;
+    min-height: 64px;
+  }
+  .ships-stage[data-battle="true"] .ship-log-content {
+    padding: var(--space-8) var(--space-12);
+  }
+  .ships-stage[data-battle="true"] .ship-log-content h3 {
+    display: none;
+  }
+  .ships-stage[data-battle="true"] .ship-energy {
+    height: 34px;
+  }
+  .ships-stage[data-battle="true"] .energy-value {
+    height: 26px;
+    min-width: 26px;
+  }
+  .ships-stage[data-battle="true"] .ship-weapons {
+    gap: var(--space-4);
+  }
+  .ships-stage[data-battle="true"] .ship-weapons .weapon-card {
+    padding: var(--space-6) var(--space-2);
+  }
+  .ships-stage[data-battle="true"] .power-pips {
+    display: none;
+  }
+  .ships-stage[data-battle="true"] .power-cost-value {
+    font-size: var(--type-small);
+  }
+  .ships-stage[data-battle="true"] .weapon-glyph {
+    width: 30px;
+    height: 30px;
+  }
+  .ships-stage[data-battle="true"] .power-name {
+    font-size: var(--type-small);
+  }
+
+  .ships-stage[data-placement="true"] > .ships-content {
+    --board: max(
+      200px,
+      min(
+        100cqw,
+        calc(
+          100cqh - var(--notice-h) - var(--space-8) - 116px - var(--space-10) - var(--head-h) -
+            var(--space-8) - var(--space-12) - var(--ready-h)
+        )
+      )
+    );
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-10);
+  }
+  .ships-stage[data-placement="true"] .sea h2 {
+    font-size: var(--type-title);
+  }
+  .fleet-tools {
+    width: var(--board);
+    max-height: none;
+    margin-top: 0;
+    padding: var(--space-8);
+    gap: var(--space-6);
+    border-radius: var(--radius-md);
+  }
+  .fleet-tools .ships-heading {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .fleet-tools .ships-heading-tag {
+    font-size: var(--type-body);
+  }
+  .fleet-tools .ships-heading-meta {
+    font-size: var(--type-small);
+  }
+  .fleet-picker {
+    flex-direction: row;
+    gap: var(--space-6);
+    overflow-x: auto;
+  }
+  .fleet-picker .fleet-choice {
+    flex: 1 0 auto;
+    grid-template-columns: none;
+    grid-template-rows: auto auto;
+    justify-items: center;
+    width: auto;
+    min-width: 62px;
+    min-height: 0;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    text-align: center;
+  }
+  .fleet-choice-art {
+    width: 52px;
+    height: 38px;
+  }
+  .fleet-choice-art svg {
+    height: 28px;
+    max-width: 42px;
+  }
+  .fleet-choice-size,
+  .fleet-tools-hint {
+    display: none;
+  }
+  .fleet-choice-name {
+    font-size: var(--type-caption);
+  }
+
+  .ships-stage[data-watching="true"] > .ships-content {
+    --fleet-w: 56px;
+    --board: max(
+      140px,
+      min(
+        calc(100cqw - var(--fleet-w) - var(--space-10)),
+        calc(100cqh - 48px - var(--notice-h) - var(--space-10) - var(--space-8))
+      )
+    );
+  }
+  .ships-stage[data-watching="true"] .seas {
+    grid-template-columns: auto;
+    align-content: start;
+  }
+  .ships-stage[data-watching="true"] .sea:not([data-selected="true"]) {
+    display: none;
+  }
+  .ships-stage[data-watching="true"] .sea:first-child {
+    flex-direction: row;
+  }
+}
+
+/* Final results always show both full boards. These stay after the container
+   queries so they win inside small result stages. */
+.ships-stage[data-result="true"] > .ships-content {
+  --board: 100% !important;
+}
+.ships-stage[data-result="true"] .seas {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  height: auto;
+  margin-block: 0;
+}
+.ships-stage[data-result="true"] .sea,
+.ships-stage[data-result="true"] .sea > header,
+.ships-stage[data-result="true"] .sea > .sea-fit {
+  display: flex !important;
+}
+.ships-stage[data-result="true"] .sea {
+  width: 100% !important;
+  flex-direction: column;
+}
+@media (max-width: 650px) {
+  .ships-stage[data-result="true"] .seas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Streams: bigger coordinates and labels for viewers far away ─────── */
+/* Only on stages tall enough for it, so a small broadcast window keeps the compact sizes. */
+@container ships (min-height:621px) and (min-width:651px) {
+  .match-desk[data-stream="true"] .ships-content {
+    --coord: 40px;
+    --notice-h: 36px;
+  }
+  .match-desk[data-stream="true"] .ships-stage .sea-coordinate {
+    font-size: var(--type-title);
+  }
+  .match-desk[data-stream="true"] .ships-stage .ship-notice {
+    font-size: var(--type-lead);
+  }
+  .match-desk[data-stream="true"] .ships-stage .radar-scan-count {
+    min-width: 36px;
+    height: 36px;
+    font-size: var(--type-title);
+  }
+  .match-desk[data-stream="true"]
+    .ships-stage
+    .sea-fleet-summary[data-column="true"]
+    .sea-fleet-count {
+    font-size: var(--type-lead);
+  }
+}
+
+/* Short landscape phones: slimmer player plates leave the height to the boards. */
+@media (max-height: 500px) and (min-width: 560px) {
+  .match-desk[data-game="battleship"]:not([data-phase="waiting"]) .desk-layout {
+    gap: var(--space-6);
+    padding-block: var(--space-6);
+  }
+  .match-desk[data-game="battleship"] .desk-player {
+    min-height: 0;
+    padding: var(--space-4) var(--space-12) var(--space-8) var(--space-6);
+    gap: var(--space-8);
+  }
+  .match-desk[data-game="battleship"] .desk-avatar .player-avatar,
+  .match-desk[data-game="battleship"] .desk-avatar .jev-logo {
+    width: 24px !important;
+    height: 24px !important;
+    --avatar-size: 24px;
+  }
+  .match-desk[data-game="battleship"] .desk-player .player-name-label > strong {
+    font-size: var(--type-body);
+  }
+  .match-desk[data-game="battleship"] .desk-player .player-name-label > small {
+    display: none !important;
+  }
+  .match-desk[data-game="battleship"] .desk-player-timer {
+    bottom: var(--space-2);
+    height: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sea-water::before,
+  .mine-lamp,
+  .energy-cell[data-spend="true"] {
+    animation: none !important;
+  }
+  .ship-fx *,
+  .fx-wake,
+  .sea-peg::before,
+  .sea-peg::after,
+  .sea-miss-peg::before,
+  .sea-miss-peg::after,
+  .radar-scan-count,
+  .energy-cell,
+  .ship-sunk-announcement,
+  .ship-log-content li,
+  .fleet-picker .fleet-choice,
+  .ships-stage[data-placement="true"] .doodle-fleet > g,
+  .sea-cell[data-drop="invalid"] {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,82 @@
+/* Sign-out confirmation, shared by the site bar, Profile and the operator desk.
+   A compact hand-drawn sheet: a tomato sticker beside the question, then a grey
+   Cancel and a filled tomato Sign out, both with the ink outline the other controls use. */
+.signout-dialog {
+  width: min(440px, calc(100vw - var(--space-32)));
+  padding: var(--space-24);
+  border-radius: var(--radius-lg);
+  background: none;
+  box-shadow: none;
+  isolation: isolate;
+}
+/* The sheet draws its surface on a layer so the wobble filter leaves the text crisp.
+   It sits just inside the edge because the sheet scrolls, which would clip the wobble. */
+.signout-dialog::before {
+  content: "";
+  position: absolute;
+  inset: var(--stroke-3);
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--raised);
+  box-shadow:
+    inset 0 0 0 var(--stroke-2) var(--doodle-ink),
+    0 40px 80px -32px var(--palette-black-30);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+}
+.signout-dialog-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: var(--space-16);
+}
+.signout-dialog-mark {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: var(--control-lg);
+  height: var(--control-lg);
+  color: var(--on-pastel);
+  animation: pop-in var(--dur-4) var(--ease-snap) both;
+}
+/* Only the sticker tilts; the pixel glyph stays square to the grid so it renders crisp. */
+.signout-dialog-mark::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-0);
+  z-index: -1;
+  border-radius: var(--radius-md);
+  background: var(--palette-tomato);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--doodle-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  rotate: -6deg;
+}
+.signout-dialog .ui-dialog-title {
+  padding-top: var(--space-2);
+  font-size: var(--type-section);
+}
+.signout-dialog .ui-dialog-description {
+  margin-top: var(--space-6);
+  text-wrap: pretty;
+}
+.signout-dialog .ui-dialog-actions {
+  margin-top: var(--space-24);
+}
+.signout-dialog-confirm {
+  --btn-bg: var(--palette-tomato);
+  --btn-fg: var(--on-pastel);
+  --doodle-line: var(--doodle-ink);
+  --touch-ink: var(--palette-ink);
+}
+
+@media (max-width: 480px) {
+  .signout-dialog-head {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-16);
+  }
+  .signout-dialog .ui-dialog-actions > * {
+    flex: 1 1 0;
+  }
+}

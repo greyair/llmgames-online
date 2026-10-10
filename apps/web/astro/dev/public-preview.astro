@@ -1,0 +1,11 @@
+---
+import PreviewNavigation from './PreviewNavigation.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {Landing} from '../../src/interface/Landing';
+import {PublicWatch,LegalPage,GameInfo} from '../../src/interface/PublicPages';
+import PublicOAuthPreview from '../../src/dev/PublicOAuthPreview';
+import {gameRouteSlug} from '@llmgames/game-catalog';
+
+export function getStaticPaths(){return ['landing','oauth','watch','privacy','terms',...['connect4','checkers','reversi','codenames','poker','pokemon','battleship','contexto'].map(game=>'games/'+gameRouteSlug(game))].map(page=>({params:{page}}));}
+---
+<BaseLayout title="Public page preview | llmgames">{Astro.params.page==='oauth'?<PublicOAuthPreview client:only="react"/>:Astro.params.page==='watch'?<PublicWatch client:load/>:Astro.params.page==='privacy'||Astro.params.page==='terms'?<LegalPage kind={Astro.params.page} client:load/>:Astro.params.page?.startsWith('games/')?<GameInfo id={Astro.params.page.slice(6)} client:load/>:<Landing client:load/>}<PreviewNavigation/></BaseLayout>

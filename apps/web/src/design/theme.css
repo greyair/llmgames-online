@@ -1,0 +1,164 @@
+/* Semantic theme. Components use only these names. A subtree can flip with
+   data-surface="dark" or data-surface="light".
+
+   Mono Dither: component chrome is ink, white and greys with simple pastel
+   accents (see the tint tokens below), pill controls and big soft cards. Color comes from game art and
+   native game boards; dither stays a small accent on avatars and interaction. */
+:root,
+[data-surface="light"] {
+  --canvas: var(--palette-white);
+  --surface: var(--palette-g50);
+  --surface-2: var(--palette-g100);
+  --surface-3: var(--palette-g150);
+  --raised: var(--palette-white);
+  --line: var(--palette-g150);
+  --line-strong: var(--palette-g300);
+  --outline: var(--palette-g200);
+  --text: var(--palette-g950);
+  --text-muted: var(--palette-g600);
+  --text-faint: var(--palette-g550);
+  --invert: var(--palette-g950);
+  --invert-2: var(--palette-g800);
+  --invert-text: var(--palette-white);
+  --invert-muted: var(--palette-g400);
+  --hover: var(--palette-ink-06);
+  --press: var(--palette-ink-10);
+  --overlay: var(--palette-ink-55);
+
+  /* Primary accents are ink. Pastel tints (bottom of this file) color hovers, selections and status. */
+  --accent: var(--palette-g950);
+  --accent-strong: var(--palette-g800);
+  --accent-text: var(--palette-white);
+  --accent-ink: var(--palette-g950);
+  --link: var(--palette-g950);
+  --signal: var(--palette-g950);
+  --signal-ink: var(--palette-g950);
+  --signal-soft: var(--palette-g100);
+  --live: var(--palette-grass-deep);
+  --live-ink: var(--palette-grass-ink);
+  --on-live: var(--palette-ink);
+  --danger: var(--palette-tomato-deep);
+  --danger-ink: var(--palette-tomato-ink);
+  --warn: var(--palette-tangerine-deep);
+  --warn-ink: var(--palette-sun-ink);
+  --focus: var(--palette-g950);
+
+  /* Riso rotation for art only: fields, game tiles, avatars, confetti. */
+  --pop-1: var(--palette-tomato);
+  --pop-2: var(--palette-sun);
+  --pop-3: var(--palette-grass);
+  --pop-4: var(--palette-sky);
+  --pop-5: var(--palette-tangerine);
+  --pop-6: var(--palette-pink);
+  --pop-7: var(--palette-aqua);
+
+  --dither-ink: var(--palette-g950);
+  --field-back: var(--palette-g950);
+  --field-front: var(--palette-tangerine);
+  --field-accent: var(--palette-sky);
+  /* Only floating layers (menus, dialogs, toasts) cast a shadow. */
+  --shadow: 0 1px 0 var(--palette-ink-06), 0 24px 48px -24px var(--palette-black-30);
+  --shadow-lg: 0 1px 0 var(--palette-ink-06), 0 40px 80px -32px var(--palette-black-30);
+  --team-red: var(--palette-cn-red);
+  --team-red-ink: var(--palette-tomato-ink);
+  --team-blue: var(--palette-cn-blue);
+  --team-blue-ink: var(--palette-sky-ink);
+  --you: var(--palette-g950);
+  --you-ink: var(--palette-g950);
+  --agent: var(--palette-g950);
+  --agent-ink: var(--palette-g700);
+  --avatar-shadow: var(--palette-ink-16);
+  --stage: var(--palette-white);
+  --board-frame: var(--palette-g50);
+  --board-well: var(--palette-g100);
+  --turn: var(--palette-g950);
+  --turn-ink: var(--palette-g950);
+  --turn-text: var(--palette-white);
+  --turn-soft: var(--palette-ink-06);
+  color-scheme: light;
+}
+:root[data-theme="dark"],
+[data-surface="dark"] {
+  --canvas: var(--palette-g950);
+  --surface: var(--palette-g900);
+  --surface-2: var(--palette-g850);
+  --surface-3: var(--palette-g800);
+  --raised: var(--palette-g850);
+  --line: var(--palette-g800);
+  --line-strong: var(--palette-g700);
+  --outline: var(--palette-g750);
+  --text: var(--palette-g50);
+  --text-muted: var(--palette-g400);
+  --text-faint: var(--palette-g500);
+  --invert: var(--palette-g50);
+  --invert-2: var(--palette-g200);
+  --invert-text: var(--palette-g950);
+  --invert-muted: var(--palette-g600);
+  --hover: var(--palette-white-08);
+  --press: var(--palette-white-14);
+  --overlay: var(--palette-black-75);
+  --accent: var(--palette-g50);
+  --accent-strong: var(--palette-g200);
+  --accent-text: var(--palette-g950);
+  --accent-ink: var(--palette-g50);
+  --link: var(--palette-g50);
+  --signal: var(--palette-g50);
+  --signal-ink: var(--palette-g50);
+  --signal-soft: var(--palette-g850);
+  --live: var(--palette-grass);
+  --live-ink: var(--palette-grass);
+  --on-live: var(--palette-ink);
+  --danger: var(--palette-tomato-deep);
+  --danger-ink: var(--palette-tomato);
+  --warn: var(--palette-tangerine-deep);
+  --warn-ink: var(--palette-sun);
+  --focus: var(--palette-g50);
+  --dither-ink: var(--palette-g50);
+  --field-back: var(--palette-g950);
+  --field-front: var(--palette-tangerine);
+  --field-accent: var(--palette-sky);
+  --shadow: 0 0 0 1px var(--palette-g800), 0 24px 48px -24px var(--palette-black);
+  --shadow-lg: 0 0 0 1px var(--palette-g800), 0 40px 80px -32px var(--palette-black);
+  --team-red: var(--palette-cn-red);
+  --team-red-ink: var(--palette-tomato);
+  --team-blue: var(--palette-cn-blue);
+  --team-blue-ink: var(--palette-sky);
+  --you: var(--palette-g50);
+  --you-ink: var(--palette-g50);
+  --agent: var(--palette-g50);
+  --agent-ink: var(--palette-g300);
+  --avatar-shadow: var(--palette-black-30);
+  --stage: var(--palette-g950);
+  --board-frame: var(--palette-g900);
+  --board-well: var(--palette-g850);
+  --turn: var(--palette-g50);
+  --turn-ink: var(--palette-g50);
+  --turn-text: var(--palette-g950);
+  --turn-soft: var(--palette-white-08);
+  color-scheme: dark;
+}
+[data-surface] {
+  color: var(--text);
+}
+
+/* Pastel accents for components. Tints are soft fills that keep --text
+   readable; the solid pastels always carry --on-pastel ink. Redeclared on
+   every surface so a dark island mixes with its own --surface. */
+:root,
+[data-surface] {
+  --tint-mix: 45%;
+  --tint-sky: color-mix(in oklab, var(--palette-sky) var(--tint-mix), var(--surface));
+  --tint-sun: color-mix(in oklab, var(--palette-sun) var(--tint-mix), var(--surface));
+  --tint-grass: color-mix(in oklab, var(--palette-grass) var(--tint-mix), var(--surface));
+  --tint-pink: color-mix(in oklab, var(--palette-pink) var(--tint-mix), var(--surface));
+  --tint-tomato: color-mix(in oklab, var(--palette-tomato) var(--tint-mix), var(--surface));
+  --tint-aqua: color-mix(in oklab, var(--palette-aqua) var(--tint-mix), var(--surface));
+  --on-pastel: var(--palette-ink);
+}
+:root[data-theme="dark"],
+[data-surface="dark"] {
+  --tint-mix: 26%;
+}
+[data-surface="light"] {
+  --tint-mix: 45%;
+}

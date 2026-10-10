@@ -1,0 +1,257 @@
+/* LLM Games · Mono Dither tokens.
+   The only file allowed to hold raw colors, type sizes and spacing values.
+   Components are monochrome (theme.css); color belongs to the pastel
+   dithered art and the native game materials below. */
+:root {
+  /* Monochrome greys shared by both themes */
+  --palette-white: #ffffff;
+  --palette-g50: #f6f6f6;
+  --palette-g100: #eeeeee;
+  --palette-g150: #e5e5e5;
+  --palette-g200: #dadada;
+  --palette-g300: #c4c4c4;
+  --palette-g400: #a3a3a3;
+  --palette-g500: #8c8c8c;
+  --palette-g550: #737373;
+  --palette-g600: #5e5e5e;
+  --palette-g700: #3d3d3d;
+  --palette-g750: #2e2e2e;
+  --palette-g800: #242424;
+  --palette-g850: #1b1b1b;
+  --palette-g900: #141414;
+  --palette-g950: #0b0b0b;
+  --palette-ink: #0b0b0b;
+  --palette-black: #000000;
+
+  /* Pastel brights for art, fields and status. Never used on component chrome. */
+  --palette-tomato: #ff9b85;
+  --palette-tomato-deep: #de5f4a;
+  --palette-tomato-ink: #a84535;
+  --palette-tangerine: #ffc48a;
+  --palette-tangerine-deep: #e1934a;
+  --palette-sun: #ffe08f;
+  --palette-sun-deep: #d9ad48;
+  --palette-sun-ink: #8a6b1f;
+  --palette-grass: #8fdcad;
+  --palette-grass-deep: #49a373;
+  --palette-grass-ink: #2e7a52;
+  --palette-sky: #93c6ff;
+  --palette-sky-deep: #5a93dd;
+  --palette-sky-ink: #3a6cb0;
+  --palette-aqua: #8fe3e9;
+  --palette-aqua-deep: #4badb4;
+  --palette-pink: #ffb1d1;
+  --palette-pink-deep: #e275a7;
+
+  /* Connect 4: a pastel blue frame with soft red and yellow discs */
+  --palette-c4-frame: #82a9ef;
+  --palette-c4-frame-deep: #5a82d4;
+  --palette-c4-frame-light: #b3c9f7;
+  --palette-c4-red: #ff9089;
+  --palette-c4-red-deep: #d95f57;
+  --palette-c4-yellow: #ffe38a;
+  --palette-c4-yellow-deep: #d9b34a;
+
+  /* Checkers: maple and walnut squares, ebony and ivory men */
+  --palette-maple: #f3ddae;
+  --palette-maple-deep: #dcb87e;
+  --palette-walnut: #9c6b4a;
+  --palette-walnut-deep: #6f462c;
+  --palette-ebony: #2a2521;
+  --palette-ebony-light: #57504a;
+  --palette-ivory: #f8f0e0;
+  --palette-ivory-deep: #d3c4a6;
+  --palette-crown: #ffd166;
+
+  /* Reversi: pastel felt, black and white discs */
+  --palette-reversi-felt: #7cc79b;
+  --palette-reversi-felt-deep: #4da172;
+  --palette-reversi-line: #35805a;
+  --palette-disc-black: #16140f;
+  --palette-disc-black-light: #3d3a33;
+  --palette-disc-white: #f8f5ec;
+  --palette-disc-white-deep: #c9c3b2;
+
+  /* Poker: pastel baize, warm wood rail, soft casino chips */
+  --palette-baize: #77c497;
+  --palette-baize-deep: #49966a;
+  --palette-baize-line: #a8ddbf;
+  --palette-rail: #a9744f;
+  --palette-rail-deep: #7c4f30;
+  --palette-rail-light: #c99772;
+  --palette-card: #fffdf8;
+  --palette-card-red: #e86a64;
+  --palette-card-black: #161412;
+  --palette-card-back: #dd6a6e;
+  --palette-card-back-deep: #b04a4e;
+  --palette-chip-red: #f2837d;
+  --palette-chip-blue: #82a9e8;
+  --palette-chip-green: #6fc793;
+  --palette-chip-black: #1b1a18;
+  --palette-chip-white: #f6f1e4;
+
+  /* Battleship: pastel open water, steel hulls, soft red and white pegs */
+  --palette-sea: #5e9fd4;
+  --palette-sea-deep: #3a72a8;
+  --palette-sea-light: #93c2e8;
+  --palette-sea-foam: #c9e6ff;
+  --palette-steel: #a7b2bd;
+  --palette-steel-deep: #6e7a86;
+  --palette-steel-light: #d3dae1;
+  --palette-peg-red: #f2766a;
+  --palette-peg-white: #f5f8fb;
+  --palette-mine: #ffe08f;
+
+  /* Codenames: card stock and pastel team colors */
+  --palette-cn-card: #f4e8cf;
+  --palette-cn-card-deep: #dcc9a0;
+  --palette-cn-red: #e87f75;
+  --palette-cn-red-deep: #c0554c;
+  --palette-cn-blue: #7ba5e3;
+  --palette-cn-blue-deep: #4f7cc0;
+  --palette-cn-bystander: #e8d5a4;
+  --palette-cn-bystander-deep: #c2a96f;
+  --palette-cn-assassin: #1a1816;
+
+  /* Contexto: pastel rank heat, close to far */
+  --palette-rank-hot: #7fd3a2;
+  --palette-rank-warm: #ffda85;
+  --palette-rank-cool: #ffae7f;
+  --palette-rank-cold: #f48a7a;
+
+  /* Pokémon: pastel overworld, HP bar and the official move type colors */
+  --palette-pk-grass: #a5e294;
+  --palette-pk-grass-deep: #79b85e;
+  --palette-pk-sky: #d3edff;
+  --palette-pk-sky-deep: #a8d4f2;
+  --palette-pk-ground: #f0e2b0;
+  --palette-hp-high: #6fdc8d;
+  --palette-hp-mid: #ffd966;
+  --palette-hp-low: #ff9a8a;
+  --palette-type-normal: #a8a878;
+  --palette-type-fire: #f08030;
+  --palette-type-water: #6890f0;
+  --palette-type-electric: #f8d030;
+  --palette-type-grass: #78c850;
+  --palette-type-ice: #98d8d8;
+  --palette-type-fighting: #c03028;
+  --palette-type-poison: #a040a0;
+  --palette-type-ground: #e0c068;
+  --palette-type-flying: #a890f0;
+  --palette-type-psychic: #f85888;
+  --palette-type-bug: #a8b820;
+  --palette-type-rock: #b8a038;
+  --palette-type-ghost: #705898;
+  --palette-type-dragon: #7038f8;
+
+  /* Transparent inks */
+  --palette-ink-06: rgb(11 11 11 / 0.06);
+  --palette-ink-10: rgb(11 11 11 / 0.1);
+  --palette-ink-16: rgb(11 11 11 / 0.16);
+  --palette-ink-55: rgb(11 11 11 / 0.55);
+  --palette-white-08: rgb(255 255 255 / 0.08);
+  --palette-white-14: rgb(255 255 255 / 0.14);
+  --palette-black-30: rgb(0 0 0 / 0.3);
+  --palette-black-75: rgb(0 0 0 / 0.75);
+  --palette-clear: rgb(0 0 0 / 0);
+
+  /* Type: compact. Body is 14px; nothing essential goes below 12px, so the
+    small steps shrink less than the headings. */
+  --font-ui: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-code: "Geist Mono Variable", ui-monospace, monospace;
+  --font-pixel: "Geist Pixel Variable", "Geist Mono Variable", ui-monospace, monospace;
+  --type-micro: 0.75rem;
+  --type-caption: 0.78125rem;
+  --type-small: 0.8125rem;
+  --type-body: 0.875rem;
+  --type-lead: 0.96875rem;
+  --type-title: 1.0625rem;
+  --type-section: clamp(1.3125rem, 1rem + 0.85vw, 1.75rem);
+  --type-display: clamp(1.75rem, 1.2rem + 1.8vw, 2.8rem);
+  --type-hero: clamp(2.125rem, 1.1rem + 3.8vw, 4.5rem);
+  --type-score: 1.5625rem;
+  --type-mega: clamp(2.5rem, 1.4rem + 4.2vw, 4.875rem);
+  --leading-none: 1;
+  --leading-tight: 1.05;
+  --leading-snug: 1.25;
+  --leading-body: 1.55;
+  --tracking-pixel: 0.01em;
+  --tracking-label: 0.08em;
+  --tracking-tight: -0.02em;
+
+  /* Space: 4px grid with a few 2px steps for borders and insets */
+  --space-0: 0;
+  --space-1: 1px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-56: 56px;
+  --space-64: 64px;
+  --space-80: 80px;
+  --space-96: 96px;
+  --space-128: 128px;
+  --space-gutter: clamp(16px, 3vw, 40px);
+
+  /* Controls: big, thumb-friendly targets */
+  --control-xs: 32px;
+  --control-sm: 40px;
+  --control: 48px;
+  --control-lg: 56px;
+  --control-xl: 68px;
+  --bar-height: 72px;
+  --content-max: 1280px;
+  --content-narrow: 760px;
+  --sidebar: 340px;
+
+  /* Shape: big soft corners, pill controls, no outlines */
+  --radius-0: 0;
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+  --stroke-1: 1px;
+  --stroke-2: 2px;
+  --stroke-3: 3px;
+  --stroke-4: 4px;
+
+  /* Depth: offsets for dithered drops on art and pieces */
+  --depth-1: 2px;
+  --depth-2: 4px;
+  --depth-3: 6px;
+  --depth-4: 10px;
+
+  /* Dither: one cell is three CSS pixels, so the grain reads at arm's length */
+  --px: 3px;
+  --dither-tile: calc(var(--px) * 4);
+  --dither-tile-8: calc(var(--px) * 8);
+  /* Ramps are 4x24 cells; draw them at this height so cells stay square. */
+  --ramp-length: calc(var(--px) * 24);
+
+  /* Motion */
+  --dur-1: 80ms;
+  --dur-2: 140ms;
+  --dur-3: 220ms;
+  --dur-4: 340ms;
+  --dur-5: 560ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-snap: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --steps-dither: steps(8, end);
+
+  --z-raised: 2;
+  --z-sticky: 20;
+  --z-menu: 40;
+  --z-dialog: 60;
+  --z-toast: 80;
+}

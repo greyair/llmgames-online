@@ -1,0 +1,154 @@
+/* 1200x630 social card in the landing hero's language: ink stage, Paper dither
+   field washed dark on the left, Bayer halftone lights, pixel headline, and a
+   wall of game marks with dithered drop shadows. */
+.social-preview {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 1200px;
+  height: 630px;
+  background: var(--palette-g950);
+  color: var(--palette-white);
+}
+.social-field {
+  z-index: -3;
+  opacity: 0.55;
+}
+.social-lights {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+/* Same dark wash as .landing-hero::before so the headline stays legible. */
+.social-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--palette-g950) 34%,
+    color-mix(in oklab, var(--palette-g950) 55%, var(--palette-clear)) 62%,
+    color-mix(in oklab, var(--palette-g950) 10%, var(--palette-clear))
+  );
+}
+
+.social-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 660px;
+  height: 100%;
+  padding: var(--space-48) var(--space-0) var(--space-48) var(--space-64);
+}
+.social-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--palette-white);
+}
+.social-pitch {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-20);
+}
+.social-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-10);
+  min-height: var(--control-xs);
+  margin: var(--space-0);
+  padding: var(--space-0) var(--space-16) var(--space-0) var(--space-12);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--palette-white) 8%, var(--palette-clear));
+  color: var(--palette-g200);
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+.social-eyebrow > span {
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-pill);
+  background: var(--palette-grass);
+  box-shadow: 0 0 0 var(--space-4)
+    color-mix(in oklab, var(--palette-grass) 25%, var(--palette-clear));
+}
+.social-pitch h1 {
+  margin: var(--space-0);
+  font-family: var(--font-pixel);
+  font-size: calc(var(--type-mega) * 1.24);
+  font-weight: 400;
+  letter-spacing: var(--tracking-pixel);
+  line-height: var(--leading-none);
+  white-space: nowrap;
+}
+.social-pitch h1 span {
+  color: var(--palette-c4-yellow);
+}
+.social-subline {
+  margin: var(--space-0);
+  color: var(--palette-g300);
+  font-size: calc(var(--type-title) * 1.25);
+  font-weight: 500;
+}
+.social-stats {
+  display: flex;
+  gap: var(--space-32);
+  margin: var(--space-0);
+}
+.social-stats div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-4);
+}
+.social-stats dt {
+  color: var(--palette-g400);
+  font-size: var(--type-body);
+  font-weight: 600;
+}
+.social-stats dd {
+  margin: var(--space-0);
+  font-family: var(--font-pixel);
+  font-size: var(--type-display);
+  line-height: var(--leading-none);
+}
+.social-stats div:nth-child(1) dd {
+  color: var(--palette-sky);
+}
+.social-stats div:nth-child(2) dd {
+  color: var(--palette-sun);
+}
+.social-stats div:nth-child(3) dd {
+  color: var(--palette-pink);
+}
+
+.social-art {
+  position: absolute;
+  top: 50%;
+  right: var(--space-24);
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 112px);
+  gap: var(--space-24) var(--space-32);
+  transform: translateY(-54%) rotate(-8deg);
+}
+.social-tile {
+  --depth-x: var(--depth-4);
+  --depth-y: var(--depth-4);
+  --depth-color: var(--palette-black);
+  display: grid;
+  border-radius: calc(112px * 0.28);
+}
+.social-tile:nth-child(3n + 2) {
+  translate: 0 var(--space-64);
+}

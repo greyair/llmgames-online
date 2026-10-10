@@ -1,0 +1,688 @@
+/* Landing. A dark hero runs Paper's dither shader in the ink of the game
+   on show, beside a playable arcade screen of dithered game scenes. Below:
+   an animated wiring diagram of how a move travels, a human-vs-agent split that follows
+   the pointer, a bento of game cards, pastel extras, numbered how-it-works
+   cards and a plain MCP setup card. Pastel blocks pair a --tint fill with
+   dots in its full --ink. */
+
+.landing-unlocks li[data-tint="sky"] {
+  --tint: var(--tint-sky);
+  --ink: var(--palette-sky);
+}
+.landing-unlocks li[data-tint="sun"] {
+  --tint: var(--tint-sun);
+  --ink: var(--palette-sun);
+}
+.landing-unlocks li[data-tint="pink"] {
+  --tint: var(--tint-pink);
+  --ink: var(--palette-pink);
+}
+.landing-unlocks li[data-tint="grass"] {
+  --tint: var(--tint-grass);
+  --ink: var(--palette-grass);
+}
+.landing-unlocks li[data-tint="aqua"] {
+  --tint: var(--tint-aqua);
+  --ink: var(--palette-aqua);
+}
+.landing-unlocks li[data-tint="tomato"] {
+  --tint: var(--tint-tomato);
+  --ink: var(--palette-tomato);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.landing-hero {
+  --hero-field-connect4: var(--palette-c4-frame);
+  --hero-field-poker: var(--palette-baize);
+  --hero-field-checkers: var(--palette-maple-deep);
+  --hero-field-battleship: var(--palette-sea);
+  --hero-field-codenames: var(--palette-cn-red);
+  --hero-field-reversi: var(--palette-reversi-felt);
+  --hero-field-pokemon: var(--palette-sun-deep);
+  --hero-field-contexto: var(--palette-rank-hot);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 540px);
+  align-items: center;
+  gap: var(--space-48);
+  min-height: clamp(520px, 74vh, 700px);
+  margin-top: var(--space-8);
+  padding: var(--space-56);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--palette-g950);
+  color: var(--text);
+}
+.landing-hero-field {
+  z-index: -2;
+  opacity: 0.5;
+}
+/* A dark wash keeps the headline legible over the moving field. */
+.landing-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--palette-g950) 25%,
+    color-mix(in oklab, var(--palette-g950) 55%, var(--palette-clear)) 60%,
+    color-mix(in oklab, var(--palette-g950) 20%, var(--palette-clear))
+  );
+}
+.landing-hero-copy {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-24);
+  max-width: 720px;
+}
+.landing-hero h1 {
+  font-size: var(--type-hero);
+  line-height: var(--leading-none);
+  text-align: left;
+  color: var(--palette-white);
+}
+/* Each rotating game name wears a bright native ink of its game. */
+.landing-rotator {
+  --hero-ink: var(--palette-white);
+  display: inline-grid;
+  vertical-align: bottom;
+}
+.landing-rotator > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  opacity: 0;
+  color: var(--hero-ink);
+}
+.landing-rotator > [data-game="connect4"] {
+  --hero-ink: var(--palette-c4-yellow);
+}
+.landing-rotator > [data-game="poker"] {
+  --hero-ink: var(--palette-baize-line);
+}
+.landing-rotator > [data-game="checkers"] {
+  --hero-ink: var(--palette-maple);
+}
+.landing-rotator > [data-game="battleship"] {
+  --hero-ink: var(--palette-sea-foam);
+}
+.landing-rotator > [data-game="codenames"] {
+  --hero-ink: var(--palette-tomato);
+}
+.landing-rotator > [data-game="reversi"] {
+  --hero-ink: var(--palette-grass);
+}
+.landing-rotator > [data-game="pokemon"] {
+  --hero-ink: var(--palette-sun);
+}
+.landing-rotator > [data-game="contexto"] {
+  --hero-ink: var(--palette-rank-hot);
+}
+.landing-rotator > span[data-active="true"] {
+  opacity: 1;
+}
+.landing-rotator[data-running] > span[data-active="true"] {
+  animation:
+    rise-in var(--dur-4) var(--ease-out) both,
+    elsh-settle var(--dur-5) var(--ease-out) both;
+}
+.landing-rotator[data-running] > span[data-leaving] {
+  opacity: 1;
+  animation: fade-in var(--dur-3) linear reverse both;
+}
+.landing-subline {
+  max-width: 40ch;
+  color: var(--palette-g200);
+  font-size: var(--type-title);
+  font-weight: 500;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-snug);
+}
+.landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  margin-top: var(--space-8);
+}
+.landing-actions .ui-button-secondary {
+  --btn-bg: var(--palette-g800);
+}
+.landing-hero-stats {
+  display: flex;
+  gap: var(--space-24);
+  margin: var(--space-8) var(--space-0) var(--space-0);
+}
+.landing-hero-stats div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-4);
+}
+.landing-hero-stats dt {
+  color: var(--palette-g400);
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+.landing-hero-stats dd {
+  margin: var(--space-0);
+  font-family: var(--font-pixel);
+  font-size: var(--type-section);
+  line-height: var(--leading-none);
+}
+.landing-hero-stats div:nth-child(1) dd {
+  color: var(--palette-sky);
+}
+.landing-hero-stats div:nth-child(2) dd {
+  color: var(--palette-sun);
+}
+.landing-hero-stats div:nth-child(3) dd {
+  color: var(--palette-pink);
+}
+
+/* Arcade: a dark cabinet around the playable dithered screen. */
+.landing-arcade {
+  display: grid;
+  gap: var(--space-12);
+  margin: var(--space-0);
+  padding: var(--space-12);
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklab, var(--palette-g850) 92%, var(--palette-clear));
+  box-shadow:
+    0 0 0 var(--stroke-1) var(--palette-g800),
+    var(--shadow);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.landing-arcade-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  padding: var(--space-4) var(--space-4) var(--space-0);
+  color: var(--palette-white);
+  font-size: var(--type-body);
+}
+.landing-arcade-live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin-left: auto;
+  padding: var(--space-2) var(--space-10);
+  border-radius: var(--radius-pill);
+  background: var(--palette-g800);
+  color: var(--palette-g200);
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.landing-arcade-live > span {
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-pill);
+  background: var(--palette-tomato);
+  animation: blink 1.2s steps(1, end) infinite;
+}
+.landing-arcade-screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--palette-g900);
+  aspect-ratio: 3 / 2;
+}
+.landing-arcade-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: manipulation;
+  animation: arcade-on var(--dur-4) steps(6, end) both;
+}
+@keyframes arcade-on {
+  from {
+    filter: brightness(2.2) contrast(0.4);
+    clip-path: inset(48% 0);
+  }
+  50% {
+    clip-path: inset(0);
+  }
+}
+.landing-arcade-hint {
+  margin: var(--space-0);
+  color: var(--palette-g200);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  text-align: center;
+}
+.landing-arcade-picker {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+.landing-arcade-picker button {
+  display: grid;
+  place-items: center;
+  height: var(--control);
+  border: 0;
+  border-radius: var(--radius-md);
+  --doodle-fill: var(--palette-g800);
+  cursor: pointer;
+}
+.landing-arcade-picker button[aria-pressed="true"] {
+  --doodle-fill: var(--palette-g200);
+  box-shadow: inset 0 calc(var(--stroke-3) * -1) 0 var(--palette-sun);
+}
+.landing-arcade-picker button:focus-visible {
+  outline: var(--stroke-3) solid var(--focus);
+  outline-offset: var(--space-2);
+}
+
+/* More on the table: pastel cards, each with a dithered corner of its full ink. */
+.landing-unlocks ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-16);
+  list-style: none;
+}
+.landing-unlocks a {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-content: start;
+  gap: var(--space-10);
+  height: 100%;
+  padding: var(--space-24) var(--space-24) var(--space-32);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--tint);
+  color: var(--text);
+  transition: translate var(--dur-3) var(--ease-out);
+}
+.landing-unlocks a:hover {
+  translate: 0 calc(var(--space-4) * -1);
+}
+.landing-unlocks a:focus-visible {
+  outline: var(--stroke-3) solid var(--focus);
+  outline-offset: var(--space-4);
+}
+.landing-unlock-icon {
+  display: grid;
+  place-items: center;
+  width: var(--space-48);
+  height: var(--space-48);
+  margin-bottom: var(--space-8);
+  border-radius: var(--radius-md);
+  background: var(--raised);
+  color: var(--text);
+}
+.landing-unlocks h3 {
+  font-size: var(--type-title);
+  letter-spacing: var(--tracking-tight);
+}
+.landing-unlocks a p {
+  color: color-mix(in oklab, var(--text) 82%, var(--tint));
+  font-size: var(--type-body);
+  line-height: var(--leading-snug);
+}
+.landing-unlock-go {
+  position: absolute;
+  top: var(--space-24);
+  right: var(--space-24);
+  display: grid;
+  place-items: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  border-radius: var(--radius-pill);
+  background: var(--raised);
+  transition: translate var(--dur-3) var(--ease-out);
+}
+.landing-unlocks a:hover .landing-unlock-go {
+  translate: var(--space-4) 0;
+}
+
+/* ── Versus: the seam between the two pastel halves follows the pointer ─ */
+@property --split {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+.landing-versus {
+  --split: 50%;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  min-height: 280px;
+  margin-top: var(--space-80);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--tint-pink);
+  transition: --split var(--dur-4) var(--ease-out);
+}
+.landing-versus::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--tint-sky);
+  -webkit-mask:
+    linear-gradient(var(--palette-ink), var(--palette-ink)) 0 0 /
+      calc(var(--split) - var(--ramp-length) / 2) 100% no-repeat,
+    var(--ramp-right) calc(var(--split) - var(--ramp-length) / 2) 0 / var(--ramp-length)
+      var(--dither-tile) repeat-y;
+  mask:
+    linear-gradient(var(--palette-ink), var(--palette-ink)) 0 0 /
+      calc(var(--split) - var(--ramp-length) / 2) 100% no-repeat,
+    var(--ramp-right) calc(var(--split) - var(--ramp-length) / 2) 0 / var(--ramp-length)
+      var(--dither-tile) repeat-y;
+}
+.landing-versus-side {
+  display: grid;
+  gap: var(--space-16);
+  padding: var(--space-48);
+  color: var(--text);
+}
+.landing-versus-side[data-side="agent"] {
+  justify-items: end;
+  text-align: right;
+}
+.landing-versus-title {
+  font-family: var(--font-pixel);
+  font-size: var(--type-display);
+  line-height: var(--leading-none);
+}
+.landing-versus-side ul {
+  display: grid;
+  gap: var(--space-10);
+  list-style: none;
+  font-size: var(--type-lead);
+  font-weight: 600;
+}
+.landing-versus-side li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+}
+.landing-versus-side[data-side="agent"] li {
+  flex-direction: row-reverse;
+}
+.landing-versus-badge {
+  position: absolute;
+  top: 50%;
+  left: var(--split);
+  display: grid;
+  place-items: center;
+  width: var(--space-64);
+  height: var(--space-64);
+  translate: -50% -50%;
+  border-radius: var(--radius-pill);
+  background: var(--invert);
+  color: var(--invert-text);
+  font-family: var(--font-pixel);
+  font-size: var(--type-title);
+  box-shadow: 0 0 0 var(--space-6) var(--surface);
+  animation: vs-wobble 2.4s steps(4, end) 2;
+}
+@keyframes vs-wobble {
+  0%,
+  100% {
+    rotate: -6deg;
+  }
+  50% {
+    rotate: 6deg;
+  }
+}
+
+/* ── Sections ─────────────────────────────────────────────────────────── */
+.landing-challenges,
+.landing-unlocks,
+.landing-steps,
+.landing-faq {
+  padding: var(--space-80) var(--space-0) var(--space-0);
+}
+.landing-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-16) var(--space-32);
+  margin-bottom: var(--space-32);
+}
+.landing-section-head h2 {
+  font-size: var(--type-display);
+}
+.landing-section-head p {
+  max-width: 56ch;
+  margin-top: var(--space-8);
+  color: var(--text-muted);
+  font-size: var(--type-lead);
+  font-weight: 500;
+}
+.landing-section-head > p {
+  margin-top: var(--space-0);
+}
+
+/* Bento: two headline games, then rows of three. */
+.landing-challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-20);
+}
+.landing-challenge.game-tile {
+  grid-column: span 2;
+  min-height: 340px;
+}
+.landing-challenge.game-tile:nth-child(-n + 2) {
+  grid-column: span 3;
+  min-height: 380px;
+}
+.landing-challenge .game-tile-pitch {
+  color: var(--palette-g200);
+  font-size: var(--type-title);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+/* How it works: three plain numbered cards. */
+.landing-steps ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-20);
+  list-style: none;
+}
+.landing-steps li {
+  display: grid;
+  align-content: start;
+  gap: var(--space-10);
+  padding: var(--space-32);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.landing-step-dot {
+  display: grid;
+  place-items: center;
+  width: var(--space-48);
+  height: var(--space-48);
+  margin-bottom: var(--space-12);
+  border-radius: var(--radius-md);
+  background: var(--step);
+  color: var(--on-pastel);
+  font-family: var(--font-pixel);
+  font-size: var(--type-title);
+  line-height: var(--leading-none);
+}
+.landing-steps h3 {
+  font-size: var(--type-title);
+}
+.landing-steps p {
+  max-width: 34ch;
+  color: var(--text-muted);
+  font-size: var(--type-lead);
+  line-height: var(--leading-snug);
+}
+
+/* Connect: a plain card so the prompt and commands stay easy to read. */
+.landing-connect {
+  margin-top: var(--space-80);
+  padding: var(--space-48);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: var(--text);
+}
+.landing-connect .landing-section-head h2 {
+  max-width: 18ch;
+}
+.landing-connect :is(.mcp-prompt-card, .mcp-manual-card) {
+  background: var(--raised);
+}
+.landing-connect .connection-prompt {
+  background: var(--surface);
+}
+
+.landing-faq > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12) var(--space-24);
+}
+.landing-faq .disclosure {
+  padding: var(--space-8) var(--space-24);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.landing-faq .disclosure p {
+  padding-bottom: var(--space-16);
+  color: var(--text-muted);
+  font-size: var(--type-body);
+}
+.landing-footer {
+  justify-content: space-between;
+  margin-top: var(--space-80);
+}
+.landing-footer > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-20);
+}
+
+@media (max-width: 1100px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+    align-items: start;
+    padding: var(--space-40);
+  }
+  .landing-hero::before {
+    background: linear-gradient(
+      180deg,
+      var(--palette-g950) 30%,
+      color-mix(in oklab, var(--palette-g950) 50%, var(--palette-clear))
+    );
+  }
+  .landing-unlocks ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .landing-challenge-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .landing-challenge.game-tile,
+  .landing-challenge.game-tile:nth-child(-n + 2) {
+    grid-column: span 1;
+  }
+}
+@media (max-width: 760px) {
+  .landing-hero {
+    min-height: auto;
+    padding: var(--space-32) var(--space-16) var(--space-16);
+    gap: var(--space-32);
+    border-radius: var(--radius-lg);
+  }
+  .landing-subline {
+    font-size: var(--type-lead);
+  }
+  .landing-actions {
+    display: grid;
+    width: 100%;
+  }
+  .landing-arcade {
+    padding: var(--space-8);
+  }
+  .landing-arcade-picker {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .landing-arcade-hint {
+    font-size: var(--type-micro);
+  }
+  .landing-versus {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    margin-top: var(--space-56);
+  }
+  .landing-versus::before {
+    -webkit-mask:
+      linear-gradient(var(--palette-ink), var(--palette-ink)) 0 0 / 100% 42% no-repeat,
+      var(--ramp-down) 0 42% / var(--dither-tile) var(--ramp-length) repeat-x;
+    mask:
+      linear-gradient(var(--palette-ink), var(--palette-ink)) 0 0 / 100% 42% no-repeat,
+      var(--ramp-down) 0 42% / var(--dither-tile) var(--ramp-length) repeat-x;
+  }
+  .landing-versus-side {
+    padding: var(--space-24);
+  }
+  .landing-versus-side[data-side="agent"] {
+    padding-top: var(--space-48);
+  }
+  .landing-versus-badge {
+    top: 46%;
+    left: 50%;
+    width: var(--space-48);
+    height: var(--space-48);
+    font-size: var(--type-body);
+  }
+  .landing-challenges,
+  .landing-unlocks,
+  .landing-steps,
+  .landing-faq {
+    padding-top: var(--space-56);
+  }
+  .landing-section-head h2 {
+    font-size: var(--type-section);
+  }
+  .landing-challenge-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-16);
+  }
+  .landing-challenge .game-tile-pitch {
+    font-size: var(--type-lead);
+  }
+  .landing-unlocks ul {
+    grid-template-columns: 1fr;
+    gap: var(--space-12);
+  }
+  .landing-steps ol {
+    grid-template-columns: 1fr;
+    gap: var(--space-12);
+  }
+  .landing-steps li {
+    padding: var(--space-24);
+    border-radius: var(--radius-lg);
+  }
+  .landing-connect {
+    margin-top: var(--space-56);
+    padding: var(--space-24);
+    border-radius: var(--radius-lg);
+  }
+  .landing-faq > div {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-arcade-live > span,
+  .landing-arcade-canvas,
+  .landing-versus-badge {
+    animation: none;
+  }
+  .landing-versus {
+    transition: none;
+  }
+}

@@ -1,0 +1,328 @@
+/* Battleship, drawn like the landing arcade: a pastel sea on paper with faint
+   ink grid lines, flat light steel hulls outlined in ink, red hit pegs with an
+   ink cross and white miss pegs. The doodle filter on .sea-grid supplies the
+   boil. Pastels and paper are theme independent, so the boards read as
+   stickers on the dark table too. */
+
+.ships-stage {
+  --ink-w: clamp(var(--stroke-2), 0.3cqw, var(--stroke-4));
+  --sk-sea: color-mix(in oklab, var(--palette-sea) 45%, var(--palette-white));
+  --sk-line: color-mix(in oklab, var(--sketch-ink) 30%, var(--palette-clear));
+  --sk-hull: color-mix(in oklab, var(--palette-steel) 65%, var(--palette-white));
+  --sk-hull-top: var(--palette-steel-light);
+  --sk-wreck: var(--palette-g400);
+  --sk-aim: var(--palette-sun);
+  /* Neutral weapon-history markers (torpedo runs, bomb areas) are drawn in ink. */
+  --marker: var(--sketch-ink);
+  /* Ship SVGs draw 100 units per cell, so a unitless stroke scales with the grid. */
+  --sk-ship-ink: 7;
+}
+
+/* Board: a paper card with the sea set inside it. ------------------- */
+.ships-stage .sea-grid {
+  background: var(--sketch-paper);
+  box-shadow: none;
+}
+.ships-stage .sea-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  pointer-events: none;
+}
+.ships-stage .sea-water {
+  background: var(--sk-sea);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  border-radius: var(--radius-xs);
+}
+.ships-stage .sea-water::before,
+.ships-stage .sea-water::after {
+  display: none;
+}
+.ships-stage .sea-coordinate {
+  color: var(--sketch-ink);
+  font-weight: 700;
+}
+.ships-stage .sea-cell {
+  --sea-line: var(--sk-line);
+}
+
+/* Hover, aim and placement previews: flat sun or tomato wash, no dither. */
+.ships-stage .sea-cell::after {
+  -webkit-mask: none;
+  mask: none;
+  background: var(--sk-aim);
+}
+.ships-stage[data-battle="true"] .sea[data-board="target"] .sea-cell:enabled:hover::before {
+  inset: var(--stroke-2);
+  background: none;
+  border-radius: var(--radius-xs);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.ships-stage[data-battle="true"] .sea[data-board="target"] .sea-cell:enabled:hover::after,
+.ships-stage .sea[data-board="own"] .sea-cell:enabled:hover::after {
+  opacity: 0.6;
+}
+.ships-stage[data-placement="true"] .sea-cell:enabled:hover:not([data-ship="true"])::after {
+  opacity: 0.45;
+  background: var(--sk-aim);
+}
+.ships-stage .sea-cell:focus-visible {
+  box-shadow:
+    var(--cell-line),
+    inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.ships-stage .sea-cell:focus-visible::after {
+  opacity: 0.6;
+}
+.ships-stage .sea-cell[data-drop="valid"]::after {
+  background: var(--sk-aim);
+  opacity: 0.55;
+}
+.ships-stage .sea-cell[data-effect="valid"] {
+  box-shadow:
+    var(--cell-line),
+    inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.ships-stage .sea-cell[data-effect="valid"]::after {
+  opacity: 0.5;
+}
+.ships-stage .sea-cell:is([data-drop="invalid"], [data-effect="invalid"])::after {
+  -webkit-mask: none;
+  mask: none;
+  background: var(--palette-tomato);
+  opacity: 0.6;
+}
+
+/* Pegs ------------------------------------------------------------ */
+.ships-stage .sea-cell:is([data-hit="true"], [data-miss="true"]) {
+  background: var(--palette-clear);
+}
+.ships-stage .sea-peg::before {
+  inset: 20%;
+  border-radius: var(--radius-pill);
+  background: var(--palette-peg-red);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  -webkit-mask: none;
+  mask: none;
+}
+.ships-stage .sea-peg::after {
+  width: 34%;
+  background: var(--sketch-ink);
+  clip-path: polygon(
+    14% 0,
+    50% 36%,
+    86% 0,
+    100% 14%,
+    64% 50%,
+    100% 86%,
+    86% 100%,
+    50% 64%,
+    14% 100%,
+    0 86%,
+    36% 50%,
+    0 14%
+  );
+  filter: none;
+}
+.ships-stage .sea-miss-peg::before {
+  display: none;
+}
+.ships-stage .sea-miss-peg::after {
+  width: 32%;
+  background: var(--palette-peg-white);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+
+/* Mines: a flat sun mine with ink spikes and an ink outline. */
+.ships-stage .mine-art {
+  filter: none;
+}
+.ships-stage .mine-body {
+  fill: var(--palette-mine);
+  stroke: var(--sketch-ink);
+  stroke-width: 0.9;
+  paint-order: stroke;
+}
+.ships-stage .mine-spike {
+  fill: var(--sketch-ink);
+}
+.ships-stage :is(.mine-shade, .mine-glint) {
+  display: none;
+}
+.ships-stage .mine-lamp {
+  fill: var(--palette-tomato);
+}
+
+/* Ships ----------------------------------------------------------- */
+.ships-stage .doodle-fleet,
+.ships-stage .fleet-choice-art svg,
+.ships-stage .fleet-ship-art {
+  shape-rendering: geometricPrecision;
+}
+.ships-stage .doodle-ship :is(.ship-wake, .ship-shadow, .ship-bevel, .ship-glint, .ship-deck) {
+  display: none;
+}
+.ships-stage .doodle-ship .ship-hull {
+  fill: var(--sk-hull);
+  stroke: var(--sketch-ink);
+  stroke-width: var(--sk-ship-ink);
+  stroke-linejoin: round;
+}
+/* One small cabin per hull, like the arcade's bridge dot; the rest of the pixel detail goes. */
+.ships-stage .doodle-ship .ship-details > :not(.ship-bridge-group),
+.ships-stage .doodle-ship .ship-bridge-group > :not(.ship-bridge) {
+  display: none;
+}
+.ships-stage .doodle-ship .ship-bridge {
+  fill: var(--sk-hull-top);
+  stroke: var(--sketch-ink);
+  stroke-width: calc(var(--sk-ship-ink) * 0.7);
+  stroke-linejoin: round;
+}
+.ships-stage .doodle-fleet [data-highlighted="true"] .ship-hull {
+  fill: var(--sk-hull-top);
+}
+.ships-stage .ship-drag-preview[data-valid="false"] .ship-hull {
+  fill: var(--palette-tomato);
+}
+.ships-stage .ship-cell-boundary {
+  stroke: var(--sketch-ink);
+  stroke-width: var(--sk-ship-ink);
+  stroke-dasharray: 14 12;
+  shape-rendering: geometricPrecision;
+}
+
+/* Wrecks: flat grey plates; the red pegs on every cell carry the damage. */
+.ships-stage .wreck-hull .ship-hull {
+  fill: var(--sk-wreck);
+  stroke: var(--sketch-ink);
+}
+.ships-stage .wreck-hull .ship-bridge {
+  fill: var(--palette-g500);
+}
+.ships-stage .wreck-cross {
+  stroke: var(--sketch-ink);
+}
+
+/* Rotate handle: an inked paper button. */
+.ships-stage .ship-rotate-handle {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.ships-stage .ship-rotate-handle:hover:not(:disabled),
+.ships-stage .ship-rotate-handle[data-active="true"] {
+  background: var(--palette-sun);
+}
+
+/* Weapon history -------------------------------------------------- */
+.ships-stage .torpedo-path {
+  border: var(--stroke-2) dashed var(--marker);
+}
+.ships-stage .torpedo-path::before {
+  display: none;
+}
+.ships-stage .bombed-area {
+  border: var(--stroke-2) dashed var(--marker);
+}
+.ships-stage .bombed-area::before {
+  background: var(--sketch-ink);
+  opacity: 0.08;
+}
+/* Mine return shots keep their dotted sun outline so they read apart from bomb areas. */
+.ships-stage .mine-shot-outline {
+  border-width: var(--stroke-3);
+}
+.ships-stage .mine-shot-outline::after {
+  background: var(--palette-sun);
+  box-shadow: inset 0 0 0 var(--stroke-1) var(--sketch-ink);
+  width: 28%;
+  height: 28%;
+}
+.ships-stage .spent-mine-spikes,
+.ships-stage .spent-mine-crack {
+  stroke: var(--sketch-ink);
+}
+.ships-stage .spent-mine-body {
+  fill: var(--palette-mine);
+  stroke: var(--sketch-ink);
+}
+.ships-stage .triggered-mine-art circle:not(.spent-mine-body) {
+  display: none;
+}
+.ships-stage .mine-burst {
+  stroke: var(--sketch-ink);
+}
+.ships-stage .radar-scan-area {
+  border: var(--stroke-2) solid var(--sketch-ink);
+}
+.ships-stage .radar-scan-area::before {
+  background: var(--palette-aqua);
+  opacity: 0.35;
+}
+.ships-stage .radar-scan-area::after {
+  display: none;
+}
+.ships-stage .radar-scan[data-radar-count="0"] .radar-scan-area {
+  border-color: color-mix(in oklab, var(--sketch-ink) 45%, var(--palette-clear));
+  border-style: dashed;
+}
+.ships-stage .radar-scan[data-radar-count="0"] .radar-scan-area::before {
+  opacity: 0.15;
+}
+.ships-stage .radar-scan-count {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+
+/* Fleet status: flat steel silhouettes; sunk ships go red with an ink cross. */
+.ships-stage .fleet-ship-art .ship-hull {
+  fill: var(--sk-hull);
+  stroke: var(--sketch-ink);
+  stroke-width: 10;
+  stroke-linejoin: round;
+}
+.ships-stage .sea-fleet-status [data-sunk="true"] .ship-hull {
+  fill: var(--palette-peg-red);
+  stroke: var(--sketch-ink);
+  stroke-width: 10;
+}
+.ships-stage .fleet-sunk-cross {
+  stroke: var(--sketch-ink);
+}
+.ships-stage .sea-fleet-summary {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sk-line);
+}
+
+/* Placement tray: each ship sits on its own small pastel sea. */
+.ships-stage .fleet-choice-art {
+  background: var(--sk-sea);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.ships-stage .fleet-choice-art::before {
+  display: none;
+}
+.ships-stage .fleet-choice-art .ship-hull {
+  stroke-width: 8;
+}
+
+/* Weapons and log: light inking only. */
+.ships-stage .weapon-glyph {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.ships-stage .energy-cell[data-on="true"] {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.ships-stage .energy-cell[data-on="true"]::before {
+  display: none;
+}
+.ships-stage .ship-log-content li:is([data-outcome="hit"], [data-outcome="sunk"])::before {
+  background: var(--palette-peg-red);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}

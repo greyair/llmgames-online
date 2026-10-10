@@ -1,0 +1,405 @@
+/* Game library: a plain grey head, then big near-black cards. The chrome
+   on each card is monochrome (title, grey pitch, white Play pill); the color
+   is the game's pixel mark, its pixel art peeking in from the corner and a
+   halftone glow of its ink behind the art. */
+
+/* Card */
+.game-tile {
+  --tile-pad: var(--space-32);
+  --tile-art: 60%;
+  position: relative;
+  container-type: inline-size;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 340px;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  --doodle-fill: var(--palette-g900);
+  color: var(--text);
+  transition: translate var(--dur-3) var(--ease-out);
+}
+:root[data-theme="dark"] .game-tile {
+  --doodle-fill: var(--palette-g850);
+}
+/* The game's own color glows up from behind the art as halftone dots. */
+.game-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--game);
+  -webkit-mask:
+    var(--bayer-4) 0 0 / var(--dither-tile) var(--dither-tile) repeat,
+    radial-gradient(70% 80% at 82% 100%, var(--palette-ink), var(--palette-clear) 72%);
+  -webkit-mask-composite: source-in;
+  mask:
+    var(--bayer-4) 0 0 / var(--dither-tile) var(--dither-tile) repeat,
+    radial-gradient(70% 80% at 82% 100%, var(--palette-ink), var(--palette-clear) 72%);
+  mask-composite: intersect;
+  opacity: 0.4;
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+.game-tile:hover {
+  translate: 0 calc(var(--space-6) * -1);
+}
+.game-tile:hover::after {
+  opacity: 0.75;
+}
+.game-tile:active {
+  translate: 0 0;
+  transition-duration: var(--dur-1);
+}
+.game-tile:focus-visible {
+  outline: var(--stroke-4) solid var(--focus);
+  outline-offset: var(--space-4);
+  border-radius: var(--radius-xl);
+}
+:root:not([data-theme="dark"]) .game-tile:focus-visible {
+  outline-color: var(--palette-g950);
+}
+
+.game-tile-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-16);
+  padding: var(--tile-pad);
+}
+.game-tile-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-20);
+  min-width: 0;
+}
+.library-caption {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.library-caption h2 {
+  font-size: var(--type-section);
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+.library-caption span {
+  color: var(--text-muted);
+  font-size: var(--type-body);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.game-tile-pitch {
+  max-width: min(28ch, 44cqw);
+  color: var(--text-muted);
+  font-size: var(--type-lead);
+  font-weight: 500;
+  line-height: var(--leading-snug);
+}
+.game-tile-play.ui-button {
+  margin-top: var(--space-8);
+  pointer-events: none;
+}
+.game-tile:hover .game-tile-play.ui-button {
+  --btn-bg: var(--invert-2);
+}
+
+/* Art plate. On a card the board rises from the bottom edge, which cuts it off.
+   Cropped scenes share one board width, so every card shows the same footprint. */
+.game-glyph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  color: var(--text);
+}
+.game-glyph :is(.game-scene, .sketch-scene) {
+  width: 100%;
+  height: 100%;
+}
+.game-tile > .game-glyph {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin-inline: auto;
+  width: var(--tile-art);
+  transition: translate var(--dur-4) var(--ease-out);
+}
+.game-tile > .game-glyph:has(> [data-crop]) {
+  display: block;
+  aspect-ratio: auto;
+}
+.game-tile > .game-glyph > [data-crop] {
+  height: auto;
+}
+.game-tile:hover > .game-glyph {
+  translate: 0 calc(var(--space-8) * -1);
+}
+
+.game-scene,
+.sketch-scene {
+  display: block;
+  overflow: visible;
+}
+.game-scene .scene-move {
+  transition: translate var(--dur-4) steps(4, end);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .game-tile:hover .scene-move {
+    animation: scene-hop var(--dur-5) steps(4, end) both;
+  }
+}
+@keyframes scene-hop {
+  0% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -3px;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-tile,
+  .game-tile > .game-glyph {
+    transition: none;
+  }
+  .game-tile:hover,
+  .game-tile:hover > .game-glyph {
+    translate: 0 0;
+  }
+}
+
+/* Grid: every game at once, four across on wide screens. Library cards stay flat: no halftone glow, no pointer dither. */
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-16);
+}
+@media (max-width: 1180px) {
+  .library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .library-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.library-grid .game-tile {
+  --tile-pad: var(--space-24);
+  min-height: 296px;
+}
+.library-grid .game-tile::after {
+  content: none;
+}
+.library-grid .game-tile-copy {
+  gap: var(--space-12);
+}
+.library-grid .library-caption h2 {
+  font-size: var(--type-title);
+}
+.library-grid .game-mark {
+  --mark-bg: var(--palette-clear);
+  --mark-fg: var(--text);
+}
+.library-grid .library-caption span {
+  white-space: normal;
+}
+.library-grid .game-tile-pitch {
+  font-size: var(--type-body);
+}
+.library-grid .game-tile > .game-glyph {
+  width: 76%;
+}
+
+/* Wide cards keep the art in the right half, beside the copy. */
+@container (min-width:520px) {
+  .game-tile > .game-glyph {
+    margin-inline: auto var(--tile-pad);
+  }
+  .library-grid .game-tile > .game-glyph {
+    width: 52%;
+  }
+}
+/* Narrow cards stack: copy on top, the art rises from the bottom edge. */
+@container (max-width:519px) {
+  .game-tile-pitch {
+    max-width: 28ch;
+  }
+  .game-tile:not(.library-grid *) > .game-glyph {
+    width: 80%;
+  }
+}
+
+/* Head: title on the left, a big room-code join on the right */
+.library-head {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  align-items: end;
+  gap: var(--space-32) var(--space-48);
+  margin: var(--space-8) var(--space-0) var(--space-32);
+  padding: var(--space-48);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.library-intro {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-20);
+}
+.library-intro h1 {
+  font-size: var(--type-hero);
+  line-height: var(--leading-none);
+}
+.library-intro p {
+  max-width: 40ch;
+  color: var(--text-muted);
+  font-size: var(--type-lead);
+  font-weight: 500;
+}
+/* The join form sits straight on the header card, not in a card of its own. */
+.library-join {
+  display: grid;
+  gap: var(--space-16);
+}
+.library-join-label {
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  text-align: center;
+}
+.library-code-field {
+  position: relative;
+  min-width: 0;
+}
+.library-code-field .library-join-input {
+  min-height: var(--control-xl);
+  padding-inline: var(--space-24) var(--space-64);
+  border-radius: var(--radius-lg);
+  background: var(--surface-3);
+  font-family: var(--font-pixel);
+  font-size: var(--type-title);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.library-code-field .library-join-input:focus {
+  background: var(--canvas);
+}
+.library-code-field .library-join-input::placeholder {
+  letter-spacing: 0.2em;
+}
+.library-code-field .library-code-paste.ui-button {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: var(--space-10);
+  margin-block: auto;
+}
+.library-join-submit.ui-button {
+  width: 100%;
+}
+.library-join-error {
+  color: var(--danger-ink);
+  font-size: var(--type-body);
+  font-weight: 500;
+}
+
+/* Toolbar: filters on the left, the gold series action on the right */
+.library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin-bottom: var(--space-24);
+}
+.library-series.ui-button {
+  --btn-bg: var(--palette-crown);
+  --btn-fg: var(--palette-ink);
+  --touch-ink: var(--palette-white);
+  --touch-alpha: 0.7;
+}
+
+/* Filters: grey pills, the chosen one inverts */
+.library-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.library-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-10);
+  min-height: var(--control);
+  padding: var(--space-0) var(--space-12) var(--space-0) var(--space-20);
+  border: 0;
+  border-radius: var(--radius-pill);
+  --doodle-fill: var(--surface-2);
+  color: var(--text);
+  font-size: var(--type-body);
+  font-weight: 600;
+  transition: scale var(--dur-2) var(--ease-out);
+}
+.library-filters button:active {
+  scale: 0.97;
+}
+.library-filters button span {
+  display: grid;
+  place-items: center;
+  min-width: var(--control-xs);
+  height: var(--control-xs);
+  padding: var(--space-0) var(--space-8);
+  border-radius: var(--radius-pill);
+  background: var(--canvas);
+  color: var(--text-muted);
+  font-family: var(--font-pixel);
+  font-size: var(--type-body);
+}
+.library-filters button[aria-pressed="true"] {
+  --doodle-fill: var(--invert);
+  color: var(--invert-text);
+}
+.library-filters button[aria-pressed="true"] span {
+  background: var(--invert-2);
+  color: var(--invert-text);
+}
+
+@media (max-width: 960px) {
+  .library-head {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    padding: var(--space-32);
+  }
+}
+@media (max-width: 600px) {
+  .game-tile {
+    --tile-pad: var(--space-24);
+    min-height: 440px;
+    border-radius: var(--radius-lg);
+  }
+  .game-tile-head {
+    gap: var(--space-16);
+  }
+  .library-caption h2 {
+    font-size: var(--type-title);
+  }
+  .library-head {
+    padding: var(--space-20);
+    border-radius: var(--radius-lg);
+  }
+  .library-grid .game-tile {
+    min-height: 300px;
+  }
+}

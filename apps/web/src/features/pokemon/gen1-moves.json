@@ -1,0 +1,992 @@
+{
+  "acid": {
+    "name": "Acid",
+    "type": "Poison",
+    "status": false,
+    "self": false
+  },
+  "amnesia": {
+    "name": "Amnesia",
+    "type": "Psychic",
+    "status": true,
+    "self": true
+  },
+  "aurorabeam": {
+    "name": "Aurora Beam",
+    "type": "Ice",
+    "status": false,
+    "self": false
+  },
+  "bide": {
+    "name": "Bide",
+    "type": "???",
+    "status": false,
+    "self": true
+  },
+  "bind": {
+    "name": "Bind",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "bite": {
+    "name": "Bite",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "blizzard": {
+    "name": "Blizzard",
+    "type": "Ice",
+    "status": false,
+    "self": false
+  },
+  "bubble": {
+    "name": "Bubble",
+    "type": "Water",
+    "status": false,
+    "self": false
+  },
+  "bubblebeam": {
+    "name": "Bubble Beam",
+    "type": "Water",
+    "status": false,
+    "self": false
+  },
+  "clamp": {
+    "name": "Clamp",
+    "type": "Water",
+    "status": false,
+    "self": false
+  },
+  "constrict": {
+    "name": "Constrict",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "conversion": {
+    "name": "Conversion",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "counter": {
+    "name": "Counter",
+    "type": "Fighting",
+    "status": false,
+    "self": false
+  },
+  "crabhammer": {
+    "name": "Crabhammer",
+    "type": "Water",
+    "status": false,
+    "self": false
+  },
+  "dig": {
+    "name": "Dig",
+    "type": "Ground",
+    "status": false,
+    "self": false
+  },
+  "disable": {
+    "name": "Disable",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "dizzypunch": {
+    "name": "Dizzy Punch",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "doubleedge": {
+    "name": "Double-Edge",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "dragonrage": {
+    "name": "Dragon Rage",
+    "type": "Dragon",
+    "status": false,
+    "self": false
+  },
+  "explosion": {
+    "name": "Explosion",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "fireblast": {
+    "name": "Fire Blast",
+    "type": "Fire",
+    "status": false,
+    "self": false
+  },
+  "firespin": {
+    "name": "Fire Spin",
+    "type": "Fire",
+    "status": false,
+    "self": false
+  },
+  "fly": {
+    "name": "Fly",
+    "type": "Flying",
+    "status": false,
+    "self": false
+  },
+  "focusenergy": {
+    "name": "Focus Energy",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "glare": {
+    "name": "Glare",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "growth": {
+    "name": "Growth",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "gust": {
+    "name": "Gust",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "haze": {
+    "name": "Haze",
+    "type": "Ice",
+    "status": true,
+    "self": true
+  },
+  "highjumpkick": {
+    "name": "High Jump Kick",
+    "type": "Fighting",
+    "status": false,
+    "self": false
+  },
+  "jumpkick": {
+    "name": "Jump Kick",
+    "type": "Fighting",
+    "status": false,
+    "self": false
+  },
+  "karatechop": {
+    "name": "Karate Chop",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "leechseed": {
+    "name": "Leech Seed",
+    "type": "Grass",
+    "status": true,
+    "self": false
+  },
+  "lightscreen": {
+    "name": "Light Screen",
+    "type": "Psychic",
+    "status": true,
+    "self": true
+  },
+  "metronome": {
+    "name": "Metronome",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "mimic": {
+    "name": "Mimic",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "minimize": {
+    "name": "Minimize",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "mirrormove": {
+    "name": "Mirror Move",
+    "type": "Flying",
+    "status": true,
+    "self": true
+  },
+  "mist": {
+    "name": "Mist",
+    "type": "Ice",
+    "status": true,
+    "self": true
+  },
+  "nightshade": {
+    "name": "Night Shade",
+    "type": "Ghost",
+    "status": false,
+    "self": false
+  },
+  "petaldance": {
+    "name": "Petal Dance",
+    "type": "Grass",
+    "status": false,
+    "self": false
+  },
+  "poisonsting": {
+    "name": "Poison Sting",
+    "type": "Poison",
+    "status": false,
+    "self": false
+  },
+  "psychic": {
+    "name": "Psychic",
+    "type": "Psychic",
+    "status": false,
+    "self": false
+  },
+  "psywave": {
+    "name": "Psywave",
+    "type": "Psychic",
+    "status": false,
+    "self": false
+  },
+  "rage": {
+    "name": "Rage",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "razorleaf": {
+    "name": "Razor Leaf",
+    "type": "Grass",
+    "status": false,
+    "self": false
+  },
+  "razorwind": {
+    "name": "Razor Wind",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "recover": {
+    "name": "Recover",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "reflect": {
+    "name": "Reflect",
+    "type": "Psychic",
+    "status": true,
+    "self": true
+  },
+  "rest": {
+    "name": "Rest",
+    "type": "Psychic",
+    "status": true,
+    "self": true
+  },
+  "roar": {
+    "name": "Roar",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "rockslide": {
+    "name": "Rock Slide",
+    "type": "Rock",
+    "status": false,
+    "self": false
+  },
+  "rockthrow": {
+    "name": "Rock Throw",
+    "type": "Rock",
+    "status": false,
+    "self": false
+  },
+  "sandattack": {
+    "name": "Sand Attack",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "seismictoss": {
+    "name": "Seismic Toss",
+    "type": "Fighting",
+    "status": false,
+    "self": false
+  },
+  "selfdestruct": {
+    "name": "Self-Destruct",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "skullbash": {
+    "name": "Skull Bash",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "skyattack": {
+    "name": "Sky Attack",
+    "type": "Flying",
+    "status": false,
+    "self": false
+  },
+  "slash": {
+    "name": "Slash",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "sludge": {
+    "name": "Sludge",
+    "type": "Poison",
+    "status": false,
+    "self": false
+  },
+  "solarbeam": {
+    "name": "Solar Beam",
+    "type": "Grass",
+    "status": false,
+    "self": false
+  },
+  "sonicboom": {
+    "name": "Sonic Boom",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "softboiled": {
+    "name": "Soft-Boiled",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "struggle": {
+    "name": "Struggle",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "substitute": {
+    "name": "Substitute",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "superfang": {
+    "name": "Super Fang",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "thrash": {
+    "name": "Thrash",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "thunder": {
+    "name": "Thunder",
+    "type": "Electric",
+    "status": false,
+    "self": false
+  },
+  "triattack": {
+    "name": "Tri Attack",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "whirlwind": {
+    "name": "Whirlwind",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "wingattack": {
+    "name": "Wing Attack",
+    "type": "Flying",
+    "status": false,
+    "self": false
+  },
+  "wrap": {
+    "name": "Wrap",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "lowkick": {
+    "name": "Low Kick",
+    "type": "Fighting",
+    "status": false,
+    "self": false
+  },
+  "poisongas": {
+    "name": "Poison Gas",
+    "type": "Poison",
+    "status": true,
+    "self": false
+  },
+  "poisonpowder": {
+    "name": "Poison Powder",
+    "type": "Poison",
+    "status": true,
+    "self": false
+  },
+  "toxic": {
+    "name": "Toxic",
+    "type": "Poison",
+    "status": true,
+    "self": false
+  },
+  "transform": {
+    "name": "Transform",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "absorb": {
+    "name": "Absorb",
+    "type": "Grass",
+    "status": false,
+    "self": false
+  },
+  "flash": {
+    "name": "Flash",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "hypnosis": {
+    "name": "Hypnosis",
+    "type": "Psychic",
+    "status": true,
+    "self": false
+  },
+  "megadrain": {
+    "name": "Mega Drain",
+    "type": "Grass",
+    "status": false,
+    "self": false
+  },
+  "surf": {
+    "name": "Surf",
+    "type": "Water",
+    "status": false,
+    "self": false
+  },
+  "vinewhip": {
+    "name": "Vine Whip",
+    "type": "Grass",
+    "status": false,
+    "self": false
+  },
+  "waterfall": {
+    "name": "Waterfall",
+    "type": "Water",
+    "status": false,
+    "self": false
+  },
+  "dreameater": {
+    "name": "Dream Eater",
+    "type": "Psychic",
+    "status": false,
+    "self": false
+  },
+  "payday": {
+    "name": "Pay Day",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "tackle": {
+    "name": "Tackle",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "acidarmor": {
+    "name": "Acid Armor",
+    "type": "Poison",
+    "status": true,
+    "self": true
+  },
+  "barrier": {
+    "name": "Barrier",
+    "type": "Psychic",
+    "status": true,
+    "self": true
+  },
+  "bodyslam": {
+    "name": "Body Slam",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "flamethrower": {
+    "name": "Flamethrower",
+    "type": "Fire",
+    "status": false,
+    "self": false
+  },
+  "growl": {
+    "name": "Growl",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "hydropump": {
+    "name": "Hydro Pump",
+    "type": "Water",
+    "status": false,
+    "self": false
+  },
+  "icebeam": {
+    "name": "Ice Beam",
+    "type": "Ice",
+    "status": false,
+    "self": false
+  },
+  "leechlife": {
+    "name": "Leech Life",
+    "type": "Bug",
+    "status": false,
+    "self": false
+  },
+  "lick": {
+    "name": "Lick",
+    "type": "Ghost",
+    "status": false,
+    "self": false
+  },
+  "pinmissile": {
+    "name": "Pin Missile",
+    "type": "Bug",
+    "status": false,
+    "self": false
+  },
+  "screech": {
+    "name": "Screech",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "sing": {
+    "name": "Sing",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "sleeppowder": {
+    "name": "Sleep Powder",
+    "type": "Grass",
+    "status": true,
+    "self": false
+  },
+  "smog": {
+    "name": "Smog",
+    "type": "Poison",
+    "status": false,
+    "self": false
+  },
+  "spore": {
+    "name": "Spore",
+    "type": "Grass",
+    "status": true,
+    "self": false
+  },
+  "stringshot": {
+    "name": "String Shot",
+    "type": "Bug",
+    "status": true,
+    "self": false
+  },
+  "stunspore": {
+    "name": "Stun Spore",
+    "type": "Grass",
+    "status": true,
+    "self": false
+  },
+  "submission": {
+    "name": "Submission",
+    "type": "Fighting",
+    "status": false,
+    "self": false
+  },
+  "supersonic": {
+    "name": "Supersonic",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "swordsdance": {
+    "name": "Swords Dance",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "thunderbolt": {
+    "name": "Thunderbolt",
+    "type": "Electric",
+    "status": false,
+    "self": false
+  },
+  "thunderwave": {
+    "name": "Thunder Wave",
+    "type": "Electric",
+    "status": true,
+    "self": false
+  },
+  "barrage": {
+    "name": "Barrage",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "boneclub": {
+    "name": "Bone Club",
+    "type": "Ground",
+    "status": false,
+    "self": false
+  },
+  "cometpunch": {
+    "name": "Comet Punch",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "doubleslap": {
+    "name": "Double Slap",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "eggbomb": {
+    "name": "Egg Bomb",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "hyperfang": {
+    "name": "Hyper Fang",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "meditate": {
+    "name": "Meditate",
+    "type": "Psychic",
+    "status": true,
+    "self": true
+  },
+  "rollingkick": {
+    "name": "Rolling Kick",
+    "type": "Fighting",
+    "status": false,
+    "self": false
+  },
+  "sharpen": {
+    "name": "Sharpen",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "spikecannon": {
+    "name": "Spike Cannon",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "teleport": {
+    "name": "Teleport",
+    "type": "Psychic",
+    "status": true,
+    "self": true
+  },
+  "twineedle": {
+    "name": "Twineedle",
+    "type": "Bug",
+    "status": false,
+    "self": false
+  },
+  "bonemerang": {
+    "name": "Bonemerang",
+    "type": "Ground",
+    "status": false,
+    "self": false
+  },
+  "cut": {
+    "name": "Cut",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "kinesis": {
+    "name": "Kinesis",
+    "type": "Psychic",
+    "status": true,
+    "self": false
+  },
+  "lovelykiss": {
+    "name": "Lovely Kiss",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "agility": {
+    "name": "Agility",
+    "type": "Psychic",
+    "status": true,
+    "self": true
+  },
+  "confuseray": {
+    "name": "Confuse Ray",
+    "type": "Ghost",
+    "status": true,
+    "self": false
+  },
+  "confusion": {
+    "name": "Confusion",
+    "type": "Psychic",
+    "status": false,
+    "self": false
+  },
+  "defensecurl": {
+    "name": "Defense Curl",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "doublekick": {
+    "name": "Double Kick",
+    "type": "Fighting",
+    "status": false,
+    "self": false
+  },
+  "doubleteam": {
+    "name": "Double Team",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "drillpeck": {
+    "name": "Drill Peck",
+    "type": "Flying",
+    "status": false,
+    "self": false
+  },
+  "earthquake": {
+    "name": "Earthquake",
+    "type": "Ground",
+    "status": false,
+    "self": false
+  },
+  "ember": {
+    "name": "Ember",
+    "type": "Fire",
+    "status": false,
+    "self": false
+  },
+  "firepunch": {
+    "name": "Fire Punch",
+    "type": "Fire",
+    "status": false,
+    "self": false
+  },
+  "fissure": {
+    "name": "Fissure",
+    "type": "Ground",
+    "status": false,
+    "self": false
+  },
+  "furyattack": {
+    "name": "Fury Attack",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "furyswipes": {
+    "name": "Fury Swipes",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "guillotine": {
+    "name": "Guillotine",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "harden": {
+    "name": "Harden",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "headbutt": {
+    "name": "Headbutt",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "hornattack": {
+    "name": "Horn Attack",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "horndrill": {
+    "name": "Horn Drill",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "hyperbeam": {
+    "name": "Hyper Beam",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "icepunch": {
+    "name": "Ice Punch",
+    "type": "Ice",
+    "status": false,
+    "self": false
+  },
+  "leer": {
+    "name": "Leer",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "megakick": {
+    "name": "Mega Kick",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "megapunch": {
+    "name": "Mega Punch",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "peck": {
+    "name": "Peck",
+    "type": "Flying",
+    "status": false,
+    "self": false
+  },
+  "pound": {
+    "name": "Pound",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "psybeam": {
+    "name": "Psybeam",
+    "type": "Psychic",
+    "status": false,
+    "self": false
+  },
+  "quickattack": {
+    "name": "Quick Attack",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "scratch": {
+    "name": "Scratch",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "slam": {
+    "name": "Slam",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "smokescreen": {
+    "name": "Smokescreen",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "splash": {
+    "name": "Splash",
+    "type": "Normal",
+    "status": true,
+    "self": true
+  },
+  "stomp": {
+    "name": "Stomp",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "strength": {
+    "name": "Strength",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "swift": {
+    "name": "Swift",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "tailwhip": {
+    "name": "Tail Whip",
+    "type": "Normal",
+    "status": true,
+    "self": false
+  },
+  "takedown": {
+    "name": "Take Down",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "thunderpunch": {
+    "name": "Thunder Punch",
+    "type": "Electric",
+    "status": false,
+    "self": false
+  },
+  "thundershock": {
+    "name": "Thunder Shock",
+    "type": "Electric",
+    "status": false,
+    "self": false
+  },
+  "visegrip": {
+    "name": "Vise Grip",
+    "type": "Normal",
+    "status": false,
+    "self": false
+  },
+  "watergun": {
+    "name": "Water Gun",
+    "type": "Water",
+    "status": false,
+    "self": false
+  },
+  "withdraw": {
+    "name": "Withdraw",
+    "type": "Water",
+    "status": true,
+    "self": true
+  }
+}

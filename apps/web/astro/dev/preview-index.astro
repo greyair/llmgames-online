@@ -1,0 +1,6 @@
+---
+import PreviewNavigation from './PreviewNavigation.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PreviewHub from '../../src/dev/PreviewHub';
+---
+<BaseLayout title="Design preview | llmgames"><PreviewHub client:only="react"/><PreviewNavigation/></BaseLayout>

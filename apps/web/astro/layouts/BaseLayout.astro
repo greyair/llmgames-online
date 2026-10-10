@@ -1,0 +1,83 @@
+---
+import '../../src/index.css';
+import { ClientRouter } from 'astro:transitions';
+import { HOME_TITLE, HOME_DESCRIPTION, SITE_NAME, SITE_URL, SOCIAL_IMAGE, SOCIAL_IMAGE_ALT } from '../../src/lib/siteMetadata';
+import { SiteBar } from '../../src/interface/Chrome';
+import { InteractionFeedback } from '../../src/interface/Feedback';
+
+interface Props { title?: string; description?: string; canonicalPath?: string; noindex?: boolean; }
+
+const { title = HOME_TITLE, description = HOME_DESCRIPTION, canonicalPath = Astro.url.pathname, noindex = Astro.url.pathname.startsWith('/design-preview') } = Astro.props;
+
+const canonical = new URL(canonicalPath, SITE_URL).href;
+
+const preview = Astro.url.pathname.startsWith('/design-preview');
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'Organization', '@id': `${SITE_URL}/#organization`, name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/llmgames-icon-512-v3.png` },
+    { '@type': 'WebSite', '@id': `${SITE_URL}/#website`, name: SITE_NAME, alternateName: 'LLM Games', url: SITE_URL, description: HOME_DESCRIPTION, publisher: { '@id': `${SITE_URL}/#organization` } },
+  ],
+};
+---
+<!doctype html>
+<html lang="en" transition:animate="none">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <script is:inline src="/theme-init.js"></script>
+    <ClientRouter fallback="swap" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={SOCIAL_IMAGE} />
+    <meta property="og:image:secure_url" content={SOCIAL_IMAGE} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content={SOCIAL_IMAGE_ALT} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={SOCIAL_IMAGE} />
+    <meta name="twitter:image:alt" content={SOCIAL_IMAGE_ALT} />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="application-name" content={SITE_NAME} />
+    <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
+    <link rel="icon" href="/llmgames-favicon-v3.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/svg+xml" href="/llmgames-mark-v5.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/llmgames-icon-32-v3.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/llmgames-apple-touch-v3.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    {canonicalPath === '/' && <script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData).replace(/</g, '\\u003c')} />}
+  </head>
+  <body data-app-shell={preview ? undefined : true}>
+    {!preview && <SiteBar client:load serverPath={Astro.url.pathname} transition:persist="site-bar" />}
+    <slot />
+    <svg class="doodle-defs" aria-hidden="true" focusable="false" transition:persist="doodle-defs">
+      {[['doodle-still', 1], ['doodle-2', 7], ['doodle-3', 13], ['doodle-4', 19]].map(([id, seed]) => (
+        <filter id={id} color-interpolation-filters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="1" seed={seed} result="noise" />
+          <feColorMatrix in="noise" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 1" result="opaque" />
+          <feDisplacementMap in="SourceGraphic" in2="opaque" scale="3" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      ))}
+    </svg>
+    <InteractionFeedback client:load transition:persist="feedback" />
+    <script>
+      import { navigate } from 'astro:transitions/client';
+
+      Reflect.set(window, 'llmgamesNavigate', navigate);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,459 @@
+/* Site bar: a flat, full-width header in three columns. Brand on the left,
+   page links centred, tools and account on the right. On phones the page
+   links move to a flat bottom bar. */
+
+/* The bar persists across page swaps, so it never plays an entrance. */
+
+/* Skip link: hidden until keyboard focus, then a sun pill over the brand. */
+.site-skip {
+  position: absolute;
+  top: var(--space-12);
+  left: var(--space-gutter);
+  z-index: calc(var(--z-sticky) + 1);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-sm);
+  padding: var(--space-0) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--palette-sun);
+  color: var(--on-pastel);
+  font-weight: 600;
+  translate: 0 calc(-100% - var(--space-24));
+}
+.site-skip:focus {
+  translate: 0 0;
+  outline: var(--stroke-3) solid var(--palette-ink);
+  outline-offset: var(--space-2);
+}
+
+.site-bar-slot {
+  position: sticky;
+  top: var(--space-0);
+  z-index: var(--z-sticky);
+  height: var(--bar-height);
+}
+/* A match brings its own bar, so the site bar steps aside. */
+body[data-app-shell]:has(.match-desk) astro-island:has(.site-bar-slot),
+body[data-app-shell]:has(.match-desk) .site-bar-slot {
+  display: none;
+}
+
+.site-bar {
+  position: relative;
+  height: 100%;
+  padding: var(--space-0) var(--space-gutter);
+  border-bottom: var(--stroke-1) solid var(--palette-clear);
+  background: color-mix(in oklab, var(--canvas) 86%, var(--palette-clear));
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  transition:
+    border-color var(--dur-3) linear,
+    background-color var(--dur-3) linear;
+}
+/* Client-side page swaps cross-fade the root. The bar and dock are persisted live
+   elements, so they skip the fade: they stay solid and the pill keeps travelling. */
+.site-bar {
+  view-transition-name: site-bar;
+}
+.site-dock {
+  view-transition-name: site-dock;
+}
+::view-transition-group(site-bar),
+::view-transition-group(site-dock),
+::view-transition-new(site-bar),
+::view-transition-new(site-dock) {
+  animation: none;
+}
+::view-transition-old(site-bar),
+::view-transition-old(site-dock) {
+  display: none;
+}
+.site-bar[data-scrolled] {
+  border-bottom-color: var(--line);
+  background: color-mix(in oklab, var(--canvas) 94%, var(--palette-clear));
+}
+.site-bar-inner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: var(--space-24);
+  height: 100%;
+}
+
+/* Brand: the controller mark and a pixel wordmark that morphs its cells on hover. */
+.site-home {
+  grid-column: 1;
+  justify-self: start;
+  display: flex;
+  border-radius: var(--radius-sm);
+}
+.site-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  color: var(--text);
+}
+.site-logo-tile {
+  display: grid;
+  place-items: center;
+  transition: scale var(--dur-3) var(--ease-snap);
+}
+.logo-mark {
+  display: block;
+  flex: none;
+  transition:
+    rotate var(--dur-4) var(--ease-snap),
+    scale var(--dur-4) var(--ease-snap);
+}
+.site-home:hover .site-logo-tile {
+  scale: 1.04;
+}
+.site-home:hover .logo-mark {
+  rotate: -8deg;
+  scale: 1.06;
+}
+.site-home:active .site-logo-tile {
+  scale: 0.94;
+}
+.site-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-pixel);
+  letter-spacing: var(--tracking-pixel);
+  line-height: var(--leading-none);
+}
+/* Both halves of the address share one size and weight; only the colour separates ".online". */
+.site-wordmark strong,
+.site-wordmark-tld {
+  font-size: var(--type-title);
+  font-weight: 500;
+  font-variation-settings: "ELSH" 0;
+  transition:
+    font-variation-settings var(--dur-5) var(--ease-out),
+    color var(--dur-3) linear;
+}
+.site-wordmark-tld {
+  color: var(--text-faint);
+}
+.site-home:hover .site-wordmark strong,
+.site-home:hover .site-wordmark-tld {
+  font-variation-settings: "ELSH" 100;
+}
+.site-home:hover .site-wordmark-tld {
+  color: var(--text-muted);
+}
+
+/* Page links: pixel labels. The current page sits on a hand-drawn sun pill,
+   the same mark as selected tabs; hover and keyboard focus show a soft grey pill. */
+.site-nav {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.site-nav a,
+.site-dock a {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-family: var(--font-pixel);
+  letter-spacing: var(--tracking-pixel);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--dur-2) linear;
+}
+.site-nav a {
+  min-height: var(--control-sm);
+  padding: var(--space-0) var(--space-16);
+  font-size: var(--type-body);
+}
+/* Links follow the pill (data-highlighted), which reaches the next page before aria-current does. */
+.site-nav a:hover,
+.site-dock a:hover,
+.site-dock a[data-highlighted] {
+  color: var(--text);
+}
+.site-nav a[data-highlighted] {
+  color: var(--on-pastel);
+}
+/* Hover pill: opacity and scale only, so it stays on the compositor. */
+.site-nav a::after,
+.site-dock a::after,
+.site-profile::after {
+  content: "";
+  position: absolute;
+  inset: var(--space-4) var(--space-0);
+  z-index: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  opacity: 0;
+  scale: 0.92;
+  pointer-events: none;
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  transition:
+    opacity var(--dur-2) linear,
+    scale var(--dur-3) var(--ease-out);
+}
+:is(
+    .site-nav a:not([data-highlighted]),
+    .site-dock a:not([data-highlighted]),
+    .site-profile:not([aria-current])
+  ):focus-visible::after {
+  opacity: 1;
+  scale: 1;
+}
+@media (hover: hover) {
+  :is(
+      .site-nav a:not([data-highlighted]),
+      .site-dock a:not([data-highlighted]),
+      .site-profile:not([aria-current])
+    ):hover::after {
+    opacity: 1;
+    scale: 1;
+  }
+  .site-bar .ui-button-ghost:hover {
+    --btn-fg: var(--text);
+    --doodle-fill: var(--surface-2);
+  }
+}
+:is(.site-nav a, .site-dock a, .site-profile):active::after {
+  scale: 0.96;
+}
+.site-profile > * {
+  position: relative;
+  z-index: 1;
+}
+.site-nav-label,
+.site-nav-icon {
+  position: relative;
+  z-index: 1;
+}
+.site-nav-icon {
+  opacity: 0.6;
+  transition: opacity var(--dur-2) linear;
+}
+a:hover > .site-nav-icon,
+a[data-highlighted] > .site-nav-icon {
+  opacity: 1;
+}
+/* One sun pill per nav, placed from the highlighted link's measured box (--pill-*, set by SiteNav,
+   which also animates the slide). Before the first measurement the highlighted link draws the same pill itself. */
+.site-nav-indicator,
+:is(.site-nav, .site-dock):not([data-pill]) a[data-highlighted]::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: var(--radius-pill);
+  background: var(--palette-sun);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--doodle-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  pointer-events: none;
+}
+:is(.site-nav, .site-dock):not([data-pill]) a[data-highlighted]::before {
+  inset: var(--space-4) var(--space-0);
+}
+.site-nav {
+  position: relative;
+}
+.site-nav-indicator {
+  top: var(--space-0);
+  left: var(--space-0);
+  display: none;
+  width: var(--pill-w);
+  height: calc(var(--pill-h) - var(--space-4) * 2);
+  translate: var(--pill-x) calc(var(--pill-y) + var(--space-4));
+}
+[data-pill] > .site-nav-indicator {
+  display: block;
+}
+
+/* Tools and account */
+.site-controls {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.site-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.site-account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: var(--space-8);
+}
+.site-account-pending {
+  display: inline-flex;
+  padding-inline: var(--space-12);
+}
+.site-profile {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--control-sm);
+  padding: var(--space-0) var(--space-8);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-pixel);
+  font-size: var(--type-body);
+  letter-spacing: var(--tracking-pixel);
+  transition: color var(--dur-2) linear;
+}
+.site-profile:hover,
+.site-profile[aria-current="page"] {
+  color: var(--text);
+}
+.site-signin {
+  gap: var(--space-8);
+  margin-left: var(--space-8);
+}
+.site-signout-error {
+  position: absolute;
+  top: 100%;
+  right: var(--space-gutter);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--raised);
+  color: var(--danger-ink);
+  font-size: var(--type-body);
+  font-weight: 500;
+  box-shadow: var(--shadow);
+}
+
+/* Bottom bar: phones only. */
+.site-dock {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .site-bar-inner {
+    column-gap: var(--space-12);
+  }
+  .site-nav {
+    gap: var(--space-0);
+  }
+  .site-nav a {
+    padding: var(--space-0) var(--space-12);
+  }
+  .site-profile-label {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .site-wordmark-tld {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .site-bar {
+    padding-inline: var(--space-16);
+  }
+  .site-bar-slot:has(> .site-dock) .site-nav {
+    display: none;
+  }
+  .site-dock {
+    position: fixed;
+    inset: auto var(--space-0) var(--space-0);
+    z-index: var(--z-sticky);
+    display: flex;
+    padding: var(--space-4) var(--space-8) calc(var(--space-4) + env(safe-area-inset-bottom));
+    border-top: var(--stroke-1) solid var(--line);
+    background: color-mix(in oklab, var(--canvas) 92%, var(--palette-clear));
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  }
+  .site-dock a {
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: var(--space-6);
+    min-height: var(--control-lg);
+    padding: var(--space-12) var(--space-4) var(--space-8);
+    border-radius: var(--radius-md);
+    font-size: var(--type-micro);
+  }
+  /* In the dock the pills hug the icon, so the label stays readable on the bar. */
+  .site-dock {
+    --dock-pill-w: calc(var(--control) + var(--space-8));
+    --dock-pill-h: calc(var(--control-xs) - var(--space-2));
+  }
+  .site-dock a::after,
+  .site-dock:not([data-pill]) a[data-highlighted]::before {
+    inset: var(--space-6) var(--space-0) auto;
+    width: var(--dock-pill-w);
+    height: var(--dock-pill-h);
+    margin-inline: auto;
+  }
+  .site-dock .site-nav-indicator {
+    width: var(--dock-pill-w);
+    height: var(--dock-pill-h);
+    translate: calc(var(--pill-x) + (var(--pill-w) - var(--dock-pill-w)) / 2)
+      calc(var(--pill-y) + var(--space-6));
+  }
+  .site-dock a[data-highlighted] > .site-nav-icon {
+    color: var(--on-pastel);
+  }
+  .site-dock .site-nav-icon {
+    opacity: 0.7;
+  }
+  .site-content {
+    padding-bottom: calc(var(--space-96) + var(--space-32));
+  }
+  /* Game rooms and results pin their own actions to the bottom, so the links return to the header as a second row. */
+  body:has(.room-stage, .match-result) .site-dock {
+    display: none;
+  }
+  body:has(.room-stage, .match-result) .site-bar-slot {
+    height: auto;
+  }
+  body:has(.room-stage, .match-result) .site-bar .site-bar-inner {
+    grid-template-rows: var(--bar-height) auto;
+    height: auto;
+  }
+  body:has(.room-stage, .match-result) .site-bar-slot .site-nav {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+    padding-bottom: var(--space-4);
+  }
+  body:has(.room-stage, .match-result) .site-bar-slot .site-nav a {
+    flex: 1 1 0;
+    padding-inline: var(--space-4);
+    font-size: var(--type-small);
+  }
+}
+@media (max-width: 340px) {
+  .site-wordmark {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-bar,
+  .site-logo-tile,
+  .logo-mark,
+  .site-wordmark strong,
+  .site-wordmark-tld {
+    transition: none;
+  }
+  .site-home:hover :is(.site-logo-tile, .logo-mark) {
+    rotate: 0deg;
+    scale: 1;
+  }
+  :is(.site-nav a, .site-dock a, .site-profile)::after {
+    scale: 1;
+    transition: opacity var(--dur-2) linear;
+  }
+}

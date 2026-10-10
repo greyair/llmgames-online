@@ -1,0 +1,218 @@
+/* poker, drawn like the landing arcade: a tinted rail oval around tinted
+   baize, paper cards and stickers with a thick ink outline, and flat inked
+   chips. The doodle filter on .poker-felt supplies the boil. */
+
+/* Cards (shared by the table and the result panel) ----------------- */
+.playing-card {
+  --card-ink: max(var(--stroke-2), calc(var(--card-w, 56px) * 0.04));
+}
+.playing-card-face {
+  background: var(--sketch-paper);
+  box-shadow: inset 0 0 0 var(--card-ink) var(--sketch-ink);
+}
+.playing-card-face::after {
+  display: none;
+}
+.playing-card-back {
+  background: color-mix(in oklab, var(--palette-card-back) 82%, var(--palette-white));
+  box-shadow: inset 0 0 0 var(--card-ink) var(--sketch-ink);
+}
+/* A paper frame drawn inside the back, as in the arcade deal. The back's ::after must stay empty. */
+.playing-card-back::before {
+  inset: calc(var(--card-ink) + var(--card-w, 56px) * 0.07);
+  border: max(var(--stroke-1), calc(var(--card-w, 56px) * 0.03)) solid var(--sketch-paper);
+  border-radius: calc(var(--card-w, 56px) * 0.05);
+  background: none;
+  box-shadow: none;
+  opacity: 1;
+}
+.card-slot {
+  border: var(--stroke-2) dashed color-mix(in oklab, var(--sketch-ink) 45%, var(--palette-clear));
+  background: var(--sketch-paper);
+}
+.poker-board .card-slot {
+  border-color: color-mix(in oklab, var(--sketch-ink) 45%, var(--palette-clear));
+  background: color-mix(in oklab, var(--sketch-paper) 70%, var(--palette-clear));
+}
+.poker-orbit-seat[data-winner="true"] .poker-hole-cards .playing-card-face {
+  box-shadow:
+    inset 0 0 0 var(--card-ink) var(--sketch-ink),
+    0 0 0 var(--stroke-3) var(--palette-sun),
+    0 0 0 calc(var(--stroke-3) + var(--card-ink)) var(--sketch-ink);
+}
+.poker-orbit-seat[data-winner="true"] .poker-hole-cards::before {
+  opacity: 0.6;
+}
+
+/* Chips ------------------------------------------------------------ */
+:is(.poker-chip, .poker-chip-top)[data-chip="black"] {
+  --chip: color-mix(in oklab, var(--palette-chip-black) 70%, var(--palette-white));
+}
+.poker-chip-stack {
+  filter: none;
+}
+.poker-chip {
+  --chip-ink: max(var(--stroke-1), calc(var(--chip-h) * 0.16));
+  background: var(--chip);
+  box-shadow: inset 0 0 0 var(--chip-ink) var(--sketch-ink);
+}
+.poker-chip::before {
+  inset: var(--chip-ink);
+  opacity: 1;
+}
+.poker-chip::after {
+  display: none;
+}
+.poker-chip-top {
+  box-shadow: inset 0 0 0 max(var(--stroke-1), calc(var(--chip-size, 22px) * 0.09))
+    var(--sketch-ink);
+}
+.poker-chip-top::after {
+  display: none;
+}
+
+/* Rail and baize ----------------------------------------------------- */
+.poker-table > * {
+  --ink-w: clamp(var(--stroke-2), 0.3cqw, var(--stroke-4));
+}
+.poker-table .poker-felt {
+  background: color-mix(in oklab, var(--palette-rail) 72%, var(--palette-white));
+  box-shadow: none;
+}
+.poker-table .poker-felt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  pointer-events: none;
+}
+.poker-rail-grain::before,
+.poker-rail-grain::after,
+.poker-baize::before,
+.poker-baize::after {
+  display: none;
+}
+.poker-table .poker-baize {
+  background: color-mix(in oklab, var(--palette-baize) 75%, var(--palette-white));
+  box-shadow: 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.poker-table .poker-felt-line {
+  border: var(--stroke-2) solid color-mix(in oklab, var(--sketch-ink) 45%, var(--palette-clear));
+  opacity: 1;
+}
+
+/* Stickers on the felt: paper with ink, as on the arcade cabinet. */
+.poker-workspace {
+  --sketch-muted: color-mix(in oklab, var(--sketch-ink) 68%, var(--sketch-paper));
+  --on-felt: var(--sketch-ink);
+  --felt-pill: var(--sketch-paper);
+  --felt-ink: color-mix(in oklab, var(--palette-sun) 60%, var(--sketch-paper));
+}
+.poker-pot-readout,
+.poker-table-story > strong,
+.poker-table-story > span,
+.poker-table-story summary,
+.poker-seat-bet {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poker-pot-readout > span {
+  color: var(--sketch-muted);
+}
+.poker-table-story ol,
+.poker-hand-result {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poker-table-story ol small {
+  color: var(--sketch-muted);
+}
+.poker-hand-result :is(.poker-result-hand, .poker-result-note, .poker-result-meta) {
+  color: var(--sketch-muted);
+}
+.poker-result-progress {
+  inset: auto var(--stroke-2) var(--stroke-2);
+  background: color-mix(in oklab, var(--sketch-ink) 15%, var(--palette-clear));
+}
+.poker-result-progress > span {
+  background: var(--sketch-ink);
+}
+.poker-payout {
+  background: var(--palette-sun);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+
+/* Seat nameplates: paper plates; the seat to act turns sun. */
+.poker-table .poker-seat-nameplate {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.poker-table .poker-player-identity .player-name-label small {
+  color: var(--sketch-muted);
+}
+.poker-table .poker-orbit-seat[data-active="true"] .poker-seat-nameplate {
+  background: var(--palette-sun);
+  color: var(--sketch-ink);
+}
+.poker-table .poker-orbit-seat[data-active="true"] .player-name-label small {
+  color: var(--sketch-muted);
+}
+.poker-table .poker-orbit-seat[data-folded="true"] .poker-seat-nameplate {
+  color: var(--sketch-muted);
+}
+.poker-table .poker-turn-bar {
+  background: color-mix(in oklab, var(--sketch-ink) 20%, var(--palette-clear));
+}
+.poker-table .poker-turn-bar > span {
+  background: var(--sketch-ink);
+}
+.poker-table .poker-turn-bar[data-urgent="true"] > span {
+  background: var(--danger);
+}
+
+.poker-table .poker-seat-status {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poker-table .poker-seat-status::before {
+  box-shadow: 0 0 0 var(--stroke-1) var(--sketch-ink);
+}
+.poker-table .poker-seat-status[data-tone="win"] {
+  background: var(--palette-sun);
+  color: var(--sketch-ink);
+}
+.poker-table .poker-seat-status[data-tone="muted"] {
+  color: var(--sketch-muted);
+}
+
+/* Dealer button and blind pucks. */
+.poker-table .poker-token {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poker-table .poker-token::before {
+  display: none;
+}
+.poker-table .poker-token[data-token="dealer"] {
+  --puck: var(--sketch-paper);
+  --puck-ink: var(--sketch-ink);
+}
+.poker-table .poker-token[data-token="sb"] {
+  --puck: var(--palette-chip-blue);
+  --puck-ink: var(--sketch-ink);
+}
+.poker-table .poker-token[data-token="bb"] {
+  --puck: var(--palette-chip-black);
+  --puck-ink: var(--palette-sun);
+}
+
+/* The action dock keeps its chrome with a light theme-aware outline. */
+.card-controls {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--line-strong);
+}

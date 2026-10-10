@@ -1,0 +1,156 @@
+/* Checkers, drawn like the landing arcade: a flat walnut frame, pastel maple
+   and walnut squares split by faint ink lines, and flat ebony and ivory men
+   with a thick ink outline. The doodle filter on the frame supplies the boil. */
+
+.checkers-fit {
+  --ink-w: max(var(--stroke-2), calc(var(--u) * 0.5));
+  --line-w: max(var(--stroke-1), calc(var(--u) * 0.2));
+  --grid-line: color-mix(in oklab, var(--sketch-ink) 45%, var(--palette-clear));
+}
+.checkers-stage {
+  --sq-light: color-mix(in oklab, var(--palette-maple) 80%, var(--palette-white));
+  --sq-dark: color-mix(in oklab, var(--palette-walnut) 80%, var(--palette-white));
+}
+
+.checkers-stage .checkers-frame {
+  background: color-mix(in oklab, var(--palette-walnut-deep) 80%, var(--palette-white));
+  box-shadow: none;
+}
+.checkers-stage .checkers-frame::before {
+  display: none;
+}
+.checkers-stage .checkers-frame::after {
+  z-index: 3;
+  background: none;
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+}
+.checkers-stage :is(.checkers-ranks, .checkers-files) {
+  color: var(--sketch-ink);
+}
+.checkers-stage .checkers-board {
+  background: var(--sketch-paper);
+  box-shadow: 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+
+/* Squares: flat fills; adjacent half-lines add up to one thin grid line. */
+.checkers-stage .checkers-cell {
+  background: var(--sq);
+  box-shadow: inset 0 0 0 calc(var(--line-w) / 2) var(--grid-line);
+}
+.checkers-stage .checkers-cell::before {
+  background: none;
+}
+.checkers-stage .checkers-cell:is([data-last-move="true"], [data-last-from="true"]) {
+  background: color-mix(in oklab, var(--sq) 45%, var(--palette-sun));
+  box-shadow: inset 0 0 0 calc(var(--line-w) / 2) var(--grid-line);
+}
+.checkers-stage .checkers-cell[data-last-from="true"] {
+  background: color-mix(in oklab, var(--sq) 70%, var(--palette-sun));
+}
+.checkers-stage .checkers-cell:focus-visible {
+  outline: var(--stroke-3) solid var(--sketch-ink);
+  box-shadow: inset 0 0 0 calc(var(--stroke-3) * 2) var(--palette-sun);
+}
+/* Capture burst: a sun ring between two ink rings. */
+.checkers-stage .checkers-cell::after {
+  background: radial-gradient(
+    circle closest-side,
+    var(--palette-clear) 0 50%,
+    var(--sketch-ink) 50% 56%,
+    var(--palette-sun) 56% 70%,
+    var(--sketch-ink) 70% 76%,
+    var(--palette-clear) 76%
+  );
+}
+
+/* Men: flat faces, one ink outline, a thin turned groove. */
+.checkers-stage .checker-piece {
+  --face: color-mix(in oklab, var(--palette-ebony) 85%, var(--palette-white));
+  --groove: var(--palette-g700);
+  translate: 0 0;
+  background: var(--face);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.checkers-stage .checker-white {
+  --face: var(--palette-ivory);
+  --groove: var(--palette-g400);
+}
+.checkers-stage .checker-piece::before,
+.checkers-stage .checker-piece::after {
+  display: none;
+}
+.checkers-stage .checker-ring {
+  box-shadow: inset 0 0 0 calc(var(--ink-w) * 0.6) var(--groove);
+}
+.checkers-stage .checker-crown {
+  overflow: visible;
+  filter: none;
+  stroke: var(--sketch-ink);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+
+/* Turn states: sun highlights edged in ink. */
+.checkers-stage .checkers-cell[data-source="true"]:hover .checker-piece {
+  translate: 0 calc(var(--u) * -0.8);
+}
+.checkers-stage .checkers-cell[data-selected="true"] .checker-piece,
+.checkers-stage .checkers-cell[data-selected="true"]:hover .checker-piece {
+  translate: 0 calc(var(--u) * -1.2);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.checkers-stage .checkers-cell[data-selected="true"]::before {
+  background: var(--palette-sun);
+  opacity: 1;
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.checkers-stage
+  .checkers-board[data-must-capture="true"]
+  .checkers-cell[data-source="true"]
+  .checker-piece,
+.checkers-stage .checkers-cell[data-forced="true"] .checker-piece {
+  outline: var(--ink-w) solid var(--sketch-ink);
+  outline-offset: calc(var(--u) * 0.7);
+  box-shadow:
+    inset 0 0 0 var(--ink-w) var(--sketch-ink),
+    0 0 0 calc(var(--u) * 0.7) var(--palette-sun);
+}
+
+.checkers-stage .checker-destination {
+  width: 40%;
+  height: 40%;
+  background: var(--palette-sun);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.checkers-stage .checkers-cell[data-capture="true"] .checker-destination {
+  background: color-mix(in oklab, var(--palette-tomato) 70%, var(--palette-white));
+}
+.checkers-stage .checkers-cell[data-destination="true"]::before {
+  background: color-mix(in oklab, var(--palette-sun) 40%, var(--palette-clear));
+}
+
+/* Captured tray: paper cards holding inked, edge-on men. */
+.checkers-stage .checkers-captured {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.checkers-stage .checkers-captured-label {
+  color: color-mix(in oklab, var(--sketch-ink) 65%, var(--sketch-paper));
+}
+.checkers-stage .checkers-captured-man {
+  --face: color-mix(in oklab, var(--palette-ebony) 85%, var(--palette-white));
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.checkers-stage .checkers-captured-man.checker-white {
+  --face: var(--palette-ivory);
+}
+.checkers-stage .checkers-captured-man[data-taken="false"] {
+  --face: var(--sketch-paper);
+  opacity: 1;
+  box-shadow: inset 0 0 0 var(--stroke-1)
+    color-mix(in oklab, var(--sketch-ink) 35%, var(--palette-clear));
+}

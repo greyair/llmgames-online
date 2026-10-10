@@ -1,0 +1,596 @@
+/* Result: a mega pixel outcome over a burst in the confetti colors, the
+   final position on a grey plate, players, then actions. */
+.match-result {
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+  width: 100%;
+  min-height: 100%;
+  padding: var(--space-24) var(--space-gutter) var(--space-24);
+  background: var(--stage);
+  color: var(--text);
+}
+.result-summary {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 880px;
+  margin: auto;
+  text-align: center;
+}
+.result-summary h1 {
+  margin: var(--space-0);
+  font-family: var(--font-pixel);
+  font-size: min(var(--type-mega), 11dvh);
+  font-weight: 400;
+  line-height: var(--leading-none);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.match-result[data-outcome="loss"] .result-summary h1 {
+  color: var(--text-muted);
+}
+
+/* Burst: a win gets small concentric color rings behind the trophy.
+   Losses and draws get a soft grey glow. */
+.result-burst {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: calc(var(--space-8) * -1);
+  width: min(400px, 88%);
+  aspect-ratio: 2 / 1;
+  translate: -50% 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: paint;
+}
+.result-burst > span {
+  --ring-color: var(--palette-sun);
+  position: absolute;
+  inset: calc(var(--ring) * 4.5%) calc(var(--ring) * 6%);
+  border-radius: var(--radius-pill);
+  background: var(--ring-color);
+  opacity: 0;
+  animation: result-ring var(--dur-5) steps(4, end) both;
+  animation-delay: calc(var(--ring) * 70ms);
+}
+.result-burst > span:nth-child(1) {
+  --ring-color: var(--palette-sky);
+}
+.result-burst > span:nth-child(2) {
+  --ring-color: var(--palette-grass);
+}
+.result-burst > span:nth-child(3) {
+  --ring-color: var(--palette-sun);
+}
+.result-burst > span:nth-child(4) {
+  --ring-color: var(--palette-tangerine);
+}
+.result-burst > span:nth-child(5) {
+  --ring-color: var(--palette-tomato);
+}
+.result-burst > span:nth-child(6) {
+  --ring-color: var(--palette-pink);
+}
+.result-burst:is([data-tone="loss"], [data-tone="neutral"]) > span {
+  display: none;
+}
+.result-burst:is([data-tone="loss"], [data-tone="neutral"]) {
+  background: radial-gradient(closest-side, var(--surface-2), var(--palette-clear));
+  animation: fade-in var(--dur-5) var(--ease-out) both;
+}
+@keyframes result-ring {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+  to {
+    opacity: 0.12;
+    scale: 1;
+  }
+}
+.result-burst[data-tone="win"] > span {
+  animation-name: result-ring, result-ring-pulse;
+  animation-duration: var(--dur-5), 2.4s;
+  animation-delay: calc(var(--ring) * 70ms), 1.2s;
+  animation-iteration-count: 1, infinite;
+  animation-timing-function: steps(4, end), steps(2, end);
+}
+@keyframes result-ring-pulse {
+  50% {
+    opacity: 0.09;
+  }
+}
+
+.result-details {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-8);
+  margin: var(--space-16) var(--space-0) var(--space-16);
+}
+.result-facts {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.result-facts > span {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: var(--space-0) var(--space-12);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: var(--type-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.result-facts > .result-game {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.result-details > p {
+  margin: var(--space-0);
+  max-width: 60ch;
+  font-size: var(--type-body);
+  line-height: var(--leading-snug);
+  color: var(--text-muted);
+}
+.result-details > .result-secret {
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--type-title);
+  animation: fade-in var(--dur-3) var(--ease-out) both;
+  animation-delay: 0.25s;
+}
+
+.result-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  margin: auto;
+}
+.result-center > * {
+  animation: fade-in var(--dur-4) var(--ease-out) both;
+  animation-delay: 0.2s;
+}
+.result-center > .result-final {
+  width: 100%;
+  max-width: 800px;
+  margin: var(--space-0);
+  padding: var(--space-16);
+}
+.result-center > .result-ships {
+  max-width: 760px;
+  padding: var(--space-0);
+}
+.result-board {
+  width: 100%;
+  max-width: 380px;
+  height: 300px;
+}
+.result-board .discs-stage,
+.result-board .checkers-stage {
+  padding: var(--space-4);
+}
+.result-board .discs-fit {
+  width: min(96cqw, calc((100cqh - 12px) * 7 / 6));
+}
+.result-board .is-reversi .discs-fit,
+.result-board .checkers-fit {
+  width: min(96cqw, calc(100cqh - 12px));
+}
+.result-board .checkers-caption,
+.result-board .discs-caption {
+  display: none;
+}
+
+/* Players */
+.result-players {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-8);
+  width: 100%;
+}
+.result-players:not(:has(> :nth-child(3))) {
+  max-width: 580px;
+}
+.result-player {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-12);
+  min-width: 0;
+  min-height: 64px;
+  padding: var(--space-10) var(--space-16) var(--space-10) var(--space-10);
+  border: 0;
+  border-radius: var(--radius-lg);
+  --doodle-fill: var(--surface-2);
+  color: var(--text);
+  text-align: left;
+}
+.result-player[data-winner="true"] {
+  --doodle-fill: var(--accent);
+  color: var(--accent-text);
+}
+.result-player[data-winner="true"] .result-player-name,
+.result-player[data-winner="true"] .result-player-name * {
+  color: var(--accent-text);
+}
+.result-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--palette-g900);
+}
+:root[data-theme="dark"] .result-avatar {
+  background: var(--palette-g950);
+}
+.result-avatar > * {
+  width: 32px !important;
+  height: 32px !important;
+}
+.result-player-name {
+  min-width: 0;
+  align-items: flex-start;
+  text-align: left;
+}
+.result-player-name > strong {
+  font-size: var(--type-body);
+  font-weight: 700;
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+.result-player-name > small {
+  font-size: var(--type-caption);
+  line-height: var(--leading-snug);
+}
+.result-player-status,
+.result-player-chips {
+  display: none;
+}
+
+/* Actions: replay and other room controls stay grey; leaving is the ink pill. */
+.result-actions,
+.result-actions .room-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-10);
+}
+.result-actions {
+  width: 100%;
+  padding-top: var(--space-8);
+}
+.result-actions .room-controls:not(:empty) {
+  margin: var(--space-0);
+}
+.result-actions .ui-button {
+  min-height: 52px;
+  padding: var(--space-0) var(--space-24);
+  font-size: var(--type-lead);
+}
+.result-actions .room-controls .ui-button {
+  --btn-bg: var(--surface-2);
+  --btn-fg: var(--text);
+  --btn-glint: var(--text);
+  --btn-line: var(--palette-clear);
+}
+
+/* Trophy */
+.result-trophy {
+  width: 72px;
+  height: 62px;
+  margin: var(--space-0) auto var(--space-12);
+}
+.result-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.result-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.result-art[data-celebrate="true"] {
+  animation: result-trophy-bob 1.6s steps(2, end) 1s infinite;
+}
+@keyframes result-trophy-bob {
+  50% {
+    translate: 0 calc(var(--px) * -1);
+  }
+}
+
+.preview-result-shell > .site-bar-slot {
+  flex: none;
+}
+.match-result > .result-summary {
+  position: relative;
+  top: var(--result-offset, 0px);
+}
+
+@media (min-width: 900px) and (min-height: 650px) {
+  body[data-app-shell]:has(.match-result) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  body[data-app-shell]:has(.match-result) > astro-island:has(.match-result) {
+    display: block;
+    flex: 1;
+    min-height: 0;
+  }
+  .preview-result-shell {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-result-shell > .match-result {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+  }
+  .match-result {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--space-12) var(--space-16);
+  }
+  body:not([data-app-shell]) .match-result {
+    height: 100dvh;
+  }
+  body:not([data-app-shell]) .preview-result-shell > .match-result {
+    height: auto;
+  }
+  .result-summary {
+    margin: var(--space-0) auto;
+  }
+  .result-details {
+    margin: var(--space-10) var(--space-0) var(--space-12);
+  }
+  .result-center {
+    gap: var(--space-10);
+  }
+  .result-players {
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  }
+  .result-board {
+    height: min(300px, calc(100dvh - 480px));
+  }
+  .result-center > .result-ships {
+    max-width: min(760px, calc(100dvh * 2 - 960px));
+  }
+  .match-result .result-final > header {
+    gap: var(--space-4) var(--space-10);
+    margin-bottom: var(--space-8);
+  }
+  .match-result .result-team-grid,
+  .match-result .result-hand-grid,
+  .match-result .result-guess-grid {
+    gap: var(--space-8);
+  }
+  .match-result .result-team,
+  .match-result .result-hand,
+  .match-result .result-guess-player {
+    padding: var(--space-8);
+  }
+  .match-result .result-team h3,
+  .match-result .result-hand h3,
+  .match-result .result-guess-player h3 {
+    margin-bottom: var(--space-4);
+  }
+  .match-result .result-word-card {
+    min-height: 38px;
+  }
+  .match-result .result-mon .poke-sprite,
+  .match-result .result-mon .poke-unknown {
+    width: 38px;
+    height: 38px;
+  }
+  .match-result .result-guess-grid:has(> :nth-child(5)),
+  .match-result .result-hand-grid:has(> :nth-child(5)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .match-result[data-game="contexto"] .result-guess-grid:has(> :nth-child(5)) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .match-result .result-guess-player ol {
+    gap: var(--space-2);
+  }
+  .match-result .result-guess-player li {
+    padding: var(--space-0) var(--space-4);
+  }
+}
+@media (min-width: 900px) and (min-height: 741px) {
+  .result-center > .result-ships {
+    max-width: min(760px, calc(100dvh * 0.75 - 80px));
+  }
+}
+@media (min-width: 900px) and (min-height: 650px) and (max-height: 740px) {
+  .match-result {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-8);
+  }
+  .match-result .result-card-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-8);
+    margin-bottom: var(--space-6);
+    padding: var(--space-6);
+  }
+  .result-center {
+    gap: var(--space-8);
+  }
+  .result-center > .result-final {
+    padding: var(--space-8);
+  }
+  .result-details {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--space-10);
+    margin: var(--space-6) var(--space-0) var(--space-8);
+  }
+  .match-result[data-game="poker"] .result-hand-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .match-result[data-game="poker"] .result-hand {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .match-result[data-game="poker"] .result-hand h3 {
+    grid-column: 1;
+    margin: var(--space-0);
+  }
+  .match-result[data-game="poker"] .result-hand > .result-card-row {
+    grid-column: 2;
+    grid-row: 1 / 4;
+  }
+  .match-result[data-game="poker"] .result-hand > small,
+  .match-result[data-game="poker"] .result-hand > strong {
+    grid-column: 1;
+    margin: var(--space-0);
+  }
+  .match-result .result-guess-player {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: start;
+    gap: var(--space-4);
+  }
+  .match-result .result-guess-player h3 {
+    margin: var(--space-0);
+  }
+  .match-result .result-guess-player ol,
+  .match-result .result-guess-player > p {
+    grid-column: 1 / -1;
+  }
+  .match-result .result-guess-player li {
+    line-height: var(--leading-snug);
+  }
+}
+@media (min-width: 900px) and (max-height: 740px) {
+  .result-trophy {
+    width: 56px;
+    height: 48px;
+    margin-bottom: var(--space-8);
+  }
+  .result-summary h1 {
+    font-size: min(var(--type-display), 6dvh);
+  }
+  .result-actions .ui-button {
+    min-height: 44px;
+  }
+  .result-player {
+    min-height: 52px;
+    padding-block: var(--space-6);
+  }
+  .result-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  .result-facts > span {
+    height: 28px;
+  }
+  .match-result[data-game="contexto"] .result-guess-grid:has(> :nth-child(5)) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (min-width: 900px) and (max-height: 690px) {
+  .match-result[data-game="contexto"] .result-guess-player {
+    display: block;
+  }
+  .match-result[data-game="contexto"] .result-guess-player h3 {
+    margin-bottom: var(--space-0);
+  }
+  .match-result .result-word-grid {
+    gap: var(--space-4);
+  }
+  .match-result .result-word-card {
+    min-height: 31px;
+    padding-block: var(--space-2);
+  }
+  .match-result .result-center > .result-poker:has(.result-poker-standing:nth-child(5)) {
+    max-width: 760px;
+  }
+  .match-result .result-poker-standings:has(> :nth-child(5)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 650px) {
+  .match-result {
+    padding: var(--space-16) var(--space-10) var(--space-20);
+  }
+  .result-summary h1 {
+    font-size: var(--type-display);
+  }
+  .result-trophy {
+    width: 56px;
+    height: 48px;
+  }
+  .result-players {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .result-player {
+    min-height: 56px;
+    padding-right: var(--space-10);
+  }
+  .result-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  .result-board {
+    height: min(300px, calc(100vw - 40px));
+  }
+  .result-center > .result-final {
+    padding: var(--space-10);
+  }
+  .result-actions > .ui-button {
+    flex: 1 1 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .result-center > *,
+  .result-details > .result-secret,
+  .result-burst,
+  .result-art {
+    animation: none;
+    opacity: 1;
+  }
+  .result-burst > span {
+    animation: none;
+    opacity: 0.12;
+  }
+}
+
+.victory-confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+  contain: strict;
+}

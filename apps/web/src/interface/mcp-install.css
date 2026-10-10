@@ -1,0 +1,200 @@
+/* MCP setup: a prompt card and a terminal card with host tabs. Grey fills,
+   a pill tab track, and a near-black terminal. */
+.mcp-connect-flow {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-12);
+}
+.mcp-prompt-card,
+.mcp-manual-card {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-12);
+  padding: var(--space-20);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.mcp-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.mcp-card-title {
+  font-size: var(--type-lead);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+.mcp-card-hint {
+  font-size: var(--type-small);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.mcp-prompt-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-12);
+}
+.connection-prompt {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-code);
+  font-size: var(--type-small);
+  line-height: var(--leading-body);
+}
+.mcp-prompt-copy[data-copied],
+.mcp-code-copy[data-copied] {
+  --btn-bg: var(--live);
+  --btn-fg: var(--palette-ink);
+}
+.mcp-host-tabs {
+  max-width: 100%;
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-self: start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.mcp-host-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-height: var(--control-sm);
+  padding: var(--space-0) var(--space-12);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--palette-clear);
+  color: var(--text-muted);
+  font-size: var(--type-small);
+  font-weight: 600;
+  transition:
+    background-color var(--dur-1) linear,
+    color var(--dur-1) linear;
+}
+.mcp-host-tab:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.mcp-host-tab[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.mcp-host-tab:focus-visible {
+  outline: var(--stroke-2) solid var(--focus);
+  outline-offset: var(--space-2);
+}
+.mcp-host-tab:disabled {
+  opacity: 0.5;
+}
+.mcp-host-panel {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-10);
+}
+.mcp-host-meta {
+  flex-wrap: wrap;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+}
+.mcp-host-name {
+  font-weight: 700;
+}
+.mcp-host-label {
+  font-size: var(--type-caption);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.mcp-code {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: var(--radius-lg);
+  background: var(--palette-g950);
+  color: var(--palette-g100);
+}
+.mcp-code-scroll {
+  display: flex;
+  gap: var(--space-10);
+  min-width: 0;
+  padding: var(--space-12) var(--space-16);
+  overflow-x: auto;
+}
+.mcp-code-scroll:focus-visible {
+  outline-offset: calc(var(--stroke-2) * -1);
+}
+.mcp-code-prompt {
+  color: var(--palette-g500);
+  font-family: var(--font-code);
+  font-size: var(--type-small);
+}
+.mcp-code pre {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  margin: var(--space-0);
+  font-family: var(--font-code);
+  font-size: var(--type-small);
+  line-height: var(--leading-body);
+  white-space: pre-wrap;
+}
+.mcp-code-copy {
+  margin: var(--space-6);
+}
+.mcp-code .mcp-code-copy:not([data-copied]) {
+  --btn-bg: var(--palette-g800);
+  --btn-fg: var(--palette-white);
+  --btn-glint: var(--palette-white);
+}
+.mcp-host-note {
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+  font-size: var(--type-small);
+  line-height: var(--leading-body);
+}
+.mcp-host-note code {
+  padding: var(--space-0) var(--space-6);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--type-small);
+}
+.mcp-connect-flow[data-compact] .mcp-prompt-card,
+.mcp-connect-flow[data-compact] .mcp-manual-card {
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+}
+@media (max-width: 640px) {
+  .mcp-manual-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .mcp-host-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-radius: var(--radius-lg);
+  }
+  .mcp-host-tab {
+    justify-content: center;
+    min-height: var(--control);
+    padding-inline: var(--space-6);
+  }
+  .mcp-prompt-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mcp-prompt-copy {
+    justify-self: start;
+  }
+  .mcp-prompt-card,
+  .mcp-manual-card {
+    padding: var(--space-16);
+    border-radius: var(--radius-lg);
+  }
+}

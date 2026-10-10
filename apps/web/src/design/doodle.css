@@ -1,0 +1,146 @@
+/* Hand-drawn chrome, matching the landing page's wire diagram. Outlines boil
+   (filter:var(--doodle-filter) plus animation:var(--doodle-boil)); art holds a
+   still wobble (--doodle-art). The boil is a CSS animation stepping the
+   filter through four still SVG filters (BaseLayout.astro): Chrome does not
+   repaint HTML when a referenced SVG filter animates itself via SMIL, so an
+   animated <filter> only moved on hover and froze after page swaps.
+
+   Only outline layers take the boiling filter: a ::before shape layer behind
+   each control, so labels stay crisp and the pointer dither canvas (painted
+   after ::before) still shows on hover. Hosts paint their surface with
+   --doodle-fill instead of background, and pick an outline colour with
+   --doodle-line. Game boards take the still filter as a whole and draw their
+   ink frame on a separate boiling ::after (see game-ui/sketch/*.css), so
+   grids and pieces stay put while the frame moves. */
+
+.doodle-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+:root {
+  --doodle-filter: url(#doodle-still);
+  --doodle-art: url(#doodle-still);
+  --doodle-boil: none;
+  --doodle-ink: var(--text);
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --doodle-boil: doodle-boil 600ms steps(1, end) infinite;
+  }
+}
+@keyframes doodle-boil {
+  0% {
+    filter: url(#doodle-still);
+  }
+  25% {
+    filter: url(#doodle-2);
+  }
+  50% {
+    filter: url(#doodle-3);
+  }
+  75%,
+  100% {
+    filter: url(#doodle-4);
+  }
+}
+
+/* Controls: ink outline. */
+.ui-button {
+  --doodle-fill: var(--btn-bg);
+  --doodle-line: var(--doodle-ink);
+  --doodle-inset: calc(var(--stroke-2) * -1);
+  background: none;
+  border-color: var(--palette-clear);
+}
+.ui-button-ghost {
+  --doodle-line: var(--palette-clear);
+}
+.ui-button-destructive {
+  --doodle-line: var(--danger-ink);
+}
+:is(.segmented button, .library-filters button, .lobby-member, .desk-player, .result-player) {
+  --doodle-line: var(--doodle-ink);
+}
+:is(.ui-tabs-list, .room-pace-options) {
+  --doodle-line: var(--doodle-ink);
+}
+.landing-arcade-picker button {
+  --doodle-line: var(--palette-g600);
+}
+
+/* Surfaces: a quieter pencil line. */
+:is(.ui-card, .panel) {
+  --doodle-line: var(--line-strong);
+}
+.game-tile {
+  --doodle-line: var(--palette-clear);
+}
+/* These clip their own overflow, so keep the wobble inside the box. */
+:is(.desk-player, .game-tile) {
+  --doodle-inset: var(--stroke-3);
+}
+
+:where(
+  .ui-button,
+  .segmented button,
+  .library-filters button,
+  .ui-tabs-list,
+  .landing-arcade-picker button,
+  .room-pace-options,
+  .lobby-member,
+  .desk-player,
+  .result-player,
+  .ui-card,
+  .panel,
+  .game-tile
+) {
+  position: relative;
+  isolation: isolate;
+}
+:is(
+  .ui-button,
+  .segmented button,
+  .library-filters button,
+  .ui-tabs-list,
+  .landing-arcade-picker button,
+  .room-pace-options,
+  .lobby-member,
+  .desk-player,
+  .result-player,
+  .ui-card,
+  .panel,
+  .game-tile
+)::before {
+  content: "";
+  position: absolute;
+  inset: var(--doodle-inset, 0);
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--doodle-fill, var(--palette-clear));
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--doodle-line, var(--palette-clear));
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+}
+
+/* Game boards: the whole board is drawn by hand and holds still. */
+:is(.c4-cabinet, .checkers-frame, .reversi-frame, .sea-grid, .poker-felt) {
+  filter: var(--doodle-art);
+}
+/* Codenames: one filter over the whole grid, so card stock, rules and words wobble together. */
+.words-board {
+  filter: var(--doodle-art);
+}
+/* Sliding selection pills inside tracks. */
+:is(.ui-tabs-indicator, .room-choice-fill) {
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+}
+/* Game art: scenes and app icons wobble like the boards. The landing arcade draws its own boiling lines. */
+:is(.game-scene, .game-mark) {
+  filter: var(--doodle-art);
+}

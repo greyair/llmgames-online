@@ -1,0 +1,159 @@
+/* Watch page when nothing is live: an off-air card that invites the next game. */
+.watch-empty {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - var(--bar-height));
+  overflow: hidden;
+  padding: var(--space-24) var(--space-gutter) var(--space-56);
+  background: var(--canvas);
+  color: var(--text);
+}
+.watch-empty::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  height: 38%;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    var(--palette-tangerine),
+    var(--palette-pink) 52%,
+    var(--palette-clear)
+  );
+}
+.site-viewport .watch-empty {
+  min-height: 100%;
+  height: 100%;
+}
+.watch-empty-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-16);
+  width: min(100%, 1120px);
+  text-align: center;
+}
+.watch-empty-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  font-size: var(--type-body);
+  font-weight: 700;
+  color: var(--text);
+}
+.watch-empty-brand img {
+  display: block;
+  border-radius: var(--radius-sm);
+}
+.watch-empty-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--control-sm);
+  margin: var(--space-0);
+  padding: var(--space-0) var(--space-16) var(--space-0) var(--space-12);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: var(--type-small);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text);
+}
+.watch-empty-status > span {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+}
+.watch-empty h1 {
+  margin: var(--space-0);
+  max-width: 16ch;
+  font-family: var(--font-pixel);
+  font-size: min(var(--type-hero), 11vw, 12dvh);
+  font-weight: 400;
+  letter-spacing: var(--tracking-pixel);
+  line-height: var(--leading-none);
+  text-wrap: balance;
+}
+.watch-empty .watch-invitation {
+  margin: var(--space-0);
+  font-size: var(--type-lead);
+  color: var(--text-muted);
+}
+.watch-previews {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-8);
+  width: 100%;
+  margin: var(--space-8) var(--space-0);
+}
+.watch-previews figure {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-12);
+  width: 120px;
+  margin: var(--space-0);
+  padding: var(--space-16) var(--space-8) var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition: background-color var(--dur-2) linear;
+}
+.watch-previews figure:hover {
+  background: var(--surface-2);
+}
+.watch-previews figcaption {
+  font-size: var(--type-small);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+.watch-address {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--control-xl);
+  padding: var(--space-0) var(--space-24) var(--space-0) var(--space-32);
+  border-radius: var(--radius-pill);
+  background: var(--invert);
+  color: var(--invert-text);
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  text-decoration: none;
+  transition:
+    background-color var(--dur-2) linear,
+    scale var(--dur-2) var(--ease-snap);
+}
+.watch-address:hover {
+  background: var(--invert-2);
+}
+.watch-address:active {
+  scale: 0.97;
+}
+
+@media (max-width: 650px) {
+  .watch-empty {
+    padding: var(--space-16) var(--space-12) var(--space-40);
+  }
+  .watch-empty-inner {
+    gap: var(--space-12);
+  }
+  .watch-previews figure {
+    width: calc(33.333% - var(--space-8));
+    padding: var(--space-12) var(--space-4);
+  }
+  .watch-address {
+    font-size: var(--type-lead);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .watch-empty-status > span {
+    animation: none;
+  }
+}

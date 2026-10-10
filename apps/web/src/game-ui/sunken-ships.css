@@ -1,0 +1,337 @@
+/* Steel hulls, charred wrecks and the monochrome fleet status trays.
+   Hull art: a foam wake and cast shadow on the water, a chamfered steel
+   plate with a shaded bevel, a light deck with a catwalk, and pixel
+   turrets, bridge, sail, hatches, runway and planes.
+   The --hull*, --wreck* and pattern colors are defined on .ships-stage. */
+
+.doodle-ship .ship-wake {
+  fill: none;
+  stroke: var(--foam);
+  stroke-width: 12;
+  stroke-linejoin: bevel;
+  opacity: 0.28;
+}
+.doodle-ship .ship-shadow {
+  fill: url(#bs-shadow);
+}
+.doodle-ship .ship-hull {
+  fill: var(--hull-shade);
+  stroke: var(--hull-edge);
+  stroke-width: 5;
+  stroke-linejoin: bevel;
+}
+.doodle-ship .ship-bevel {
+  fill: url(#bs-shade);
+}
+.doodle-ship .ship-deck {
+  fill: var(--hull);
+}
+.doodle-ship .ship-glint {
+  fill: url(#bs-glint);
+}
+.doodle-ship .ship-keel {
+  fill: none;
+  stroke: var(--hull-top);
+  stroke-width: 8;
+  stroke-linecap: square;
+}
+.doodle-ship .ship-bridge {
+  fill: var(--hull-detail);
+}
+.doodle-ship .ship-bridge-top,
+.doodle-ship .ship-bridge-deck {
+  fill: var(--hull-edge);
+}
+.doodle-ship .ship-window {
+  fill: var(--foam);
+}
+.doodle-ship .ship-mast {
+  fill: var(--hull-top);
+}
+.doodle-ship .ship-radar {
+  fill: var(--foam);
+}
+.doodle-ship .ship-turret {
+  fill: var(--hull-detail);
+}
+.doodle-ship .ship-barrel {
+  fill: var(--hull-edge);
+}
+.doodle-ship .ship-turret-top {
+  fill: var(--hull-top);
+}
+/* The carrier is a dark flight deck with a dashed centerline and parked planes. */
+.doodle-ship[data-ship-kind="carrier"] .ship-deck {
+  fill: var(--hull-detail);
+}
+.doodle-ship[data-ship-kind="carrier"] .ship-glint {
+  display: none;
+}
+.doodle-ship .ship-runway {
+  fill: none;
+  stroke: var(--palette-white);
+  stroke-width: 4;
+  stroke-dasharray: 12 10;
+  opacity: 0.85;
+}
+.doodle-ship .ship-plane {
+  fill: var(--hull-top);
+}
+/* The submarine runs low and dark: a sail forward and hatches aft. */
+.doodle-ship[data-ship-kind="submarine"] .ship-deck {
+  fill: var(--hull-shade);
+}
+.doodle-ship[data-ship-kind="submarine"] .ship-glint {
+  display: none;
+}
+.doodle-ship .ship-hatch {
+  fill: var(--hull-edge);
+}
+
+/* Wrecks: charred plates with embers glowing through the soot. */
+.wreck-hull .ship-wake {
+  display: none;
+}
+.wreck-hull .ship-shadow {
+  fill: url(#bs-shadow);
+}
+.wreck-hull .ship-hull {
+  fill: var(--wreck);
+  stroke: var(--wreck-edge);
+}
+.wreck-hull .ship-bevel {
+  fill: url(#bs-soot);
+}
+.wreck-hull .doodle-ship[data-ship-kind] .ship-deck {
+  fill: var(--wreck-top);
+}
+.wreck-hull .doodle-ship[data-ship-kind] .ship-glint {
+  display: inline;
+  fill: url(#bs-ember);
+  opacity: 1;
+}
+.wreck-hull
+  :is(
+    .ship-bridge,
+    .ship-turret,
+    .ship-barrel,
+    .ship-bridge-top,
+    .ship-bridge-deck,
+    .ship-mast,
+    .ship-hatch,
+    .ship-plane
+  ) {
+  fill: var(--wreck-edge);
+}
+.wreck-hull :is(.ship-turret-top, .ship-window, .ship-radar) {
+  fill: var(--ember);
+}
+.wreck-hull :is(.ship-runway, .ship-keel) {
+  stroke: var(--wreck-edge);
+}
+/* Hit pegs already sit on every wreck cell; the per-cell cross is only the one-shot sink cue. */
+.wreck-cross {
+  fill: none;
+  stroke: var(--flame-core, var(--palette-sun));
+  stroke-width: 8;
+  stroke-linecap: square;
+  opacity: 0;
+}
+[data-sinking="true"] .wreck-hull {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wreck-sink 1400ms steps(8, end) both;
+}
+[data-sinking="true"] .wreck-cross {
+  animation: wreck-cross 1400ms steps(6, end) 300ms both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes wreck-sink {
+  0% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes wreck-cross {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  25% {
+    opacity: 1;
+    scale: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── Fleet status tray (monochrome) ──────────────────────────────────── */
+.sea-fleet-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  flex: none;
+  min-width: 0;
+  height: var(--control-sm);
+  padding: var(--space-0) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.sea-fleet-count {
+  font-size: var(--type-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sea-fleet-count strong {
+  font-family: var(--font-pixel);
+  font-size: var(--type-body);
+  font-weight: 700;
+  color: var(--text);
+}
+.sea-fleet-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.sea-fleet-status > span {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 18px;
+}
+.fleet-ship-art {
+  display: block;
+  height: 18px;
+  width: auto;
+  overflow: visible;
+  shape-rendering: crispEdges;
+}
+.fleet-ship-art .ship-hull {
+  fill: var(--text);
+  stroke: none;
+}
+.fleet-ship-art :is(.ship-wake, .ship-shadow, .ship-bevel, .ship-deck, .ship-glint, .ship-details) {
+  display: none;
+}
+.sea-fleet-status [data-sunk="true"] .ship-hull {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 14;
+}
+.fleet-sunk-cross {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 14px;
+  height: 14px;
+  translate: -50% -50%;
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+
+.sea-fleet-summary[data-column="true"] {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+  width: var(--fleet-w, 96px);
+  height: auto;
+  padding: var(--space-16) var(--space-8);
+  border-radius: var(--radius-lg);
+}
+.sea-fleet-summary[data-column="true"] .sea-fleet-count {
+  white-space: normal;
+  text-align: center;
+  line-height: var(--leading-snug);
+}
+.sea-fleet-summary[data-column="true"] .sea-fleet-status {
+  flex-direction: column;
+  gap: var(--space-16);
+}
+.sea-fleet-summary[data-column="true"] .sea-fleet-status > span,
+.sea-fleet-summary[data-column="true"] .fleet-ship-art {
+  height: 30px;
+}
+.sea-fleet-summary[data-column="true"] .fleet-sunk-cross {
+  width: 22px;
+  height: 22px;
+}
+
+@container ships (max-width:650px) {
+  .sea-fleet-summary {
+    height: var(--control-xs);
+    padding: var(--space-0) var(--space-10);
+  }
+  .sea-fleet-status {
+    gap: var(--space-6);
+  }
+  .sea-fleet-status > span,
+  .fleet-ship-art {
+    height: 14px;
+  }
+  .sea-fleet-summary[data-column="true"] {
+    padding: var(--space-10) var(--space-4);
+    gap: var(--space-8);
+  }
+  .sea-fleet-summary[data-column="true"] .sea-fleet-status {
+    gap: var(--space-8);
+  }
+  .sea-fleet-summary[data-column="true"] .sea-fleet-status > span,
+  .sea-fleet-summary[data-column="true"] .fleet-ship-art {
+    height: 20px;
+  }
+  .sea-fleet-summary[data-column="true"] .sea-fleet-count {
+    font-size: var(--type-micro);
+  }
+}
+@container ships (max-height:440px) {
+  .sea-fleet-summary {
+    height: var(--control-xs);
+    padding: var(--space-0) var(--space-6);
+  }
+  .sea-fleet-status {
+    gap: var(--space-4);
+  }
+  .sea-fleet-status > span,
+  .fleet-ship-art {
+    height: 12px;
+  }
+  .fleet-sunk-cross {
+    width: 11px;
+    height: 11px;
+  }
+  .sea-fleet-summary[data-column="true"] {
+    padding: var(--space-8) var(--space-4);
+  }
+  .sea-fleet-summary[data-column="true"] .sea-fleet-status {
+    gap: var(--space-6);
+  }
+  .sea-fleet-summary[data-column="true"] .sea-fleet-status > span,
+  .sea-fleet-summary[data-column="true"] .fleet-ship-art {
+    height: 16px;
+  }
+  .sea-fleet-summary[data-column="true"] .sea-fleet-count {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sinking="true"] .wreck-hull,
+  [data-sinking="true"] .wreck-cross {
+    animation: none !important;
+  }
+}

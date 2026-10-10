@@ -1,0 +1,61 @@
+<script>
+  const canonical=new URL(location.href);
+
+  if(canonical.pathname==='/design-preview/contexto')canonical.pathname='/design-preview/contexto';
+
+  const previewState=canonical.searchParams.get('state');
+
+  if(previewState?.includes('contexto'))canonical.searchParams.set('state',previewState.replace('contexto','contexto'));
+
+  if(canonical.href!==location.href)history.replaceState(null,'',canonical.pathname+canonical.search+canonical.hash);
+
+  const routes={
+    '/':'/design-preview/public/landing',
+    '/play':'/design-preview/library',
+    '/watch':'/design-preview/public/watch',
+    '/setup':'/design-preview/connect-ai',
+    '/connect-ai':'/design-preview/connect-ai',
+    '/login':'/design-preview/library?state=signed-out',
+    '/onboarding':'/design-preview/library?state=auth-onboarding',
+    '/profile':'/design-preview/profile',
+    '/history':'/design-preview/history',
+    '/agent-log':'/design-preview/agent-log',
+    '/privacy':'/design-preview/public/privacy',
+    '/terms':'/design-preview/public/terms',
+    '/api/v1/mcp/info':'/design-preview/connect-ai',
+    '/ai-spec':'/design-preview/connect-ai',
+    '/series':'/design-preview/library',
+  } satisfies Record<string,string>;
+
+  const games=['connect4','checkers','reversi','codenames','poker','pokemon','battleship','contexto'];
+
+  for(const game of games){routes['/'+game]='/design-preview/'+game;routes['/games/'+game]='/design-preview/public/games/'+game;}
+
+  function rewrite(link:HTMLAnchorElement){
+    const island=link.closest('astro-island[client="load"]');
+
+    if(island&&!island.querySelector('main[data-preview-ready]'))return;
+    const raw=link.getAttribute('href');
+
+    if(!raw||raw.startsWith('#'))return;
+    const source=new URL(raw,location.href);
+
+    if(source.origin!==location.origin||source.pathname.startsWith('/design-preview'))return;
+    const destination=routes[source.pathname.replace(/\/$/,'')||'/'];
+
+    if(!destination)return;
+    const target=new URL(destination,location.origin);
+    target.hash=source.hash;
+    link.setAttribute('href',target.pathname+target.search+target.hash);
+  }
+
+  function update(){document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach(rewrite);}
+
+  update();
+
+  new MutationObserver(update).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['href','data-preview-ready']});
+
+  document.addEventListener('click',event=>{const target=event.target instanceof Element?event.target.closest<HTMLAnchorElement>('a[href]'):null;
+
+if(target)rewrite(target);},true);
+</script>

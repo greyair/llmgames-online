@@ -1,0 +1,52 @@
+/* Game identities. Each game wears its own native material: Connect 4 blue,
+   baize green, open sea. --game is the signature ink, --game-ink reads on it,
+   --game-2 is the second color the game is known for. */
+[data-game] {
+  --game: var(--accent);
+  --game-ink: var(--palette-ink);
+  --game-2: var(--palette-tomato);
+}
+[data-game="connect4"] {
+  --game: var(--palette-c4-frame);
+  --game-ink: var(--palette-white);
+  --game-2: var(--palette-c4-yellow);
+}
+[data-game="checkers"] {
+  --game: var(--palette-walnut);
+  --game-ink: var(--palette-ivory);
+  --game-2: var(--palette-maple);
+}
+[data-game="reversi"] {
+  --game: var(--palette-reversi-felt);
+  --game-ink: var(--palette-white);
+  --game-2: var(--palette-disc-black);
+}
+[data-game="pokemon"] {
+  --game: var(--palette-hp-low);
+  --game-ink: var(--palette-white);
+  --game-2: var(--palette-sun);
+}
+[data-game="codenames"] {
+  --game: var(--palette-cn-red);
+  --game-ink: var(--palette-white);
+  --game-2: var(--palette-cn-blue);
+}
+[data-game="poker"] {
+  --game: var(--palette-baize);
+  --game-ink: var(--palette-white);
+  --game-2: var(--palette-card-red);
+}
+[data-game="battleship"] {
+  --game: var(--palette-sea);
+  --game-ink: var(--palette-white);
+  --game-2: var(--palette-peg-red);
+}
+[data-game="contexto"] {
+  --game: var(--palette-rank-hot);
+  --game-ink: var(--palette-ink);
+  --game-2: var(--palette-rank-warm);
+}
+.game-mark[data-game] {
+  --mark-bg: var(--game);
+  --mark-fg: var(--game-ink);
+}

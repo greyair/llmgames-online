@@ -1,0 +1,900 @@
+/* Connect 4 and Reversi boards in clean pastel finishes: a glossy molded
+   blue cabinet with see-through holes, and smooth tournament felt in a dark
+   frame. The discs you play with carry a soft printed shade.
+   Chrome around the boards (score bar, captions, labels) stays monochrome. */
+
+.discs-stage {
+  --disc-red: var(--palette-c4-red);
+  --disc-red-deep: var(--palette-c4-red-deep);
+  --disc-yellow: var(--palette-c4-yellow);
+  --disc-yellow-deep: var(--palette-c4-yellow-deep);
+  --disc-black: var(--palette-disc-black);
+  --disc-white: var(--palette-disc-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4);
+  container-type: size;
+}
+.discs-fit {
+  position: relative;
+  container-type: inline-size;
+}
+.discs-cell {
+  position: relative;
+  display: block;
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: var(--space-0);
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------ */
+/* Connect 4                                                           */
+/* ------------------------------------------------------------------ */
+.is-connect4 {
+  --frame: var(--palette-c4-frame);
+  --frame-deep: var(--palette-c4-frame-deep);
+  --frame-light: var(--palette-c4-frame-light);
+  --frame-shine: color-mix(in oklab, var(--palette-c4-frame-light) 55%, var(--palette-white));
+}
+/* Fit height = actions (.95 cell) + 6 cells + 2 pads, with pad 3.6cqw. */
+.is-connect4 .discs-fit {
+  width: min(100cqw, 100cqh / 0.994, 1040px);
+}
+.is-connect4[data-readonly="true"] .discs-fit {
+  width: min(100cqw, 100cqh / 0.868, 1040px);
+}
+.is-connect4 .discs-fit {
+  --pad: 3.6cqw;
+  --cell: calc((100cqw - 2 * var(--pad)) / 7);
+}
+
+.c4-cabinet {
+  position: relative;
+  isolation: isolate;
+  padding: var(--pad);
+  border-radius: 4.2cqw;
+  box-shadow:
+    0 calc(var(--cell) * 0.07) 0 var(--frame-deep),
+    0 calc(var(--cell) * 0.3) calc(var(--cell) * 0.5) calc(var(--cell) * -0.2)
+      var(--palette-black-30);
+}
+.is-connect4 .discs-board {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+  aspect-ratio: var(--cols) / var(--rows);
+}
+
+/* The frame is one plastic slab with a hole punched over every cell, so the
+   stage shows through empty holes and falling discs pass behind it. */
+.is-connect4 .discs-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  padding: var(--pad);
+  border-radius: inherit;
+  background: linear-gradient(
+    168deg,
+    var(--frame-light) 0,
+    var(--frame) 34%,
+    var(--frame) 72%,
+    color-mix(in oklab, var(--frame) 72%, var(--frame-deep)) 100%
+  );
+  box-shadow:
+    inset 0 calc(var(--cell) * 0.035) 0 var(--frame-shine),
+    inset 0 calc(var(--cell) * -0.05) 0 var(--frame-deep);
+  -webkit-mask:
+    linear-gradient(var(--palette-ink) 0 0) border-box,
+    radial-gradient(circle closest-side, var(--palette-ink) 0 80%, var(--palette-clear) 80.5%)
+      content-box 0 0 / calc(100% / var(--cols)) calc(100% / var(--rows));
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(var(--palette-ink) 0 0) border-box exclude,
+    radial-gradient(circle closest-side, var(--palette-ink) 0 80%, var(--palette-clear) 80.5%)
+      content-box 0 0 / calc(100% / var(--cols)) calc(100% / var(--rows));
+}
+.is-connect4 .discs-frame > span {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* Gloss: a broad soft reflection across the upper slab and a thin specular streak. */
+.c4-hi {
+  background:
+    linear-gradient(
+      176deg,
+      color-mix(in oklab, var(--palette-white) 26%, var(--palette-clear)) 0,
+      color-mix(in oklab, var(--palette-white) 8%, var(--palette-clear)) 34%,
+      var(--palette-clear) 46%
+    ),
+    linear-gradient(
+      115deg,
+      var(--palette-clear) 0 18%,
+      color-mix(in oklab, var(--palette-white) 12%, var(--palette-clear)) 18% 24%,
+      var(--palette-clear) 24%
+    );
+}
+/* Molded bevel around each hole: shade on the upper lip, light on the lower lip. */
+.is-connect4 .discs-frame > .c4-rim {
+  inset: var(--pad);
+  background:
+    radial-gradient(
+        circle closest-side at 50% 45%,
+        var(--palette-clear) 0 79%,
+        var(--frame-deep) 81%,
+        color-mix(in oklab, var(--frame-deep) 40%, var(--palette-clear)) 88%,
+        var(--palette-clear) 96%
+      )
+      0 0 / calc(100% / var(--cols)) calc(100% / var(--rows)),
+    radial-gradient(
+        circle closest-side at 50% 56%,
+        var(--palette-clear) 0 79%,
+        var(--frame-shine) 81%,
+        color-mix(in oklab, var(--frame-shine) 30%, var(--palette-clear)) 88%,
+        var(--palette-clear) 94%
+      )
+      0 0 / calc(100% / var(--cols)) calc(100% / var(--rows));
+}
+
+/* Feet: two splayed legs that stand the cabinet on the stage floor. */
+.c4-foot {
+  position: absolute;
+  z-index: -1;
+  bottom: -2.6cqw;
+  width: 10cqw;
+  height: 9cqw;
+  background: linear-gradient(var(--frame) 0, var(--frame-deep) 70%);
+  border-radius: 1.6cqw 1.6cqw 1.2cqw 1.2cqw;
+  clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+.c4-foot.is-left {
+  left: -2.4cqw;
+}
+.c4-foot.is-right {
+  right: -2.4cqw;
+}
+
+/* Discs: pastel ink with a crisp glint, two printed ridges and a soft shade. */
+.is-connect4 .playing-disc {
+  position: absolute;
+  inset: 10.5%;
+  z-index: 1;
+  border-radius: 50%;
+  will-change: transform;
+}
+.is-connect4 .playing-disc.piece-1 {
+  --disc: var(--disc-red);
+  --disc-deep: var(--disc-red-deep);
+}
+.is-connect4 .playing-disc.piece-2 {
+  --disc: var(--disc-yellow);
+  --disc-deep: var(--disc-yellow-deep);
+}
+.discs-ghost {
+  --disc: var(--ghost);
+  --disc-deep: var(--ghost-deep);
+}
+.is-connect4 .playing-disc:not(.piece-0),
+.discs-ghost {
+  --disc-hi: color-mix(in oklab, var(--disc) 55%, var(--palette-white));
+  --disc-rim:
+    inset 0 0 0 calc(var(--cell) * 0.025)
+      color-mix(in oklab, var(--disc-deep) 80%, var(--palette-clear)),
+    inset 0 calc(var(--cell) * -0.04) calc(var(--cell) * 0.06)
+      color-mix(in oklab, var(--disc-deep) 70%, var(--palette-clear));
+  background:
+    radial-gradient(circle at 32% 26%, var(--disc-hi) 0 9%, var(--palette-clear) 10%), var(--disc);
+  box-shadow: var(--disc-rim);
+}
+.is-connect4 .playing-disc:not(.piece-0)::before,
+.discs-ghost::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle closest-side,
+      var(--palette-clear) 0 40%,
+      var(--disc-deep) 41% 47%,
+      var(--palette-clear) 48% 74%,
+      var(--disc-deep) 75% 81%,
+      var(--palette-clear) 82%
+    ),
+    radial-gradient(
+      circle closest-side at 50% 55%,
+      var(--palette-clear) 0 42%,
+      var(--disc-hi) 43% 48%,
+      var(--palette-clear) 49% 76%,
+      var(--disc-hi) 77% 82%,
+      var(--palette-clear) 83%
+    );
+  opacity: 0.75;
+}
+.is-connect4 .playing-disc:not(.piece-0)::after,
+.discs-ghost::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--disc-deep);
+  opacity: 0.21;
+  -webkit-mask: radial-gradient(
+    circle at 44% 34%,
+    var(--palette-clear) 0 58%,
+    var(--palette-ink) 59%
+  );
+  mask: radial-gradient(circle at 44% 34%, var(--palette-clear) 0 58%, var(--palette-ink) 59%);
+}
+.is-connect4 .discs-cell[data-last-move="true"] .playing-disc:not(.piece-0) {
+  box-shadow:
+    var(--disc-rim),
+    inset 0 0 0 calc(var(--cell) * 0.05)
+      color-mix(in oklab, var(--palette-white) 85%, var(--palette-clear));
+}
+
+/* Winning four: a bright double ring; the rest of the board dims in steps. */
+.is-connect4
+  .discs-board[data-has-win="true"]
+  .discs-cell:not([data-winning="true"])
+  .playing-disc {
+  opacity: 0.4;
+  transition: opacity var(--dur-4) steps(4, end);
+}
+.is-connect4 .discs-cell[data-winning="true"] .playing-disc {
+  box-shadow:
+    var(--disc-rim),
+    inset 0 0 0 calc(var(--cell) * 0.05) var(--palette-white),
+    inset 0 0 0 calc(var(--cell) * 0.085) var(--palette-ink);
+}
+
+/* Column controls: hovering a column hangs your ghost disc over it and lights the column with a soft beam. */
+.discs-actions {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-inline: var(--pad);
+  height: calc(var(--cell) * 0.95);
+}
+.discs-column {
+  position: relative;
+  display: block;
+  padding: var(--space-0);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.discs-column::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 100%;
+  height: calc(var(--cell) * 6 + var(--pad));
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 0 0 var(--radius-pill) var(--radius-pill);
+  background: linear-gradient(
+    color-mix(in oklab, var(--palette-white) 30%, var(--palette-clear)),
+    color-mix(in oklab, var(--palette-white) 6%, var(--palette-clear))
+  );
+  opacity: 0;
+  transition: opacity var(--dur-1) linear;
+}
+.discs-column:disabled {
+  cursor: default;
+}
+.discs-ghost {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  width: calc(var(--cell) * 0.79);
+  aspect-ratio: 1;
+  translate: -50% calc(var(--px) * -4);
+  border-radius: 50%;
+  opacity: 0;
+  transition:
+    opacity var(--dur-1) linear,
+    translate var(--dur-2) steps(3, end);
+}
+.discs-column:enabled:is(:hover, :focus-visible) .discs-ghost {
+  opacity: 1;
+  translate: -50% 0;
+}
+.discs-column:enabled:is(:hover, :focus-visible)::after {
+  opacity: 1;
+}
+.discs-column:enabled:active .discs-ghost {
+  translate: -50% calc(var(--px) * 2);
+}
+.discs-column:focus-visible {
+  outline: none;
+}
+.discs-column:focus-visible .discs-ghost {
+  outline: var(--stroke-3) solid var(--focus);
+  outline-offset: var(--stroke-3);
+}
+@media (hover: hover) {
+  .discs-column:enabled:hover .discs-ghost {
+    animation: c4-hover-bob 900ms steps(3, end) infinite alternate;
+  }
+}
+@keyframes c4-hover-bob {
+  to {
+    translate: -50% calc(var(--px) * -2);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Reversi                                                             */
+/* ------------------------------------------------------------------ */
+.is-reversi {
+  --felt: var(--palette-reversi-felt);
+  --felt-deep: var(--palette-reversi-felt-deep);
+  --felt-line: var(--palette-reversi-line);
+  --felt-glow: color-mix(in oklab, var(--palette-reversi-felt) 55%, var(--palette-white));
+  --score-h: calc(var(--control-xl) + var(--space-12));
+  --chrome-h: 0px;
+}
+.is-reversi[data-scored="true"] {
+  --chrome-h: var(--score-h);
+}
+.is-reversi .discs-fit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  width: min(100cqw, 100cqh - var(--chrome-h), 880px);
+}
+
+/* Versus bar: black share against white share in big pixel numbers. */
+.reversi-score {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-16);
+  height: var(--control-xl);
+  padding: var(--space-0) var(--space-20);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.reversi-score-side {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+.reversi-score-side strong {
+  min-width: 2ch;
+  font-family: var(--font-pixel);
+  font-size: var(--type-section);
+  font-weight: 500;
+  line-height: var(--leading-none);
+  font-variant-numeric: tabular-nums;
+}
+.reversi-score-side.is-white strong {
+  text-align: right;
+}
+.reversi-score-disc {
+  position: relative;
+  display: block;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  border-radius: 50%;
+  background-color: var(--disc-black);
+}
+.reversi-score-disc.piece-2 {
+  background-color: var(--disc-white);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--palette-disc-white-deep);
+}
+.reversi-score-bar {
+  position: relative;
+  display: block;
+  height: var(--space-20);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--disc-white);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--palette-disc-white-deep);
+}
+.reversi-score-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--black-share);
+  background: var(--disc-black);
+  transition: width var(--dur-4) steps(6, end);
+}
+
+:root[data-theme="dark"] .reversi-score-bar > span {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--palette-g700);
+}
+:root[data-theme="dark"] .reversi-score-disc.piece-1 {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--palette-g600);
+}
+:root[data-theme="dark"] .reversi-frame {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--palette-g700);
+}
+
+/* Dark tournament frame with coordinates engraved in grey. */
+.reversi-frame {
+  --rim: 5.2cqw;
+  display: grid;
+  grid-template-columns: var(--rim) minmax(0, 1fr) var(--rim);
+  grid-template-rows: var(--rim) minmax(0, 1fr) var(--rim);
+  aspect-ratio: 1;
+  border-radius: 3.2cqw;
+  background: linear-gradient(160deg, var(--palette-g750) 0, var(--palette-g900) 45%);
+  box-shadow:
+    inset 0 0 0 var(--stroke-2) var(--palette-g700),
+    inset 0 var(--stroke-3) 0 var(--palette-g600),
+    0 var(--depth-2) var(--depth-3) calc(var(--depth-3) * -1) var(--palette-black-30);
+}
+.reversi-files,
+.reversi-ranks {
+  display: flex;
+  font-family: var(--font-pixel);
+  font-size: clamp(var(--type-micro), 2.3cqw, var(--type-title));
+  font-weight: 500;
+  line-height: var(--leading-none);
+  color: var(--palette-g400);
+  user-select: none;
+}
+.reversi-files {
+  grid-column: 2;
+  grid-row: 1;
+  align-items: center;
+}
+.reversi-ranks {
+  grid-column: 1;
+  grid-row: 2;
+  flex-direction: column;
+}
+.reversi-files > span,
+.reversi-ranks > span {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+.is-reversi .discs-board {
+  --line-w: max(var(--stroke-2), 0.32cqw);
+  --cell: calc((100cqw - 2 * var(--rim)) / 8);
+  position: relative;
+  isolation: isolate;
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 0.8cqw;
+  background:
+    linear-gradient(90deg, var(--felt-line) 0 var(--line-w), var(--palette-clear) var(--line-w))
+      calc(var(--line-w) / -2) 0 / calc(100% / var(--cols)) 100% repeat-x,
+    linear-gradient(var(--felt-line) 0 var(--line-w), var(--palette-clear) var(--line-w)) 0
+      calc(var(--line-w) / -2) / 100% calc(100% / var(--rows)) repeat-y,
+    linear-gradient(
+      160deg,
+      color-mix(in oklab, var(--felt) 84%, var(--palette-white)) 0,
+      var(--felt) 55%
+    ),
+    var(--felt);
+  box-shadow: inset 0 0 0 var(--line-w) var(--felt-line);
+}
+/* Felt nap: a smooth vignette toward the frame. */
+.is-reversi .discs-board::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    130% 130% at 30% 18%,
+    var(--palette-clear) 55%,
+    color-mix(in oklab, var(--felt-deep) 80%, var(--palette-clear)) 100%
+  );
+}
+.reversi-stars {
+  --dot: calc(var(--cell) * 0.2);
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, var(--felt-line) 0 48%, var(--palette-clear) 52%)
+      calc(25% + var(--dot) / -2 + var(--dot) * 0.25)
+      calc(25% + var(--dot) / -2 + var(--dot) * 0.25) / var(--dot) var(--dot) no-repeat,
+    radial-gradient(circle, var(--felt-line) 0 48%, var(--palette-clear) 52%)
+      calc(75% + var(--dot) * 0.25) calc(25% + var(--dot) / -2 + var(--dot) * 0.25) / var(--dot)
+      var(--dot) no-repeat,
+    radial-gradient(circle, var(--felt-line) 0 48%, var(--palette-clear) 52%)
+      calc(25% + var(--dot) / -2 + var(--dot) * 0.25) calc(75% + var(--dot) * 0.25) / var(--dot)
+      var(--dot) no-repeat,
+    radial-gradient(circle, var(--felt-line) 0 48%, var(--palette-clear) 52%)
+      calc(75% + var(--dot) * 0.25) calc(75% + var(--dot) * 0.25) / var(--dot) var(--dot) no-repeat;
+}
+.is-reversi .discs-cell {
+  z-index: 1;
+  aspect-ratio: auto;
+  cursor: default;
+}
+.is-reversi .discs-cell:disabled {
+  opacity: 1;
+}
+.is-reversi .discs-cell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--felt-glow);
+  opacity: 0;
+  transition: opacity var(--dur-1) linear;
+}
+.is-reversi .discs-cell[data-last-move="true"]::before {
+  background: var(--felt-glow);
+  opacity: 0.5;
+}
+.is-reversi .discs-cell[data-last-move="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 41%;
+  z-index: 3;
+  border-radius: 50%;
+  border: calc(var(--cell) * 0.04) solid var(--palette-sun);
+  pointer-events: none;
+}
+.is-reversi .discs-cell:focus-visible {
+  outline: var(--stroke-3) solid var(--palette-white);
+  outline-offset: calc(var(--stroke-3) * -1);
+  z-index: 4;
+}
+
+/* Reversi discs: background-color carries the face so the flip animation can swap it. */
+.is-reversi .playing-disc {
+  position: absolute;
+  inset: 9%;
+  z-index: 2;
+  border-radius: 50%;
+  background-color: var(--palette-clear);
+  will-change: transform;
+}
+.is-reversi .playing-disc.piece-1 {
+  background-color: var(--disc-black);
+}
+.is-reversi .playing-disc.piece-2 {
+  background-color: var(--disc-white);
+}
+.is-reversi .playing-disc:not(.piece-0) {
+  background-image: radial-gradient(
+    circle at 32% 28%,
+    var(--palette-white-14) 0 22%,
+    var(--palette-clear) 22.5%
+  );
+  box-shadow:
+    0 calc(var(--cell) * 0.05) 0 var(--felt-line),
+    inset 0 calc(var(--cell) * -0.04) calc(var(--cell) * 0.05) var(--palette-black-30);
+}
+.is-reversi .playing-disc:not(.piece-0)::before,
+.is-reversi .playing-disc:not(.piece-0)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* Rim shade on the lower right, a soft sheen on the upper left. */
+.is-reversi .playing-disc:not(.piece-0)::before {
+  background: var(--palette-black);
+  opacity: 0.14;
+  -webkit-mask: radial-gradient(
+    circle at 40% 32%,
+    var(--palette-clear) 0 62%,
+    var(--palette-ink) 63%
+  );
+  mask: radial-gradient(circle at 40% 32%, var(--palette-clear) 0 62%, var(--palette-ink) 63%);
+}
+.is-reversi .playing-disc:not(.piece-0)::after {
+  background: var(--palette-white);
+  opacity: 0.09;
+  -webkit-mask: radial-gradient(
+    circle at 64% 72%,
+    var(--palette-clear) 0 64%,
+    var(--palette-ink) 65%
+  );
+  mask: radial-gradient(circle at 64% 72%, var(--palette-clear) 0 64%, var(--palette-ink) 65%);
+}
+.is-reversi .playing-disc.piece-2::after {
+  opacity: 0.05;
+}
+
+/* Legal moves: a dot of your color with the flip count inside a clean ring. It swells into a ghost disc on hover. */
+.legal-plus {
+  position: absolute;
+  inset: -12.5%;
+  display: grid;
+  place-items: center;
+}
+.legal-plus::before,
+.legal-plus::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  transition:
+    inset var(--dur-2) steps(3, end),
+    opacity var(--dur-2) steps(3, end);
+}
+.legal-plus::before {
+  inset: 31%;
+  background: var(--ghost);
+  opacity: 0.92;
+}
+.legal-plus::after {
+  inset: 24%;
+  border: calc(var(--cell) * 0.04) solid var(--ghost);
+  opacity: 0.6;
+}
+.legal-count {
+  position: relative;
+  font-family: var(--font-pixel);
+  font-size: clamp(var(--type-micro), 2.4cqw, var(--type-lead));
+  font-weight: 700;
+  line-height: var(--leading-none);
+  color: var(--ghost-ink);
+  font-variant-numeric: tabular-nums;
+  transition: scale var(--dur-2) steps(3, end);
+}
+.is-reversi .discs-cell[data-legal="true"] {
+  cursor: pointer;
+}
+.is-reversi .discs-cell[data-legal="true"]:is(:hover, :focus-visible)::before {
+  opacity: 0.6;
+}
+.is-reversi .discs-cell[data-legal="true"]:is(:hover, :focus-visible) .legal-plus::before {
+  inset: 21%;
+  opacity: 0.75;
+}
+.is-reversi .discs-cell[data-legal="true"]:is(:hover, :focus-visible) .legal-plus::after {
+  inset: 13%;
+  opacity: 0.9;
+}
+.is-reversi .discs-cell[data-legal="true"]:is(:hover, :focus-visible) .legal-count {
+  scale: 1.5;
+}
+.is-reversi .discs-cell[data-legal="true"]:active .legal-plus::before {
+  opacity: 1;
+}
+
+/* Status caption under the board, monochrome. */
+.is-reversi .discs-fit {
+  position: relative;
+}
+.discs-caption {
+  position: absolute;
+  left: 50%;
+  bottom: calc(5.2cqw + 4cqw);
+  z-index: 5;
+  translate: -50% 0;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  min-height: var(--control);
+  max-width: 100%;
+  margin: var(--space-0);
+  padding: var(--space-0) var(--space-24);
+  border-radius: var(--radius-pill);
+  background: var(--invert);
+  color: var(--invert-text);
+  font-size: var(--type-lead);
+  font-weight: 650;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-snug);
+  text-align: center;
+}
+.discs-caption[data-empty="true"] {
+  visibility: hidden;
+}
+
+/* Small hosts (result card, AI spec) show the board only. */
+:is(.result-board, .spec-board) :is(.reversi-score, .discs-caption, .discs-actions, .c4-foot) {
+  display: none;
+}
+:is(.result-board, .spec-board) .is-reversi .discs-fit {
+  display: block;
+}
+
+/* ------------------------------------------------------------------ */
+/* Desk layouts                                                        */
+/* ------------------------------------------------------------------ */
+@media (min-width: 1000px) and (min-height: 501px) {
+  /* Connect 4: the two plates stand as tall rails either side of the cabinet. */
+  .match-desk[data-game="connect4"]:not([data-phase="waiting"]) .desk-layout {
+    display: grid;
+    grid-template-columns: minmax(200px, 280px) minmax(0, 1fr) minmax(200px, 280px);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--space-16) var(--space-32);
+  }
+  .match-desk[data-game="connect4"]:not([data-phase="waiting"]) .desk-players {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .match-desk[data-game="connect4"]:not([data-phase="waiting"]) .desk-play {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .match-desk[data-game="connect4"]:not([data-phase="waiting"]) .desk-replay-controls {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .match-desk[data-game="connect4"] .desk-players > .desk-player {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-16);
+    min-height: min(420px, 62%);
+    padding: var(--space-32) var(--space-20) var(--space-40);
+    border-radius: var(--radius-xl);
+    text-align: center;
+  }
+  .match-desk[data-game="connect4"] .desk-players > .desk-player:nth-child(1) {
+    grid-column: 1;
+  }
+  .match-desk[data-game="connect4"] .desk-players > .desk-player:nth-child(2) {
+    grid-column: 3;
+  }
+  .match-desk[data-game="connect4"] .desk-player .desk-avatar .player-avatar,
+  .match-desk[data-game="connect4"] .desk-player .desk-avatar .jev-logo {
+    width: 64px !important;
+    height: 64px !important;
+    --avatar-size: 64px;
+  }
+  .match-desk[data-game="connect4"] .desk-player .player-name-label {
+    flex-direction: column;
+    align-items: center;
+  }
+  .match-desk[data-game="connect4"] .desk-player .player-name-label > strong {
+    font-size: var(--type-title);
+  }
+  .match-desk[data-game="connect4"] .desk-player-name {
+    max-width: 100%;
+  }
+  .match-desk[data-game="connect4"] .desk-player-meta {
+    order: -1;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: var(--space-16);
+  }
+  .match-desk[data-game="connect4"] .desk-player .desk-piece-key {
+    width: var(--control-xl);
+    height: var(--control-xl);
+    box-shadow:
+      inset 0 0 0 var(--stroke-3) var(--key-deep),
+      inset 0 calc(var(--space-6) * -1) 0 var(--key-deep);
+  }
+  .match-desk[data-game="connect4"] .desk-player-timer {
+    left: var(--space-24);
+    right: var(--space-24);
+    bottom: var(--space-16);
+  }
+
+  /* Reversi: the board leads, both plates stack in a column on the right. */
+  .match-desk[data-game="reversi"]:not([data-phase="waiting"]) .desk-layout {
+    display: grid;
+    grid-template-columns: minmax(
+        0,
+        calc(100dvh - var(--desk-bar-height) - var(--space-128) + var(--control-xl))
+      ) minmax(260px, 340px);
+    justify-content: center;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--space-16) var(--space-32);
+  }
+  .match-desk[data-game="reversi"]:not([data-phase="waiting"]) .desk-players {
+    grid-column: 2;
+    grid-row: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-12);
+    overflow: visible;
+  }
+  .match-desk[data-game="reversi"]:not([data-phase="waiting"]) .desk-play {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .match-desk[data-game="reversi"]:not([data-phase="waiting"]) .desk-replay-controls {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .match-desk[data-game="reversi"] .desk-players > .desk-player {
+    flex: none;
+    min-height: 96px;
+    padding: var(--space-16) var(--space-20) var(--space-20) var(--space-16);
+  }
+}
+
+/* Streams: captions and coordinates read from across the room. The
+   spectated cabinet drops its feet and slims its pads so the board fills the
+   frame. */
+.match-desk[data-stream="true"] .discs-caption {
+  font-size: var(--type-title);
+}
+.match-desk[data-stream="true"] .is-connect4[data-readonly="true"] .discs-fit {
+  width: min(100cqw, 100cqh / 0.865, 1240px);
+  --pad: 1.5cqw;
+}
+.match-desk[data-stream="true"] .c4-foot {
+  display: none;
+}
+@media (min-height: 700px) and (min-width: 651px) {
+  .match-desk[data-stream="true"] .reversi-score-side strong {
+    font-size: var(--type-display);
+  }
+}
+
+@media (max-width: 650px), (max-height: 500px) {
+  .is-reversi {
+    --score-h: calc(var(--control) + var(--space-12));
+  }
+  .discs-caption {
+    white-space: normal;
+    width: max-content;
+    max-width: 88cqw;
+  }
+  .reversi-score {
+    height: var(--control);
+    padding: var(--space-0) var(--space-12);
+    gap: var(--space-10);
+  }
+  .reversi-score-side strong {
+    font-size: var(--type-title);
+  }
+  .reversi-score-disc {
+    width: var(--control-xs);
+    height: var(--control-xs);
+  }
+  .reversi-score-bar {
+    height: var(--space-12);
+  }
+  .discs-caption {
+    min-height: var(--control-sm);
+    font-size: var(--type-body);
+    padding: var(--space-0) var(--space-16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discs-column:enabled:hover .discs-ghost {
+    animation: none;
+  }
+  .discs-ghost,
+  .legal-plus::before,
+  .legal-count,
+  .reversi-score-bar > span {
+    transition: none;
+  }
+}

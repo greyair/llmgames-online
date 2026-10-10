@@ -1,0 +1,13 @@
+---
+import {designScreens} from '../../src/dev/designPreview';
+import PreviewNavigation from './PreviewNavigation.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SocialPreview } from '../../src/dev/SocialPreview';
+import NeutralPreview from '../../src/dev/NeutralPreview';
+import {gameRouteSlug,normalizeGameType} from '@llmgames/game-catalog';
+
+export function getStaticPaths() { return designScreens.map(([screen])=>({params:{screen:gameRouteSlug(screen)}})); }
+
+const screen=normalizeGameType(Astro.params.screen!)!;
+---
+<BaseLayout>{screen==='social'?<SocialPreview client:load/>:<NeutralPreview screen={screen} client:only="react"/>}<PreviewNavigation/></BaseLayout>

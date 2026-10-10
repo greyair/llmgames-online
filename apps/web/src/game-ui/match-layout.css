@@ -1,0 +1,828 @@
+/* Match frame. Every game renders inside the same shell: a 72px bar, a
+   play cell and player plates. The frame is monochrome; each game tints
+   its board in native colors and owns its own
+   layout rules in its stylesheet (.match-desk[data-game=x] ...).
+   Layout contract for boards:
+   - .match-desk carries data-game, data-phase, data-stream, data-replay and data-finishing.
+   - .desk-play is a single-cell grid (container "desk-play", size). Its child
+     fills the cell; size boards with cqw/cqh against desk-play.
+   - --desk-gutter is the horizontal padding of the stage. */
+
+.match-desk {
+  --desk-gutter: var(--space-gutter);
+  --desk-bar-height: var(--bar-height);
+  --desk-control: var(--control);
+  --desk-sidebar: var(--sidebar);
+  --desk-rail: 240px;
+  --stage-haze: var(--game, var(--accent));
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--stage);
+  color: var(--text);
+}
+.site-viewport .match-desk,
+.spectator-capture .match-desk {
+  height: 100%;
+}
+
+/* "Your move" edge flash, driven by the Web Animations API. */
+.desk-turn-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 var(--stroke-4) var(--stage-haze),
+    inset 0 0 0 calc(var(--stroke-4) * 2)
+      color-mix(in oklab, var(--stage-haze) 35%, var(--palette-clear));
+}
+
+/* Bar: a floating capsule, only as wide as its contents. */
+.desk-bar {
+  position: relative;
+  z-index: 30;
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-48);
+  align-self: center;
+  /* A fixed width: sizing to content made the bar grow and shrink as clocks ticked and the turn label changed. */
+  width: min(880px, 100% - var(--desk-gutter) * 2);
+  max-width: calc(100% - var(--desk-gutter) * 2);
+  min-height: calc(var(--desk-bar-height) - var(--space-16));
+  margin: var(--space-10) auto var(--space-0);
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--raised) 86%, var(--palette-clear));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.desk-bar-start,
+.desk-bar-end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  min-width: 0;
+}
+.desk-bar-start {
+  gap: var(--space-24);
+}
+.desk-bar-end {
+  justify-content: flex-end;
+}
+.desk-round-slot {
+  display: contents;
+}
+.desk-options > summary {
+  display: grid;
+  place-items: center;
+  width: var(--desk-control);
+  height: var(--desk-control);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  transition:
+    background-color var(--dur-1) linear,
+    color var(--dur-1) linear;
+}
+.desk-options > summary:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.desk-bar .ui-button-icon[aria-pressed="false"] {
+  --btn-fg: var(--text-faint);
+}
+/* Sound, fullscreen and menu icons come from different components at different sizes. */
+:is(.desk-bar-start, .desk-bar-end, .desk-round-slot) > .ui-button {
+  width: var(--desk-control);
+  height: var(--desk-control);
+  min-width: 0;
+  min-height: 0;
+}
+:is(.desk-bar-start, .desk-bar-end, .desk-round-slot) > .ui-button svg,
+.desk-options > summary svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Title: the game name in pixel type above a turn sticker. */
+.desk-title {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-4);
+  min-width: 0;
+  text-align: center;
+}
+.desk-title h1 {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: var(--type-lead);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-none);
+}
+.desk-title > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.match-desk[data-turn] .desk-title > span {
+  padding: var(--space-2) var(--space-10);
+  border-radius: var(--radius-pill);
+  background: var(--turn);
+  color: var(--turn-text);
+}
+.match-desk[data-turn] .desk-title > span::before {
+  content: "Your move ·";
+}
+
+/* Turn clock: chunky pixel digits on a pill with a segmented fuse. */
+.desk-decision-clock {
+  display: grid;
+  gap: var(--space-6);
+  flex: none;
+  min-width: 96px;
+}
+.desk-decision-clock strong {
+  font-family: var(--font-pixel);
+  font-size: var(--type-title);
+  font-weight: 500;
+  line-height: var(--leading-none);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.desk-decision-track,
+.desk-player-timer {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+}
+.desk-decision-track > span,
+.desk-player-timer > span {
+  display: block;
+  height: 100%;
+  background: var(--turn);
+  -webkit-mask: repeating-linear-gradient(
+    90deg,
+    var(--palette-ink) 0 4px,
+    var(--palette-clear) 4px 6px
+  );
+  mask: repeating-linear-gradient(90deg, var(--palette-ink) 0 4px, var(--palette-clear) 4px 6px);
+  transition:
+    width var(--dur-2) steps(2, end),
+    background-color var(--dur-2) linear;
+}
+.desk-decision-clock[data-own="false"] .desk-decision-track > span {
+  background: var(--text-faint);
+}
+.desk-decision-clock[data-urgent="true"] strong {
+  color: var(--danger-ink);
+  animation: clock-throb 1s steps(2, end) infinite;
+}
+.desk-decision-clock[data-urgent="true"] .desk-decision-track > span,
+.desk-player-timer[data-urgent="true"] > span {
+  background: var(--danger);
+}
+@keyframes clock-throb {
+  50% {
+    scale: 1.08;
+  }
+}
+/* Games with player cards show the progress on the active card instead. */
+.match-desk:not(
+    :is([data-game="codenames"], [data-game="poker"], [data-game="pokemon"], [data-game="contexto"])
+  )
+  .desk-decision-track {
+  display: none;
+}
+
+.desk-match-time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  margin-right: var(--space-8);
+  font-family: var(--font-pixel);
+  font-size: var(--type-lead);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.desk-bar .desk-match-time::before {
+  content: "Match";
+  font-family: var(--font-ui);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Options menu */
+.desk-options {
+  position: relative;
+}
+.desk-options[open] > summary {
+  background: var(--invert);
+  color: var(--invert-text);
+}
+.desk-options-panel {
+  position: absolute;
+  top: calc(100% + var(--space-12));
+  right: 0;
+  z-index: 60;
+  display: grid;
+  gap: var(--space-4);
+  width: min(320px, calc(100vw - var(--space-32)));
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  transform-origin: top right;
+  animation: menu-pop var(--dur-2) var(--ease-out) both;
+}
+@keyframes menu-pop {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 calc(var(--space-4) * -1);
+  }
+}
+.desk-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  min-height: var(--control-lg);
+  padding: var(--space-0) var(--space-6) var(--space-0) var(--space-12);
+  border-radius: var(--radius-md);
+  font-size: var(--type-body);
+  font-weight: 600;
+}
+.desk-option:hover {
+  background: var(--hover);
+}
+.desk-option .desk-match-time {
+  padding-right: var(--space-8);
+}
+.desk-mobile-setting {
+  display: none;
+}
+.desk-host-controls {
+  padding: var(--space-10) var(--space-4);
+  border-top: var(--stroke-1) solid var(--line);
+}
+.desk-host-controls .room-controls {
+  display: grid;
+  gap: var(--space-8);
+}
+.desk-host-controls .room-controls .ui-button {
+  width: 100%;
+}
+.desk-options-panel > .ui-button {
+  width: 100%;
+  margin-top: var(--space-8);
+}
+
+/* Layout */
+.desk-layout {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-20) var(--desk-gutter) var(--space-24);
+}
+.desk-play {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  container: desk-play / size;
+}
+.desk-play > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Player plates: soft grey pills of information. The mover's plate inverts to ink. */
+.desk-players {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  gap: var(--space-12);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.desk-players::-webkit-scrollbar {
+  display: none;
+}
+.desk-players:focus {
+  outline: none;
+}
+.desk-players:focus-visible {
+  outline: var(--stroke-3) solid var(--focus);
+  outline-offset: var(--space-4);
+}
+.desk-player {
+  position: relative;
+  isolation: isolate;
+  flex: 0 1 320px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 72px;
+  padding: var(--space-12) var(--space-16) var(--space-16) var(--space-12);
+  border-radius: var(--radius-lg);
+  --doodle-fill: var(--surface-2);
+  color: var(--text);
+  overflow: hidden;
+  transition:
+    background-color var(--dur-3) steps(3, end),
+    color var(--dur-3) steps(3, end);
+}
+.desk-player.is-active {
+  --doodle-fill: var(--turn);
+  color: var(--turn-text);
+}
+.desk-player.is-active .player-name-label > small {
+  color: var(--invert-muted);
+}
+.desk-avatar {
+  position: relative;
+  display: grid;
+  flex: none;
+}
+.desk-avatar .player-avatar,
+.desk-avatar .jev-logo {
+  width: 44px !important;
+  height: 44px !important;
+  --avatar-size: 44px;
+}
+.desk-player-name {
+  min-width: 0;
+}
+.desk-player .player-name-label {
+  display: flex;
+}
+.desk-player .player-name-label > strong {
+  font-size: var(--type-lead);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+.desk-player .player-name-label > small {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+.desk-player .player-name-label > :is(strong, small) {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.desk-player .player-name-label > .jev-name-note {
+  white-space: normal;
+}
+.desk-player-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-8);
+  flex: none;
+}
+.desk-player-meta:empty {
+  display: none;
+}
+.desk-active-label {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-pill);
+  background: var(--turn-text);
+  color: var(--turn);
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: var(--leading-none);
+  white-space: nowrap;
+}
+.desk-piece-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex: none;
+}
+.desk-piece-key {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  box-shadow:
+    inset 0 calc(var(--space-4) * -1) 0 var(--key-deep, var(--palette-ink-16)),
+    0 0 0 var(--stroke-2) var(--palette-ink-10);
+}
+.desk-piece-key.key-0 {
+  background: var(--palette-c4-red);
+  --key-deep: var(--palette-c4-red-deep);
+}
+.desk-piece-key.key-1 {
+  background: var(--palette-c4-yellow);
+  --key-deep: var(--palette-c4-yellow-deep);
+}
+.desk-piece-key.key-black {
+  background: var(--palette-disc-black);
+  --key-deep: var(--palette-black);
+}
+.desk-piece-key.key-white {
+  background: var(--palette-disc-white);
+  --key-deep: var(--palette-disc-white-deep);
+}
+.match-desk[data-game="checkers"] .desk-piece-key.key-black {
+  background: var(--palette-ebony);
+}
+.match-desk[data-game="checkers"] .desk-piece-key.key-white {
+  background: var(--palette-ivory);
+  --key-deep: var(--palette-ivory-deep);
+}
+.desk-piece-count {
+  min-width: 2ch;
+  text-align: right;
+  font-family: var(--font-pixel);
+  font-size: var(--type-score);
+  font-weight: 500;
+  line-height: var(--leading-none);
+  font-variant-numeric: tabular-nums;
+}
+.desk-player-timer {
+  position: absolute;
+  left: var(--space-16);
+  right: var(--space-16);
+  bottom: var(--space-8);
+  height: 4px;
+  pointer-events: none;
+  background: var(--invert-muted);
+}
+.desk-player.is-active .desk-player-timer > span {
+  background: var(--turn-text);
+}
+.match-desk:is(
+    [data-game="codenames"],
+    [data-game="poker"],
+    [data-game="pokemon"],
+    [data-game="contexto"]
+  )
+  .desk-players {
+  display: none;
+}
+
+/* Short landscape screens: every two-player board gets a left rail. */
+@media (max-height: 500px) and (min-width: 560px) {
+  .match-desk {
+    --desk-bar-height: 52px;
+    --desk-control: var(--control-sm);
+  }
+  .desk-title h1 {
+    font-size: var(--type-lead);
+  }
+  .match-desk:is([data-game="connect4"], [data-game="reversi"], [data-game="checkers"]):not(
+      [data-phase="waiting"]
+    )
+    .desk-layout {
+    display: grid;
+    grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--space-8) var(--space-16);
+    padding-block: var(--space-8);
+  }
+  .match-desk:is([data-game="connect4"], [data-game="reversi"], [data-game="checkers"]):not(
+      [data-phase="waiting"]
+    )
+    .desk-players {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    flex-direction: column;
+    justify-content: center;
+    overflow: visible;
+  }
+  .match-desk:is([data-game="connect4"], [data-game="reversi"], [data-game="checkers"])
+    .desk-layout
+    > .desk-play {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .match-desk:is([data-game="connect4"], [data-game="reversi"], [data-game="checkers"])
+    .desk-layout
+    > .desk-replay-controls {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .desk-player {
+    flex: none;
+    min-height: var(--control-lg);
+    padding-block: var(--space-6);
+  }
+  .desk-avatar .player-avatar,
+  .desk-avatar .jev-logo {
+    width: 32px !important;
+    height: 32px !important;
+    --avatar-size: 32px;
+  }
+  .desk-title > span {
+    display: none;
+  }
+}
+
+/* Replay dock */
+.desk-replay-controls {
+  flex: none;
+  align-self: center;
+  width: min(100%, 800px);
+  padding: var(--space-12) var(--space-20);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.desk-replay-controls .room-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+.desk-replay-controls .room-controls > label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  font-family: var(--font-pixel);
+  font-size: var(--type-body);
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.room-controls input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-sm);
+  accent-color: var(--accent);
+}
+
+/* Lobby phase scrolls inside the stage. */
+.match-desk[data-phase="waiting"] .desk-layout {
+  display: block;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: var(--space-0);
+}
+.match-desk[data-phase="waiting"] .desk-play {
+  display: block;
+  height: auto;
+  min-height: 100%;
+  container-type: normal;
+}
+.match-desk[data-phase="waiting"] .desk-play:has(> .board-unavailable) {
+  display: grid;
+  height: 100%;
+}
+
+/* Streams: larger type for viewers far from the screen. */
+.match-desk[data-stream="true"] {
+  --desk-bar-height: 84px;
+}
+.match-desk[data-stream="true"] .desk-title h1 {
+  font-size: var(--type-section);
+}
+.match-desk[data-stream="true"] .desk-title > span {
+  font-size: var(--type-body);
+}
+.match-desk[data-stream="true"] .desk-decision-clock strong {
+  font-size: var(--type-section);
+}
+.match-desk[data-stream="true"] .desk-player .player-name-label > strong {
+  font-size: var(--type-title);
+}
+.match-desk[data-stream="true"] .desk-player .player-name-label > small {
+  font-size: var(--type-body);
+}
+
+@media (max-width: 650px) {
+  .match-desk {
+    --desk-gutter: var(--space-12);
+    --desk-bar-height: 60px;
+    --desk-control: var(--control-sm);
+  }
+  .desk-bar {
+    gap: var(--space-12);
+    padding: var(--space-4) var(--space-8);
+    margin-top: var(--space-8);
+    max-width: calc(100% - var(--space-16));
+  }
+  .desk-bar-start {
+    gap: var(--space-8);
+  }
+  .desk-title h1 {
+    font-size: var(--type-lead);
+  }
+  .desk-title > span {
+    font-size: var(--type-micro);
+  }
+  .match-desk[data-turn] .desk-title > span::before {
+    content: "";
+  }
+  .desk-bar-end > .desk-match-time,
+  .desk-bar-end > .desk-round-slot,
+  .desk-bar-end > .desk-round {
+    display: none;
+  }
+  .match-desk[data-game="contexto"] .desk-bar-end > .desk-match-time {
+    display: inline-flex;
+    font-size: var(--type-body);
+  }
+  .match-desk[data-game="contexto"] .desk-bar-end > .desk-match-time::before {
+    display: none;
+  }
+  .desk-mobile-setting {
+    display: flex;
+  }
+  .desk-decision-clock {
+    min-width: 56px;
+  }
+  .desk-decision-clock strong {
+    font-size: var(--type-lead);
+  }
+  .desk-layout {
+    gap: var(--space-10);
+    padding-top: var(--space-10);
+    padding-bottom: var(--space-12);
+  }
+  .desk-players {
+    justify-content: flex-start;
+    gap: var(--space-8);
+  }
+  .match-desk[data-stream="true"] {
+    --desk-bar-height: 60px;
+  }
+  .match-desk[data-stream="true"] .desk-title h1 {
+    font-size: var(--type-title);
+  }
+  .match-desk[data-stream="true"] .desk-layout {
+    padding-bottom: var(--space-6);
+  }
+  .desk-player {
+    flex: none;
+    max-width: min(260px, 72vw);
+    min-height: var(--control-lg);
+    gap: var(--space-8);
+    padding: var(--space-8) var(--space-12) var(--space-12) var(--space-8);
+    border-radius: var(--radius-md);
+  }
+  .desk-players:not(:has(> :nth-child(3))) > .desk-player {
+    flex: 1 1 0;
+  }
+  .desk-player .player-name-label > strong {
+    font-size: var(--type-body);
+  }
+  .desk-player .player-name-label > small {
+    font-size: var(--type-micro);
+  }
+  .desk-avatar .player-avatar,
+  .desk-avatar .jev-logo {
+    width: 32px !important;
+    height: 32px !important;
+    --avatar-size: 32px;
+  }
+  /* The inverted plate alone marks the mover on narrow strips; the words stay for screen readers. */
+  .desk-active-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .desk-piece-key {
+    width: 20px;
+    height: 20px;
+  }
+  .desk-piece-count {
+    font-size: var(--type-title);
+  }
+  .desk-player-timer {
+    left: var(--space-8);
+    right: var(--space-8);
+    bottom: var(--space-4);
+    height: 4px;
+  }
+  .desk-replay-controls {
+    padding: var(--space-8) var(--space-12);
+  }
+  .desk-replay-controls .room-controls {
+    flex-wrap: wrap;
+    gap: var(--space-8);
+  }
+  .desk-replay-controls .room-controls > label {
+    flex-basis: 100%;
+    order: -1;
+  }
+}
+
+/* End sequencing: let the decisive move land before the result. */
+.match-desk[data-finishing="true"] .discs-actions {
+  visibility: hidden;
+}
+.match-desk[data-finishing="true"][data-game="connect4"]
+  .discs-cell[data-winning="true"]
+  .playing-disc {
+  animation: winning-disc-pulse 420ms steps(4, end) both;
+  animation-delay: calc(360ms + var(--win-order, 0) * 300ms);
+}
+.match-desk[data-finishing="true"][data-game="reversi"]
+  .discs-cell[data-last-move="true"]
+  .playing-disc,
+.match-desk[data-finishing="true"][data-game="checkers"]
+  .checkers-cell[data-last-move="true"]
+  .checker-piece,
+.match-desk[data-finishing="true"][data-game="codenames"] .word-card[data-revealed="true"],
+.match-desk[data-finishing="true"][data-game="contexto"] .contexto-secret,
+.match-desk[data-finishing="true"][data-game="battleship"] .ships-stage,
+.match-desk[data-finishing="true"] .card-seat[data-winner="true"] {
+  animation: finishing-settle 900ms steps(6, end) both;
+}
+.match-desk[data-finishing="true"] .cards-center .playing-card {
+  animation: finishing-card-turn 650ms steps(5, end) both;
+}
+@keyframes winning-disc-pulse {
+  0%,
+  100% {
+    scale: 1;
+  }
+  40% {
+    scale: 1.16;
+  }
+  70% {
+    scale: 0.97;
+  }
+}
+@keyframes finishing-settle {
+  0%,
+  100% {
+    scale: 1;
+  }
+  45% {
+    scale: 1.03;
+  }
+}
+@keyframes finishing-card-turn {
+  0% {
+    scale: 0 1;
+    opacity: 0.4;
+  }
+  100% {
+    scale: 1 1;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-desk[data-finishing="true"]
+    :is(
+      .playing-disc,
+      .checker-piece,
+      .word-card,
+      .contexto-secret,
+      .ships-stage,
+      .card-seat,
+      .playing-card
+    ) {
+    animation: none !important;
+  }
+  .desk-decision-clock[data-urgent="true"] strong {
+    animation: none;
+  }
+}

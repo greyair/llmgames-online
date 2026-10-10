@@ -1,0 +1,314 @@
+/* pokemon, drawn like the landing arcade: a flat pastel sky over flat pastel
+   grass split by an ink horizon, ink-ringed grass platforms, paper HP boxes
+   and inked bars. The pixel sprites stay as they are; only the drawn parts
+   around them carry the doodle filter, so the sprites keep their crisp pixels.
+   The field keeps its daytime pastels in the dark theme, like a sticker. */
+
+.poke-workspace,
+.spec-pokemon {
+  --ink-w: var(--stroke-3);
+}
+
+/* Battlefield ---------------------------------------------------------- */
+.poke-workspace .poke-field {
+  background: var(--palette-pk-grass);
+}
+/* The field outline sits above sprites and effects so nothing covers it. */
+.poke-workspace .poke-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--stroke-4) var(--sketch-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+}
+/* Sky and ground overhang the clipped field so the wobble never shows a seam at its edges. */
+.poke-workspace .poke-sky {
+  inset: calc(var(--space-8) * -1) calc(var(--space-8) * -1) auto;
+  height: calc(48% + var(--space-8));
+  background: color-mix(in oklab, var(--palette-pk-sky) 80%, var(--palette-white));
+  filter: var(--doodle-art);
+}
+.poke-workspace .poke-horizon {
+  inset: 48% calc(var(--space-8) * -1) calc(var(--space-8) * -1);
+  -webkit-mask: none;
+  mask: none;
+  background: color-mix(in oklab, var(--palette-pk-grass) 85%, var(--palette-white));
+  box-shadow: inset 0 var(--ink-w) 0 var(--sketch-ink);
+  filter: var(--doodle-art);
+}
+.poke-workspace :is(.poke-sky, .poke-horizon)::before,
+.poke-workspace :is(.poke-sky, .poke-horizon)::after {
+  display: none;
+}
+
+.poke-workspace .poke-turn {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-art);
+}
+
+/* Platforms: ink-outlined ellipses of deeper grass. */
+.poke-workspace .poke-platform-glow {
+  clip-path: none;
+  border-radius: 50%;
+  background: var(--palette-pk-grass-deep);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-art);
+}
+.poke-workspace .poke-platform-glow::before,
+.poke-workspace .poke-platform-glow::after {
+  display: none;
+}
+
+/* HUD: trainer tag, party balls and the HP box all wobble with the field. */
+.poke-workspace .poke-hud {
+  filter: var(--doodle-art);
+}
+.poke-workspace .poke-trainer .game-player-identity {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.poke-workspace .poke-trainer .player-name-label > small {
+  color: color-mix(in oklab, var(--sketch-ink) 62%, var(--sketch-paper));
+}
+
+/* Party balls: flat red over paper, an ink band and button. */
+.poke-workspace .poke-roster-slot {
+  --ball-top: color-mix(in oklab, var(--palette-tomato) 80%, var(--palette-white));
+  --ball-bottom: var(--sketch-paper);
+  background: linear-gradient(
+    var(--ball-top) 0 42%,
+    var(--sketch-ink) 42% 58%,
+    var(--ball-bottom) 58%
+  );
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-roster-slot::before {
+  display: none;
+}
+.poke-workspace .poke-roster-slot::after {
+  background: var(--sketch-paper);
+  box-shadow: 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-roster-slot[data-active="true"] {
+  outline-color: var(--sketch-ink);
+}
+.poke-workspace .poke-roster-slot[data-fainted="true"] {
+  --ball-top: var(--palette-g300);
+  --ball-bottom: var(--palette-g100);
+}
+
+/* HP box: paper card with a thick ink frame. */
+.poke-workspace .poke-status {
+  border-color: var(--sketch-ink);
+  border-width: var(--ink-w);
+  border-radius: var(--radius-md);
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+}
+.poke-workspace .poke-status::after {
+  background: var(--sketch-ink);
+}
+.poke-workspace .poke-hp-tag {
+  background: var(--sketch-ink);
+  color: var(--palette-sun);
+}
+
+/* HP bar: paper track, a rounded fill with its own ink line. */
+.poke-workspace .poke-health,
+.spec-pokemon .poke-health {
+  padding: var(--stroke-1);
+  border-color: var(--sketch-ink);
+  background: var(--sketch-paper);
+}
+.poke-workspace .poke-health > span,
+.spec-pokemon .poke-health > span {
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 var(--stroke-1) var(--sketch-ink);
+}
+.poke-workspace .poke-health > span::before,
+.poke-workspace .poke-health > span::after,
+.spec-pokemon .poke-health > span::before,
+.spec-pokemon .poke-health > span::after {
+  display: none;
+}
+
+/* Type chips and status stickers: flat colour, ink rim. */
+.poke-workspace .poke-type-badge,
+.poke-workspace .poke-status-sticker {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-status-tags > span {
+  background: color-mix(in oklab, var(--palette-sun) 45%, var(--palette-white));
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-status-tags > span[data-negative="true"] {
+  background: color-mix(in oklab, var(--palette-tomato) 35%, var(--palette-white));
+}
+
+/* "Charizard used Earthquake": a paper speech bubble. */
+.poke-workspace .poke-cue-label {
+  border-color: var(--sketch-ink);
+  border-width: var(--ink-w);
+  border-radius: var(--radius-lg);
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  filter: var(--doodle-art);
+}
+.poke-workspace .poke-cue-label::before {
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-effects[data-kind="faint"] {
+  --cue: var(--palette-g400);
+}
+
+/* Controls ------------------------------------------------------------ */
+/* Move buttons: a pastel of the move's type, ink outline and ink text. */
+.poke-workspace .poke-controls .poke-move.ui-button {
+  --sk-fill: color-mix(in oklab, var(--mon-type) 34%, var(--palette-white));
+  --btn-bg: var(--sk-fill);
+  --btn-fg: var(--sketch-ink);
+  --doodle-line: var(--sketch-ink);
+  --touch-ink: color-mix(in oklab, var(--mon-type) 70%, var(--palette-white));
+}
+.poke-workspace .poke-controls :is(.poke-move, .poke-switch).ui-button::before {
+  box-shadow: inset 0 0 0 var(--ink-w) var(--doodle-line);
+}
+.poke-workspace .poke-move .poke-type-badge {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-move .poke-type-badge::before {
+  box-shadow: 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-move-pp {
+  color: color-mix(in oklab, var(--sketch-ink) 70%, var(--palette-white));
+}
+.poke-workspace .poke-move[data-empty="true"] .poke-move-pp {
+  color: var(--palette-tomato-ink);
+}
+
+/* Switch roster: paper cards; the battler in play is highlighted in sun. */
+.poke-workspace .poke-controls .poke-switch.ui-button {
+  --sk-fill: var(--sketch-paper);
+  --btn-bg: var(--sk-fill);
+  --btn-fg: var(--sketch-ink);
+  --doodle-line: var(--sketch-ink);
+  --touch-ink: color-mix(in oklab, var(--palette-sun) 70%, var(--palette-white));
+}
+.poke-workspace .poke-switch > small {
+  color: color-mix(in oklab, var(--sketch-ink) 62%, var(--palette-white));
+}
+.poke-workspace .poke-controls .poke-switch.ui-button[data-state="fainted"] {
+  --sk-fill: var(--palette-g200);
+}
+/* Unavailable controls grey out as light stickers instead of fading into a
+   dark table, so their fills and ink stay readable in both themes. */
+.poke-workspace .poke-controls :is(.poke-move, .poke-switch).ui-button:disabled {
+  --btn-bg: color-mix(in oklab, var(--sk-fill) 45%, var(--palette-g200));
+  --btn-fg: color-mix(in oklab, var(--sketch-ink) 50%, var(--palette-g200));
+  --doodle-line: color-mix(in oklab, var(--sketch-ink) 55%, var(--palette-g200));
+  opacity: 1;
+}
+.poke-workspace
+  .poke-controls
+  :is(.poke-move, .poke-switch).ui-button:disabled
+  :is(.poke-type-badge, .poke-sprite, .poke-unknown, .poke-health) {
+  opacity: 0.55;
+}
+.poke-workspace .poke-controls .poke-switch.ui-button[data-state="active"] {
+  --btn-bg: var(--palette-sun);
+  --btn-fg: var(--sketch-ink);
+  --doodle-line: var(--sketch-ink);
+}
+.poke-workspace
+  .poke-controls
+  .poke-switch.ui-button[data-state="active"]
+  :is(.poke-sprite, .poke-health) {
+  opacity: 1;
+}
+.poke-workspace .poke-controls .poke-switch.ui-button[data-state="active"] > small {
+  color: color-mix(in oklab, var(--sketch-ink) 62%, var(--palette-sun));
+}
+
+.poke-workspace .poke-waiting {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-art);
+}
+.poke-workspace .poke-waiting-dot {
+  background: var(--sketch-ink);
+}
+
+/* Battle log: one thick ink frame on paper, in both themes. */
+.poke-workspace .poke-observer-sidebar .poke-log {
+  --box-bg: var(--sketch-paper);
+  --box-ink: var(--sketch-ink);
+  border: var(--stroke-4) solid var(--sketch-ink);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+.poke-workspace .poke-observer-sidebar .poke-log-scroll p[data-kind="faint"] {
+  color: var(--palette-tomato-ink);
+}
+
+/* Spectator rails and announcement: paper cards, ink frames, sun for the battler in play. */
+.poke-workspace .poke-team-panel {
+  background: var(--sketch-paper);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.poke-workspace
+  .poke-team-panel
+  :is(
+    .player-name-label > small,
+    .poke-team-count,
+    .poke-team-member > small,
+    .poke-last-move small,
+    .poke-last-move > span
+  ) {
+  color: color-mix(in oklab, var(--sketch-ink) 62%, var(--sketch-paper));
+}
+.poke-workspace .poke-last-move {
+  background: color-mix(in oklab, var(--palette-pk-sky) 70%, var(--palette-white));
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-team-member[data-state="active"] {
+  background: var(--palette-sun);
+  color: var(--sketch-ink);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.poke-workspace .poke-team-member[data-state="active"] > small {
+  color: color-mix(in oklab, var(--sketch-ink) 62%, var(--palette-sun));
+}
+.pokemon-stage.poke-workspace .poke-spectator-announcement {
+  --pk-paper: var(--sketch-paper);
+  --pk-ink: var(--sketch-ink);
+  border-color: var(--sketch-ink);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  filter: var(--doodle-art);
+}
+
+@media (max-width: 700px) {
+  .poke-workspace,
+  .spec-pokemon {
+    --ink-w: var(--stroke-2);
+  }
+  .poke-workspace .poke-field::after {
+    box-shadow: inset 0 0 0 var(--stroke-3) var(--sketch-ink);
+  }
+  .poke-workspace .poke-observer-sidebar .poke-log {
+    border-width: var(--stroke-3);
+  }
+}

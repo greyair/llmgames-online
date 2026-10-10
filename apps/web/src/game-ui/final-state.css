@@ -1,0 +1,447 @@
+/* Final positions shown on the result stage. */
+.result-final {
+  max-width: 720px;
+  margin: var(--space-12) auto;
+  padding: var(--space-16);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  text-align: left;
+}
+.result-final > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-12);
+  margin-bottom: var(--space-12);
+}
+.result-final h2 {
+  margin: var(--space-0);
+  font-size: var(--type-lead);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+}
+.result-final h3 {
+  margin: var(--space-0);
+  font-size: var(--type-small);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+.result-final > header p,
+.result-final article > p {
+  margin: var(--space-0);
+  font-size: var(--type-caption);
+  line-height: var(--leading-body);
+  color: var(--text-muted);
+}
+.result-team-grid,
+.result-hand-grid,
+.result-guess-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-10);
+}
+.result-team,
+.result-hand,
+.result-guess-player {
+  min-width: 0;
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.result-team h3,
+.result-hand h3,
+.result-guess-player h3 {
+  margin-bottom: var(--space-8);
+}
+
+/* Codenames key */
+.result-word-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+.result-word-card {
+  display: grid;
+  place-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 54px;
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--text-muted);
+  text-align: center;
+}
+.result-word-card span {
+  font-size: var(--type-caption);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  text-transform: lowercase;
+}
+.result-word-card small {
+  font-family: var(--font-code);
+  font-size: var(--type-micro);
+}
+/* Pastel team inks take ink text so the key stays AA-legible. */
+.result-word-card[data-team="red"] {
+  background: var(--palette-cn-red);
+  color: var(--palette-ink);
+}
+.result-word-card[data-team="blue"] {
+  background: var(--palette-cn-blue);
+  color: var(--palette-ink);
+}
+.result-word-card[data-team="neutral"] {
+  background: var(--palette-cn-bystander);
+  color: var(--palette-ink);
+}
+.result-word-card[data-team="assassin"] {
+  background: var(--palette-cn-assassin);
+  color: var(--palette-white);
+}
+/* Unrevealed key cards stay grey with a solid team stripe along the floor. */
+.result-word-card[data-revealed="false"] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.result-word-card[data-revealed="false"]::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--space-4);
+  z-index: -1;
+  background: var(--card-wash, var(--palette-clear));
+}
+.result-word-card[data-revealed="false"][data-team="red"] {
+  --card-wash: var(--palette-cn-red);
+}
+.result-word-card[data-revealed="false"][data-team="blue"] {
+  --card-wash: var(--palette-cn-blue);
+}
+.result-word-card[data-revealed="false"][data-team="assassin"] {
+  --card-wash: var(--palette-cn-assassin);
+}
+.result-word-card[data-revealed="false"][data-team="neutral"] {
+  color: var(--text-muted);
+}
+
+/* Contexto best guesses */
+.result-word-target {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-10);
+  margin-bottom: var(--space-10);
+}
+.result-word-target > span {
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+.result-word-target strong {
+  font-family: var(--font-pixel);
+  font-size: var(--type-section);
+  font-weight: 400;
+  line-height: var(--leading-tight);
+  color: var(--text);
+}
+.result-guess-player ol {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+.result-guess-player li {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-xs);
+  background: var(--surface-3);
+  font-size: var(--type-caption);
+}
+.result-guess-player li:not(.result-guess-placeholder)::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 auto 0 0;
+  width: var(--rank-width);
+  background: var(--rank-fill);
+  opacity: 0.32;
+}
+.result-guess-player li:not(.result-guess-placeholder) > span {
+  font-weight: 600;
+}
+.result-guess-player li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.result-guess-player li strong {
+  font-family: var(--font-code);
+  font-weight: 600;
+  color: var(--rank-heat, var(--text));
+  font-variant-numeric: tabular-nums;
+}
+.result-guess-player li.result-guess-placeholder {
+  align-items: center;
+  min-height: 23px;
+  background: var(--surface-2);
+}
+.result-guess-placeholder span:first-child,
+.result-guess-placeholder span:last-child {
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+}
+.result-guess-placeholder span:first-child {
+  width: 45%;
+}
+.result-guess-placeholder span:last-child {
+  width: 18%;
+}
+
+/* Pokemon team rows */
+.result-mon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+.result-mon {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-6);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  text-align: center;
+}
+.result-mon[data-active="true"] {
+  background: var(--surface);
+}
+.result-mon[data-fainted="true"] {
+  background: var(--surface-2);
+}
+.result-mon[data-fainted="true"] .poke-sprite {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.result-mon .poke-sprite,
+.result-mon .poke-unknown {
+  width: 48px;
+  height: var(--control-lg);
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.result-mon strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-caption);
+}
+.result-mon small {
+  font-family: var(--font-code);
+  font-size: var(--type-micro);
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+.result-mon-health {
+  width: 100%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.result-mon-health i {
+  display: block;
+  height: 100%;
+  background: var(--live);
+}
+
+/* Card rows */
+.result-card-center {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-6);
+  margin-bottom: var(--space-10);
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.result-card-center > span {
+  font-size: var(--type-caption);
+  color: var(--text-muted);
+}
+.result-card-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  min-height: 42px;
+}
+.result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 33px;
+  height: 46px;
+  padding: var(--space-4);
+  border-radius: var(--radius-xs);
+  background: var(--palette-card);
+  color: var(--palette-card-black);
+  box-shadow: inset 0 0 0 1px var(--palette-ink-10);
+  font-family: var(--font-code);
+  font-size: var(--type-caption);
+  font-weight: 650;
+  line-height: var(--leading-none);
+}
+.result-card i {
+  align-self: flex-end;
+  font-style: normal;
+}
+.result-card[data-red="true"] {
+  color: var(--palette-card-red);
+}
+.result-card[data-hidden="true"] {
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+.result-hand > strong,
+.result-hand > small,
+.result-hand-line > span {
+  display: block;
+  margin-top: var(--space-6);
+  font-size: var(--type-caption);
+}
+.result-hand > small {
+  color: var(--text-muted);
+}
+.result-hand-line + .result-hand-line {
+  margin-top: var(--space-10);
+  padding-top: var(--space-10);
+  border-top: var(--stroke-1) solid var(--line);
+}
+
+@media (max-width: 500px) {
+  .result-final {
+    padding: var(--space-10);
+  }
+  .result-team-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .result-hand-grid,
+  .result-guess-grid {
+    gap: var(--space-6);
+  }
+  .result-hand,
+  .result-guess-player {
+    padding: var(--space-6);
+  }
+  .result-word-grid {
+    gap: var(--space-2);
+  }
+  .result-word-card {
+    min-height: var(--control-lg);
+    padding: var(--space-2);
+  }
+  .result-word-card span {
+    font-size: var(--type-micro);
+  }
+  .result-mon .poke-sprite,
+  .result-mon .poke-unknown {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Battleship result reuses the live board with its ship art and recorded weapon layers. */
+.result-center > .result-ships {
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  background: none;
+  padding: var(--space-0);
+}
+.result-ships .ships-stage[data-result="true"] {
+  padding: var(--space-0);
+}
+.result-ships .result-ship-player {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-10) var(--space-8) var(--space-4);
+}
+.result-ships .result-ship-player .result-player {
+  width: min(100%, 320px);
+  min-height: var(--control-lg);
+  margin: var(--space-0);
+}
+.result-ships .result-ship-player .result-player-name {
+  align-items: flex-start;
+}
+.result-ships .result-ship-player .result-player-name > strong {
+  font-size: var(--type-small);
+}
+.result-ships .result-ship-player .result-player-status {
+  display: none;
+}
+
+/* Poker standings */
+.result-center > .result-poker {
+  max-width: 540px;
+  padding: var(--space-0);
+  background: none;
+  box-shadow: none;
+}
+.result-poker > header {
+  justify-content: center;
+}
+.result-poker-standings {
+  display: grid;
+  gap: var(--space-8);
+}
+.result-poker-standing {
+  min-width: 0;
+}
+.result-poker-standing .result-player {
+  justify-content: flex-start;
+}
+.result-poker-standing .result-player-chips {
+  display: block;
+  flex: none;
+  margin-left: auto;
+  min-width: 72px;
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--type-lead);
+  font-weight: 400;
+  line-height: var(--leading-tight);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 900px) and (max-height: 740px) {
+  .result-poker-standing .result-player {
+    min-height: var(--control);
+    padding-block: var(--space-4);
+  }
+  .result-poker-standings {
+    gap: var(--space-6);
+  }
+}

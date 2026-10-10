@@ -1,0 +1,96 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "llmgames-online-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-08",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "llmgames-online-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "GAME_LOGS",
+      "bucket_name": "llmgames-online-game-logs"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GAME_SERIES",
+        "class_name": "GameSeries"
+      },
+      {
+        "name": "CONNECT4_ROOM",
+        "class_name": "Connect4Room"
+      },
+      {
+        "name": "CHECKERS_ROOM",
+        "class_name": "CheckersRoom"
+      },
+      {
+        "name": "REVERSI_ROOM",
+        "class_name": "ReversiRoom"
+      },
+      {
+        "name": "CODENAMES_ROOM",
+        "class_name": "CodenamesGameRoom"
+      },
+      {
+        "name": "BATTLESHIP_ROOM",
+        "class_name": "BattleshipRoom"
+      },
+      {
+        "name": "POKER_ROOM",
+        "class_name": "PokerRoom"
+      },
+      {
+        "name": "CONTEXTO_ROOM",
+        "class_name": "ContextoRoom"
+      },
+      {
+        "name": "POKEMON_ROOM",
+        "class_name": "PokemonRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "GameSeries",
+        "Connect4Room",
+        "CheckersRoom",
+        "ReversiRoom",
+        "CodenamesGameRoom",
+        "BattleshipRoom",
+        "PokerRoom",
+        "ContextoRoom",
+        "PokemonRoom"
+      ]
+    }
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": [
+        "noreply@example.com"
+      ]
+    }
+  ],
+  "vars": {
+    "EMAIL_FROM": "noreply@example.com",
+    "GOOGLE_CLIENT_ID": "replace-with-your-google-oauth-client-id",
+    "TURNSTILE_SITE_KEY": "replace-with-your-turnstile-site-key",
+    "FRONTEND_URL": "http://localhost:3000",
+    "ALLOWED_ORIGINS": "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173",
+    "JEV_DAILY_CALL_LIMIT": "0",
+    "JEV_USER_DAILY_CALL_LIMIT": "0"
+  }
+}

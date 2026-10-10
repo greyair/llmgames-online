@@ -1,0 +1,142 @@
+/* Connect 4 and Reversi, drawn like the landing arcade: flat pastel shapes,
+   paper holes and a thick ink outline on every piece. The doodle filter on
+   the cabinet and frame supplies the boil. */
+
+/* Connect 4 ------------------------------------------------------- */
+.is-connect4 .discs-fit {
+  --ink-w: max(var(--stroke-2), calc(var(--cell) * 0.045));
+}
+.c4-cabinet {
+  box-shadow: none;
+}
+.c4-foot,
+.c4-hi {
+  display: none;
+}
+/* Paper shows through every empty hole. */
+.is-connect4 .discs-board {
+  border-radius: calc(var(--cell) * 0.2);
+  background: var(--sketch-paper);
+}
+.is-connect4 .discs-frame {
+  background: var(--palette-c4-frame-light);
+  box-shadow: none;
+}
+.c4-cabinet::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  pointer-events: none;
+}
+/* An ink ring just outside each punched hole. */
+.is-connect4 .discs-frame > .c4-rim {
+  background: radial-gradient(
+      circle closest-side,
+      var(--palette-clear) 0 79.5%,
+      var(--sketch-ink) 80% calc(80% + var(--ink-w)),
+      var(--palette-clear) calc(80.5% + var(--ink-w))
+    )
+    0 0 / calc(100% / var(--cols)) calc(100% / var(--rows));
+}
+.is-connect4 .playing-disc:not(.piece-0),
+.discs-ghost {
+  background: var(--disc);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.is-connect4 .playing-disc:not(.piece-0)::before,
+.is-connect4 .playing-disc:not(.piece-0)::after,
+.discs-ghost::before,
+.discs-ghost::after {
+  display: none;
+}
+.discs-ghost {
+  opacity: 0;
+}
+.discs-column:enabled:is(:hover, :focus-visible) .discs-ghost {
+  opacity: 0.85;
+}
+.discs-column::after {
+  background: color-mix(in oklab, var(--palette-sun) 30%, var(--palette-clear));
+}
+/* Last move: a small ink dot in the middle of the disc. */
+.is-connect4 .discs-cell[data-last-move="true"] .playing-disc:not(.piece-0) {
+  background:
+    radial-gradient(circle, var(--sketch-ink) 0 12%, var(--palette-clear) 13%), var(--disc);
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+/* Winning four: sun discs with a doubled ink ring. */
+.is-connect4 .discs-cell[data-winning="true"] .playing-disc:not(.piece-0) {
+  background: var(--palette-sun);
+  box-shadow:
+    inset 0 0 0 var(--ink-w) var(--sketch-ink),
+    inset 0 0 0 calc(var(--ink-w) * 2.2) var(--disc),
+    inset 0 0 0 calc(var(--ink-w) * 3) var(--sketch-ink);
+}
+
+/* Reversi --------------------------------------------------------- */
+.is-reversi .discs-fit {
+  --ink-w: max(var(--stroke-2), 0.5cqw);
+}
+.reversi-frame {
+  position: relative;
+  isolation: isolate;
+  background: var(--sketch-paper);
+  box-shadow: none;
+}
+.reversi-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+  filter: var(--doodle-filter);
+  animation: var(--doodle-boil);
+  pointer-events: none;
+}
+.reversi-files,
+.reversi-ranks {
+  color: var(--sketch-ink);
+}
+.is-reversi .discs-board {
+  --felt-line: color-mix(in oklab, var(--sketch-ink) 45%, var(--palette-clear));
+  background:
+    linear-gradient(90deg, var(--felt-line) 0 var(--line-w), var(--palette-clear) var(--line-w))
+      calc(var(--line-w) / -2) 0 / calc(100% / var(--cols)) 100% repeat-x,
+    linear-gradient(var(--felt-line) 0 var(--line-w), var(--palette-clear) var(--line-w)) 0
+      calc(var(--line-w) / -2) / 100% calc(100% / var(--rows)) repeat-y,
+    color-mix(in oklab, var(--palette-reversi-felt) 75%, var(--palette-white));
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.is-reversi .discs-board::before {
+  display: none;
+}
+.is-reversi .discs-cell::before {
+  background: var(--palette-sun);
+}
+.is-reversi .playing-disc:not(.piece-0) {
+  background-image: none;
+  box-shadow: inset 0 0 0 var(--ink-w) var(--sketch-ink);
+}
+.is-reversi .playing-disc:not(.piece-0)::before,
+.is-reversi .playing-disc:not(.piece-0)::after {
+  display: none;
+}
+.is-reversi .discs-cell[data-last-move="true"]::after {
+  border-color: var(--sketch-ink);
+  background: var(--palette-sun);
+}
+.reversi-score-disc {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.reversi-score-disc.piece-2 {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.reversi-score-bar {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}

@@ -1,0 +1,1025 @@
+/* Codenames: a tabletop of thick card stock between two team benches.
+   Chrome (panels, inputs, buttons, member lists) stays monochrome. Team red
+   and blue live on the art: revealed agent tiles, key tabs, score badges,
+   the clue count and a soft glow along the floor of the team that is playing. */
+
+.match-desk[data-game="codenames"] {
+  --stage-haze: var(--cn-haze, var(--palette-cn-red));
+}
+.match-desk[data-game="codenames"]:has(.word-workspace[data-active-team="blue"]) {
+  --cn-haze: var(--palette-cn-blue);
+}
+.match-desk[data-game="codenames"] .desk-layout {
+  padding-top: var(--space-16);
+}
+
+.word-workspace {
+  --cn-card: var(--palette-cn-card);
+  --cn-card-deep: var(--palette-cn-card-deep);
+  --cn-card-rule: color-mix(in oklab, var(--palette-cn-card-deep) 70%, var(--palette-cn-card));
+  --cn-ink: var(--palette-ink);
+  --cn-gap: clamp(var(--space-6), 1.1cqw, var(--space-12));
+  --cn-side: clamp(200px, 19cqw, 280px);
+  display: grid;
+  grid-template-columns: var(--cn-side) minmax(0, 1fr) var(--cn-side);
+  grid-template-areas: "blue stage red";
+  gap: var(--space-16);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.word-team-blue {
+  grid-area: blue;
+  --team: var(--palette-cn-blue);
+  --team-deep: var(--palette-cn-blue-deep);
+  --team-ink: var(--team-blue-ink);
+}
+.word-team-red {
+  grid-area: red;
+  --team: var(--palette-cn-red);
+  --team-deep: var(--palette-cn-red-deep);
+  --team-ink: var(--team-red-ink);
+}
+
+/* Team bench: a soft grey panel. The playing team gets a soft glow of its color. */
+.word-team {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-16);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  overflow: hidden;
+  /* Hug the roster and sit level with the board; long rosters scroll inside. */
+  align-self: center;
+  max-height: 100%;
+}
+.word-team::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--team) 24%, var(--palette-clear)),
+    var(--palette-clear)
+  );
+  opacity: 0;
+  transition: opacity var(--dur-4) var(--ease-out);
+}
+.word-team:is([data-active="true"], [data-winner])::before {
+  opacity: 1;
+}
+:root[data-theme="dark"] .word-team::before {
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--team) 34%, var(--palette-clear)),
+    var(--palette-clear)
+  );
+}
+
+.word-team-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-12);
+}
+.word-team-score {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-2);
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(to bottom, var(--team) 45%, var(--team-deep));
+  color: var(--palette-white);
+  box-shadow:
+    inset 0 var(--stroke-2) 0 color-mix(in oklab, var(--palette-white) 30%, var(--palette-clear)),
+    inset 0 calc(var(--depth-1) * -1) 0 var(--team-deep);
+  overflow: hidden;
+}
+.word-team-score b {
+  font-family: var(--font-pixel);
+  font-size: var(--type-display);
+  font-weight: 600;
+  line-height: var(--leading-none);
+  font-variant-numeric: tabular-nums;
+  animation: pixel-pop var(--dur-3) var(--ease-snap) both;
+}
+.word-team-score small {
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: var(--leading-none);
+}
+
+.word-roster-toggle {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-6);
+  min-width: 0;
+  padding: var(--space-0);
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: default;
+}
+.word-team-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+}
+.word-team-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-xs);
+  padding: var(--space-0) var(--space-12);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  line-height: var(--leading-none);
+  white-space: nowrap;
+}
+.word-team:is([data-active="true"], [data-winner]) .word-team-status {
+  background: var(--invert);
+  color: var(--invert-text);
+}
+.word-team-left,
+.word-roster-chevron {
+  display: none;
+}
+
+.word-team-card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-16);
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+.word-team-card::-webkit-scrollbar {
+  display: none;
+}
+.word-team-card:focus {
+  outline: none;
+}
+.word-team-card:focus-visible {
+  outline: var(--stroke-3) solid var(--focus);
+  outline-offset: var(--space-2);
+  border-radius: var(--radius-md);
+}
+.word-team-card section {
+  display: grid;
+  gap: var(--space-6);
+}
+.word-team-card h2 {
+  font-family: var(--font-ui);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.word-team p {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  min-width: 0;
+  min-height: var(--control);
+  padding: var(--space-6) var(--space-12) var(--space-6) var(--space-6);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: var(--type-body);
+  transition:
+    background-color var(--dur-2) linear,
+    color var(--dur-2) linear;
+}
+.word-team p .player-avatar,
+.word-team p .jev-logo {
+  --avatar-size: 34px;
+  width: 34px !important;
+  height: 34px !important;
+}
+.word-team p .player-name-label {
+  flex: 1;
+  min-width: 0;
+}
+.word-team p .player-name-label > :is(strong, small) {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.word-team p .player-name-label > strong {
+  font-weight: 650;
+}
+.word-team p .player-name-label > small {
+  font-size: var(--type-caption);
+  color: var(--text-muted);
+}
+.word-team p[data-active="true"] {
+  background: var(--turn);
+  color: var(--turn-text);
+}
+.word-team p[data-active="true"] .player-name-label > small {
+  color: var(--invert-muted);
+}
+.word-team p .desk-active-label {
+  margin-left: auto;
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-pill);
+  background: var(--turn-text);
+  color: var(--turn);
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: var(--leading-none);
+}
+.word-team p.word-team-empty {
+  justify-content: center;
+  background: var(--palette-clear);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--line);
+  color: var(--text-faint);
+  font-size: var(--type-small);
+}
+
+/* Stage: turn heading, then the clue centred over the board. */
+.words-stage {
+  grid-area: stage;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: "heading" "controls" "board";
+  align-items: center;
+  gap: var(--space-12) var(--space-24);
+  min-width: 0;
+  min-height: 0;
+}
+.words-heading {
+  grid-area: heading;
+  min-width: 0;
+}
+.words-turn-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
+  min-width: 0;
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  animation: rise-in var(--dur-3) steps(3, end) both;
+}
+.words-turn-heading > i {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-xs);
+  background: var(--text-faint);
+}
+.words-turn-heading[data-team="red"] > i {
+  background: var(--palette-cn-red);
+}
+.words-turn-heading[data-team="blue"] > i {
+  background: var(--palette-cn-blue);
+}
+
+.words-controls {
+  grid-area: controls;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+.words-clue {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  min-width: 0;
+}
+
+/* The clue is a card-stock sticker; the count sits in a team-colored seal. */
+.words-clue-tile {
+  --team: var(--palette-cn-red);
+  --team-deep: var(--palette-cn-red-deep);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: var(--space-16);
+  min-height: var(--control-xl);
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-20);
+  border-radius: var(--radius-md);
+  background: var(--cn-card);
+  color: var(--cn-ink);
+  rotate: -1.5deg;
+  background: var(--cn-card);
+  box-shadow:
+    inset 0 var(--stroke-2) 0 color-mix(in oklab, var(--palette-white) 55%, var(--palette-clear)),
+    0 var(--depth-2) 0 var(--cn-card-deep),
+    var(--shadow);
+}
+.words-clue-tile[data-team="blue"] {
+  --team: var(--palette-cn-blue);
+  --team-deep: var(--palette-cn-blue-deep);
+}
+.words-clue-tile > span {
+  grid-column: 1;
+  justify-self: center;
+  text-align: center;
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--palette-g700);
+  line-height: var(--leading-none);
+}
+.words-clue-tile > strong {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: center;
+  text-align: center;
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-section);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-none);
+}
+.words-clue-tile > b {
+  position: relative;
+  isolation: isolate;
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  min-width: var(--control-lg);
+  height: var(--control-lg);
+  padding: var(--space-0) var(--space-8);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to bottom, var(--team) 45%, var(--team-deep));
+  color: var(--palette-white);
+  font-family: var(--font-pixel);
+  font-size: var(--type-score);
+  font-weight: 600;
+  line-height: var(--leading-none);
+  box-shadow:
+    inset 0 var(--stroke-2) 0 color-mix(in oklab, var(--palette-white) 30%, var(--palette-clear)),
+    inset 0 calc(var(--depth-1) * -1) 0 var(--team-deep);
+  overflow: hidden;
+}
+
+.words-guesses-tile {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+}
+.words-guesses-tile b {
+  font-family: var(--font-pixel);
+  font-size: var(--type-score);
+  font-weight: 600;
+  line-height: var(--leading-none);
+  font-variant-numeric: tabular-nums;
+}
+.words-guesses-tile span {
+  font-size: var(--type-caption);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.words-waiting {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-lg);
+  padding: var(--space-0) var(--space-24);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--type-body);
+  font-weight: 600;
+}
+.words-result {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--control-xl);
+  padding: var(--space-0) var(--space-24);
+  border-radius: var(--radius-pill);
+  background: var(--invert);
+  color: var(--invert-text);
+  font-size: var(--type-title);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+.words-result::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-xs);
+  background: var(--invert-muted);
+}
+.words-result[data-team="red"]::before {
+  background: var(--palette-cn-red);
+}
+.words-result[data-team="blue"]::before {
+  background: var(--palette-cn-blue);
+}
+
+.words-clue-form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-12);
+  min-width: 0;
+}
+.words-field {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+.words-field > span {
+  font-size: var(--type-caption);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.words-field-word {
+  flex: 1 1 auto;
+  width: clamp(150px, 22cqw, 300px);
+}
+.words-field-word .ui-input {
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+.words-field-word .ui-input::placeholder {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.words-field-count {
+  width: 120px;
+}
+.words-field-count select {
+  appearance: none;
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  font-weight: 600;
+  background-image:
+    linear-gradient(45deg, var(--palette-clear) 50%, var(--text) 50%),
+    linear-gradient(135deg, var(--text) 50%, var(--palette-clear) 50%);
+  background-position:
+    calc(100% - var(--space-24)) 50%,
+    calc(100% - var(--space-16)) 50%;
+  background-size: 8px 8px;
+  background-repeat: no-repeat;
+}
+
+/* Board */
+.words-board {
+  grid-area: board;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: var(--cn-gap);
+  min-width: 0;
+  min-height: 0;
+  padding-bottom: var(--depth-2);
+}
+
+/* Card stock: grained pastel paper, an inset printer's rule and a thick bottom edge. */
+.word-card {
+  --card-face: var(--cn-card);
+  --card-edge: var(--cn-card-deep);
+  --card-key: var(--palette-clear);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: clamp(var(--radius-xs), 1.4cqw, var(--radius-md));
+  background: var(--card-face);
+  color: var(--cn-ink);
+  box-shadow:
+    inset 0 var(--stroke-2) 0 color-mix(in oklab, var(--palette-white) 45%, var(--palette-clear)),
+    0 var(--depth-2) 0 var(--card-edge);
+  container-type: size;
+  overflow: hidden;
+  transition:
+    translate var(--dur-2) var(--ease-snap),
+    box-shadow var(--dur-2) var(--ease-snap);
+}
+.word-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--card-edge);
+  opacity: 0.05;
+  pointer-events: none;
+  transition: opacity var(--dur-2) linear;
+}
+.word-card::after {
+  content: "";
+  position: absolute;
+  inset: clamp(var(--space-4), 5cqmin, var(--space-10));
+  z-index: -1;
+  border: var(--stroke-2) solid var(--cn-card-rule);
+  border-radius: clamp(var(--radius-0), 1cqw, var(--radius-sm));
+  pointer-events: none;
+}
+.word-card:disabled {
+  cursor: default;
+}
+.word-card-word {
+  position: relative;
+  max-width: 100%;
+  padding: var(--space-0) var(--space-4);
+  font-family: var(--font-ui);
+  font-size: clamp(
+    var(--type-micro),
+    min(calc(118cqw / var(--len, 6)), 30cqh),
+    var(--type-display)
+  );
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: var(--leading-none);
+  text-transform: uppercase;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+@container (max-width:110px) {
+  .word-card[data-revealed="false"] .word-card-word {
+    padding: var(--space-0);
+    font-weight: 750;
+    letter-spacing: -0.035em;
+  }
+}
+
+.words-board[data-guessing] .word-card:enabled {
+  cursor: pointer;
+}
+.words-board[data-guessing] .word-card:enabled:hover {
+  translate: 0 calc(var(--depth-1) * -1);
+  box-shadow: 0 var(--depth-3) 0 var(--card-edge);
+}
+.words-board[data-guessing] .word-card:enabled:hover::before {
+  opacity: 0.1;
+}
+.words-board[data-guessing] .word-card:enabled:active {
+  translate: 0 var(--depth-1);
+  box-shadow: 0 var(--depth-1) 0 var(--card-edge);
+}
+.word-card:focus-visible {
+  outline: var(--stroke-4) solid var(--focus);
+  outline-offset: var(--space-2);
+  z-index: 1;
+}
+
+/* Spymaster key: team-colored corner tabs on the clean card stock. */
+.word-card[data-revealed="false"]:not([data-team="hidden"]) {
+  background:
+    linear-gradient(135deg, var(--card-key) 0 clamp(10px, 14cqmin, 24px), var(--palette-clear) 0)
+      top left / 100% 100% no-repeat,
+    linear-gradient(-45deg, var(--card-key) 0 clamp(10px, 14cqmin, 24px), var(--palette-clear) 0)
+      bottom right / 100% 100% no-repeat,
+    var(--card-face);
+}
+.word-card[data-revealed="false"][data-team="red"] {
+  --card-key: var(--palette-cn-red);
+  --card-edge: var(--palette-cn-red-deep);
+}
+.word-card[data-revealed="false"][data-team="blue"] {
+  --card-key: var(--palette-cn-blue);
+  --card-edge: var(--palette-cn-blue-deep);
+}
+.word-card[data-revealed="false"][data-team="bystander"] {
+  --card-key: var(--palette-cn-bystander-deep);
+}
+.word-card[data-revealed="false"][data-team="assassin"] {
+  --card-key: var(--palette-cn-assassin);
+  --card-edge: var(--palette-cn-assassin);
+}
+
+/* Revealed: the card is covered by an agent tile in the team's ink. */
+.word-card[data-revealed="true"] {
+  --art: var(--palette-white);
+  --art-shade: var(--card-face);
+  grid-template-rows: minmax(0, 1fr) auto;
+  place-items: stretch;
+  padding: var(--space-0);
+}
+.word-card[data-revealed="true"]::before {
+  opacity: 0.55;
+  background: var(--card-edge);
+  -webkit-mask: linear-gradient(var(--palette-clear), var(--palette-ink)) bottom / 100%
+    var(--ramp-length) no-repeat;
+  mask: linear-gradient(var(--palette-clear), var(--palette-ink)) bottom / 100% var(--ramp-length)
+    no-repeat;
+}
+.word-card[data-revealed="true"]::after {
+  border-color: color-mix(in oklab, var(--palette-white) 30%, var(--palette-clear));
+}
+.word-card[data-revealed="true"][data-team="red"] {
+  --card-face: var(--palette-cn-red);
+  --card-edge: var(--palette-cn-red-deep);
+  --art-shade: var(--palette-cn-red-deep);
+}
+.word-card[data-revealed="true"][data-team="blue"] {
+  --card-face: var(--palette-cn-blue);
+  --card-edge: var(--palette-cn-blue-deep);
+  --art-shade: var(--palette-cn-blue-deep);
+}
+.word-card[data-revealed="true"][data-team="bystander"] {
+  --card-face: var(--palette-cn-bystander);
+  --card-edge: var(--palette-cn-bystander-deep);
+  --art: var(--palette-cn-bystander-deep);
+  --art-shade: var(--palette-cn-card);
+}
+.word-card[data-revealed="true"][data-team="assassin"] {
+  --card-face: var(--palette-cn-assassin);
+  --card-edge: var(--palette-g700);
+  --art: var(--palette-g50);
+  --art-shade: var(--palette-cn-assassin);
+}
+.word-card[data-revealed="true"][data-team="assassin"]::before {
+  background: var(--palette-tomato);
+  opacity: 0.08;
+}
+.word-card[data-revealed="true"][data-team="hidden"] {
+  --card-face: var(--palette-g300);
+  --card-edge: var(--palette-g500);
+}
+.word-card-art {
+  align-self: center;
+  justify-self: center;
+  width: auto;
+  height: min(42cqh, 48cqw);
+  margin-top: 4cqh;
+  shape-rendering: crispEdges;
+  overflow: visible;
+}
+.word-art-fill {
+  fill: var(--art);
+}
+.word-art-shade {
+  fill: var(--art-shade);
+}
+.word-card[data-revealed="true"] .word-card-word {
+  margin: var(--space-0) clamp(var(--space-4), 5cqmin, var(--space-10))
+    clamp(var(--space-4), 5cqmin, var(--space-10));
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-xs);
+  background: var(--palette-cn-card);
+  color: var(--palette-ink);
+  font-size: clamp(
+    var(--type-small),
+    min(calc(100cqw / var(--len, 6)), 28cqh),
+    var(--type-section)
+  );
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 1366px) and (min-width: 901px) {
+  .word-team-name {
+    font-size: var(--type-lead);
+  }
+}
+
+/* Streams: readable from across the room. */
+.match-desk[data-stream="true"] .word-workspace {
+  --cn-side: clamp(220px, 20cqw, 320px);
+}
+.match-desk[data-stream="true"] .words-turn-heading {
+  font-size: var(--type-section);
+}
+.match-desk[data-stream="true"] .word-team-name {
+  font-size: var(--type-title);
+}
+.match-desk[data-stream="true"] .word-team-score {
+  width: 96px;
+  height: 96px;
+}
+.match-desk[data-stream="true"] .word-team p {
+  font-size: var(--type-lead);
+}
+.match-desk[data-stream="true"] .words-clue-tile > strong {
+  font-size: var(--type-display);
+}
+
+/* Narrow screens: two compact team strips above the clue, rosters open as popovers. */
+@media (max-width: 900px) {
+  .word-workspace {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "blue red" "stage stage";
+    gap: var(--space-10);
+  }
+  .word-team {
+    overflow: visible;
+    padding: var(--space-8);
+    border-radius: var(--radius-lg);
+    gap: var(--space-0);
+  }
+  .word-team::before {
+    height: 70%;
+    border-radius: inherit;
+  }
+  .word-team-head {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-8);
+  }
+  .word-team-score {
+    width: var(--control);
+    height: var(--control);
+    border-radius: var(--radius-md);
+  }
+  .word-team-score b {
+    font-size: var(--type-score);
+  }
+  .word-team-score small {
+    display: none;
+  }
+  .word-roster-toggle {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2) var(--space-8);
+    min-height: var(--control-lg);
+    cursor: pointer;
+  }
+  .word-team-name {
+    grid-column: 1;
+    font-size: var(--type-body);
+  }
+  .word-team-suffix {
+    display: none;
+  }
+  .words-board {
+    gap: var(--space-6);
+  }
+  .word-card {
+    padding: var(--space-2);
+  }
+  .word-team-status {
+    grid-column: 1;
+    min-height: var(--space-0);
+    padding: var(--space-0);
+    background: none;
+    font-size: var(--type-micro);
+  }
+  .word-team:is([data-active="true"], [data-winner]) .word-team-status {
+    background: none;
+    color: var(--text);
+  }
+  .word-team-status::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    margin-right: var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--line-strong);
+  }
+  .word-team:is([data-active="true"], [data-winner]) .word-team-status::before {
+    background: var(--team);
+  }
+  .word-roster-chevron {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: grid;
+    place-items: center;
+    width: var(--control-xs);
+    height: var(--control-xs);
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+    font-style: normal;
+    font-size: var(--type-lead);
+  }
+  .word-team[data-expanded="true"] .word-roster-chevron {
+    background: var(--invert);
+    color: var(--invert-text);
+  }
+  .word-team-card {
+    position: absolute;
+    top: calc(100% + var(--space-8));
+    left: 0;
+    z-index: var(--z-menu);
+    width: max(100%, 260px);
+    max-height: 60dvh;
+    padding: var(--space-12);
+    border-radius: var(--radius-lg);
+    background: var(--raised);
+    box-shadow: var(--shadow-lg);
+  }
+  .word-team-red .word-team-card {
+    left: auto;
+    right: 0;
+  }
+  .word-team:not([data-expanded="true"]) .word-team-card {
+    display: none;
+  }
+  .words-stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas: "heading" "controls" "board";
+    gap: var(--space-10);
+  }
+  .words-turn-heading {
+    justify-content: center;
+    font-size: var(--type-body);
+  }
+  .words-turn-heading > i {
+    width: 12px;
+    height: 12px;
+  }
+  .words-controls {
+    justify-content: center;
+  }
+  .words-clue {
+    justify-content: center;
+    gap: var(--space-10);
+  }
+  .words-clue-tile {
+    min-height: var(--control-lg);
+    padding: var(--space-6) var(--space-6) var(--space-6) var(--space-16);
+  }
+  .words-clue-tile > strong {
+    font-size: var(--type-title);
+    max-width: 10ch;
+  }
+  .words-clue-tile > b {
+    min-width: var(--control);
+    height: var(--control);
+    font-size: var(--type-title);
+  }
+  .words-guesses-tile b {
+    font-size: var(--type-title);
+  }
+  .words-clue .words-end-turn {
+    min-height: var(--control);
+    padding: var(--space-0) var(--space-16);
+    font-size: var(--type-body);
+  }
+  .words-clue-form {
+    width: 100%;
+    gap: var(--space-8);
+  }
+  .words-field > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .words-field-word {
+    flex: 1;
+    width: auto;
+  }
+  .words-field-count {
+    width: 88px;
+  }
+  .words-clue-form .ui-button {
+    padding: var(--space-0) var(--space-20);
+    font-size: var(--type-body);
+  }
+  .words-result {
+    min-height: var(--control-lg);
+    font-size: var(--type-lead);
+  }
+}
+@media (max-width: 380px) {
+  .words-guesses-tile span {
+    display: none;
+  }
+}
+
+/* Short landscape phones: thin benches either side of a wide board. */
+@media (max-height: 500px) and (min-width: 560px) {
+  .word-workspace {
+    --cn-side: 170px;
+    grid-template-columns: var(--cn-side) minmax(0, 1fr) var(--cn-side);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "blue stage red";
+    gap: var(--space-8);
+  }
+  .word-team {
+    padding: var(--space-8);
+    gap: var(--space-8);
+  }
+  .word-team-card {
+    position: static;
+    display: grid;
+    width: auto;
+    max-height: none;
+    padding: var(--space-0);
+    background: none;
+    box-shadow: none;
+  }
+  .word-team:not([data-expanded="true"]) .word-team-card {
+    display: grid;
+  }
+  .word-roster-chevron {
+    display: none;
+  }
+  .word-roster-toggle {
+    cursor: default;
+  }
+  .word-team-card h2 {
+    display: none;
+  }
+  .word-team p {
+    min-height: var(--control-xs);
+    padding: var(--space-2) var(--space-8) var(--space-2) var(--space-2);
+    font-size: var(--type-small);
+  }
+  .word-team p .player-avatar,
+  .word-team p .jev-logo {
+    --avatar-size: 24px;
+    width: 24px !important;
+    height: 24px !important;
+  }
+  .word-team p .player-name-label > small,
+  .word-team p .desk-active-label {
+    display: none;
+  }
+  .words-stage,
+  .words-stage:has(.words-clue-form) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "heading controls" "board board";
+    gap: var(--space-6) var(--space-12);
+  }
+  .words-turn-heading {
+    justify-content: flex-start;
+    font-size: var(--type-small);
+  }
+  .words-stage:has(.words-clue-form) {
+    grid-template-areas: "controls controls" "board board";
+  }
+  .words-stage:has(.words-clue-form) .words-heading {
+    display: none;
+  }
+  .words-clue-form {
+    width: 100%;
+  }
+  .words-clue-tile {
+    min-height: var(--control-sm);
+    rotate: 0deg;
+  }
+  .words-clue-tile > span {
+    display: none;
+  }
+  .words-clue-tile > strong {
+    grid-row: 1 / 3;
+    font-size: var(--type-lead);
+  }
+  .words-clue-tile > b {
+    min-width: var(--control-xs);
+    height: var(--control-xs);
+    font-size: var(--type-lead);
+  }
+  .words-clue .words-end-turn,
+  .words-clue-form .ui-button {
+    min-height: var(--control-sm);
+  }
+  .words-clue-form .ui-input {
+    min-height: var(--control-sm);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word-card,
+  .word-card[data-revealed="true"],
+  .words-turn-heading,
+  .word-team-score b {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,0 +1,17 @@
+# Copy to .dev.vars for manual local setup. Never commit the real file.
+# Prefer pnpm run setup: it generates a random session secret without overwriting files.
+# For manual setup, replace the placeholder below with: openssl rand -hex 32
+ENCRYPTION_SECRET=replace-with-a-random-32-byte-secret
+# Required for Google sign-in; client ID goes in wrangler.json vars.
+GOOGLE_CLIENT_SECRET=
+# Blank is allowed only for local loopback requests. Production requires a real key.
+TURNSTILE_SECRET_KEY=
+
+# Optional site-funded TypeSafe/Jev decisions. Also configure the two daily limits.
+# TYPESAFE_API_KEY=
+
+# Optional personal Jev keys and authenticated webhook credential storage.
+# Generate a separate AES key with: openssl rand -base64 32
+# Replace the placeholder; the decoded key must be exactly 32 bytes.
+# JEV_CREDENTIAL_KEYS='{"v1":"replace-with-your-base64-encoded-32-byte-key"}'
+# Select v1 in JEV_CREDENTIAL_KEY_VERSION under Wrangler vars.

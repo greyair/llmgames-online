@@ -1,0 +1,29 @@
+{
+  "ignorePatterns": [
+    ".agent/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".continue/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".opencode/**",
+    ".pi/**",
+    ".roo/**",
+    ".windsurf/**",
+    "tools/oxlint/anti-slop/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.astro/**",
+    "**/.wrangler/**",
+    "**/.cloudflare/**",
+    "**/.localflare/**",
+    "**/.turbo/**",
+    "artifacts/**",
+    "**/test-results/**",
+    "**/ui-audit-report/**",
+    "**/vendor/**",
+    "apps/web/src/game-ui/pokemon/showdown/upstream.js"
+  ],
+  "quoteProps": "preserve"
+}

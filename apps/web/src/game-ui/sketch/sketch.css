@@ -1,0 +1,19 @@
+/* Hand-drawn board skin shared by every game. Each game file restyles its own
+   board in the landing arcade's language: flat pastel fills on paper, thick
+   ink outlines, no gloss or drop shadows. Imported after the game stylesheets
+   so equal-specificity rules win. */
+:root {
+  --sketch-ink: var(--palette-ink);
+  --sketch-paper: var(--palette-card);
+}
+/* Board frames draw their outer ink line on an ::after layer that boils
+   (--doodle-filter plus --doodle-boil), while the board itself takes the still
+   --doodle-art filter (design/doodle.css). Keep that line off the board's own
+   box-shadow, or it would hold still with the art. */
+/* Seat piece keys on the player plates are inked like the pieces on the board. */
+.match-desk .desk-piece-key {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--sketch-ink);
+}
+.match-desk[data-game="connect4"] .desk-players .desk-player .desk-piece-key {
+  box-shadow: inset 0 0 0 var(--stroke-3) var(--sketch-ink);
+}

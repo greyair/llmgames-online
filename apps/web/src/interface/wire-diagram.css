@@ -1,0 +1,475 @@
+/* Under the hood: the launch video's hand-drawn look. Paper cards with ink
+   outlines sit on a pale sketchbook page. You (pink)
+   and your agent (sky) send moves into the room; views come back in sun. */
+
+.landing-wire {
+  padding: var(--space-80) var(--space-0) var(--space-0);
+}
+.landing-wire .landing-section-head {
+  justify-content: center;
+  text-align: center;
+}
+.landing-wire .landing-section-head p {
+  margin-inline: auto;
+}
+
+.wd-panel {
+  --wd-ink: var(--palette-ink);
+  --wd-paper: var(--palette-card);
+  --wd-page: color-mix(in oklab, var(--palette-sky) 16%, var(--palette-white));
+  --wd-dot: color-mix(in oklab, var(--palette-sky-ink) 22%, var(--palette-clear));
+  position: relative;
+  padding: var(--space-32) var(--space-32) var(--space-40);
+  border-radius: var(--radius-xl);
+  color: var(--wd-ink);
+  background:
+    radial-gradient(var(--wd-dot) var(--stroke-1), var(--palette-clear) var(--stroke-2)) 0 0 /
+      var(--space-24) var(--space-24),
+    var(--wd-page);
+  box-shadow: inset 0 0 0 var(--stroke-3) var(--wd-ink);
+}
+
+/* ── Stage ── */
+.wd-stage {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.wd-stage text {
+  font-family: var(--font-ui);
+}
+.wd-ink {
+  fill: var(--wd-ink);
+}
+.wd-stroke {
+  fill: none;
+  stroke: var(--wd-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.wd-faint {
+  fill: none;
+  stroke: var(--wd-ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 6;
+  opacity: 0.35;
+}
+.wd-sun {
+  fill: var(--palette-sun);
+  stroke: var(--wd-ink);
+  stroke-width: 2.5;
+}
+.wd-title {
+  fill: var(--wd-ink);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.wd-sub {
+  fill: var(--palette-g600);
+  font-weight: 600;
+}
+.wd-mono {
+  fill: var(--wd-ink);
+  font-family: var(--font-code);
+  font-weight: 700;
+}
+.wd-swash {
+  fill: none;
+  stroke: var(--palette-sun-deep);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.wd-card {
+  fill: var(--wd-paper);
+  stroke: var(--wd-ink);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+  transition: fill var(--dur-4) var(--ease-out);
+}
+/* The acting card fills with its lane colour. */
+.wd-actor[data-lane="you"] {
+  --lane: var(--palette-pink);
+}
+.wd-actor[data-lane="agent"] {
+  --lane: var(--palette-sky);
+}
+.wd-actor[data-focus] .wd-card {
+  fill: var(--lane);
+}
+.wd-room[data-focus] .wd-card {
+  fill: color-mix(in oklab, var(--palette-sun) 40%, var(--wd-paper));
+}
+.wd-avatar {
+  fill: var(--lane);
+  stroke: var(--wd-ink);
+  stroke-width: 3;
+  transition: fill var(--dur-4) var(--ease-out);
+}
+.wd-actor[data-focus] .wd-avatar {
+  fill: var(--wd-paper);
+}
+.wd-actor[data-focus] .wd-sub {
+  fill: var(--palette-g750);
+}
+
+.wd-status {
+  fill: var(--wd-ink);
+  font-weight: 700;
+}
+.wd-ring-track {
+  fill: var(--wd-paper);
+  stroke: var(--wd-ink);
+  stroke-width: 2.5;
+}
+.wd-ring-fill {
+  fill: none;
+  stroke: var(--palette-g300);
+  stroke-width: 6;
+  stroke-linecap: butt;
+}
+.wd-ring[data-tone="wait"] .wd-ring-fill {
+  stroke: var(--palette-sky-deep);
+}
+.wd-ring[data-tone="go"] .wd-ring-fill {
+  stroke: var(--palette-grass-deep);
+}
+.wd-ring[data-tone="think"] .wd-ring-fill {
+  stroke: var(--palette-sun-deep);
+}
+.wd-ring[data-tone="done"] .wd-ring-fill {
+  stroke: var(--palette-g600);
+}
+
+/* The room's board: paper holes, discs in each seat's colour. */
+.wd-board {
+  fill: var(--palette-c4-frame-light);
+  stroke: var(--wd-ink);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+}
+.wd-hole {
+  fill: var(--wd-paper);
+  stroke: var(--wd-ink);
+  stroke-width: 2.5;
+}
+.wd-disc {
+  stroke: var(--wd-ink);
+  stroke-width: 3;
+}
+.wd-disc[data-lane="you"] {
+  fill: var(--palette-pink-deep);
+}
+.wd-disc[data-lane="agent"] {
+  fill: var(--palette-sky-deep);
+}
+.wd-strike {
+  fill: none;
+  stroke: var(--wd-ink);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+.wd-chip-body {
+  fill: var(--wd-paper);
+  stroke: var(--wd-ink);
+  stroke-width: 2.5;
+}
+.wd-chip[data-lane="you"] .wd-chip-body {
+  fill: color-mix(in oklab, var(--palette-pink) 55%, var(--wd-paper));
+}
+.wd-chip[data-lane="agent"] .wd-chip-body {
+  fill: color-mix(in oklab, var(--palette-sky) 55%, var(--wd-paper));
+}
+.wd-chip-empty {
+  fill: none;
+  stroke: var(--palette-g400);
+  stroke-width: 2.5;
+  stroke-dasharray: 7 6;
+}
+.wd-chip-text {
+  fill: var(--wd-ink);
+  font-weight: 700;
+}
+.wd-stamp-body {
+  fill: var(--palette-grass);
+  stroke: var(--wd-ink);
+  stroke-width: 3.5;
+}
+.wd-stamp[data-win] .wd-stamp-body {
+  fill: var(--palette-sun);
+}
+
+/* Wires: a dashed pencil line at rest, a fat marker stroke while a message rides it. */
+.wd-track {
+  --flow: var(--palette-g400);
+}
+.wd-track[data-flow="you"] {
+  --flow: var(--palette-pink);
+}
+.wd-track[data-flow="agent"] {
+  --flow: var(--palette-sky);
+}
+.wd-track[data-flow="state"] {
+  --flow: var(--palette-sun);
+}
+.wd-track-line {
+  fill: none;
+  stroke: var(--wd-ink);
+  stroke-width: 2.5;
+  stroke-dasharray: 7 7;
+  stroke-linecap: round;
+  opacity: 0.4;
+  transition: opacity var(--dur-3) linear;
+}
+.wd-track[data-live] .wd-track-line {
+  stroke-dasharray: none;
+  opacity: 1;
+}
+.wd-track-glow {
+  fill: none;
+  stroke: var(--flow);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+.wd-arrow {
+  fill: none;
+  stroke: var(--wd-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.4;
+}
+.wd-track[data-live] .wd-arrow {
+  opacity: 1;
+}
+.wd-transport {
+  fill: var(--palette-g600);
+  font-family: var(--font-code);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wd-packet {
+  --flow: var(--palette-sun);
+}
+.wd-packet[data-flow="you"] {
+  --flow: var(--palette-pink);
+}
+.wd-packet[data-flow="agent"] {
+  --flow: var(--palette-sky);
+}
+.wd-packet-body {
+  fill: var(--flow);
+  stroke: var(--wd-ink);
+  stroke-width: 3;
+}
+.wd-burst path {
+  stroke: var(--wd-ink);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.wd-bubble {
+  fill: var(--wd-paper);
+  stroke: var(--wd-ink);
+  stroke-width: 3;
+}
+
+/* ── Story: one plain sentence per step, with real calls underneath ── */
+.wd-story {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-24) var(--space-40);
+  margin-top: var(--space-24);
+}
+.wd-captions {
+  display: grid;
+  align-self: stretch;
+}
+.wd-caption {
+  grid-area: 1 / 1;
+  align-content: start;
+  display: grid;
+  justify-items: start;
+  gap: var(--space-8);
+  animation: wd-caption-in var(--dur-5) var(--ease-out) both;
+}
+.wd-caption[data-ghost] {
+  visibility: hidden;
+  animation: none;
+  pointer-events: none;
+}
+@keyframes wd-caption-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-8));
+  }
+}
+.wd-count {
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-pill);
+  background: var(--wd-ink);
+  color: var(--wd-paper);
+  font-family: var(--font-code);
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.wd-caption h3 {
+  font-size: var(--type-section);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+}
+.wd-caption p {
+  max-width: 62ch;
+  color: var(--palette-g700);
+  font-size: var(--type-lead);
+  line-height: var(--leading-body);
+}
+.wd-caption code {
+  max-width: 100%;
+  padding: var(--space-4) var(--space-10);
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-xs);
+  background: var(--palette-sun);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--wd-ink);
+  font-family: var(--font-code);
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+
+.wd-controls {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-12);
+}
+.wd-buttons {
+  display: flex;
+  gap: var(--space-8);
+}
+.wd-buttons button {
+  display: grid;
+  place-items: center;
+  width: var(--control-sm);
+  height: var(--control-sm);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--wd-paper);
+  color: var(--wd-ink);
+  box-shadow: inset 0 0 0 var(--stroke-3) var(--wd-ink);
+  cursor: pointer;
+}
+.wd-buttons button[data-primary] {
+  width: var(--control);
+  height: var(--control);
+  margin-top: calc(var(--space-4) * -1);
+  background: var(--palette-sun);
+}
+.wd-buttons button:focus-visible,
+.wd-steps button:focus-visible {
+  outline: var(--stroke-3) solid var(--palette-sky-deep);
+  outline-offset: var(--space-2);
+}
+
+/* Step segments, like the video's progress bar: done is ink, the current one fills. */
+.wd-steps {
+  display: flex;
+  gap: var(--space-4);
+  list-style: none;
+}
+.wd-steps button {
+  display: grid;
+  place-items: center;
+  width: var(--space-32);
+  height: var(--space-24);
+  padding: var(--space-0);
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.wd-steps span {
+  width: 100%;
+  height: var(--space-12);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--wd-ink) calc(var(--p, 0) * 100%), var(--wd-paper) 0);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--wd-ink);
+  transition: height var(--dur-2) var(--ease-out);
+}
+.wd-steps button:hover span,
+.wd-steps button[aria-current] span {
+  height: var(--space-16);
+}
+.wd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-4) var(--space-12);
+  list-style: none;
+  color: var(--palette-g700);
+  font-size: var(--type-micro);
+  font-weight: 600;
+}
+.wd-legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+.wd-legend li::before {
+  content: "";
+  width: var(--space-16);
+  height: var(--space-10);
+  border-radius: var(--radius-pill);
+  background: var(--flow);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--wd-ink);
+}
+.wd-legend [data-flow="you"] {
+  --flow: var(--palette-pink);
+}
+.wd-legend [data-flow="agent"] {
+  --flow: var(--palette-sky);
+}
+.wd-legend [data-flow="state"] {
+  --flow: var(--palette-sun);
+}
+
+@media (max-width: 1000px) {
+  .wd-story {
+    grid-template-columns: 1fr;
+  }
+  .wd-controls {
+    justify-items: start;
+  }
+  .wd-legend {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 760px) {
+  .landing-wire {
+    padding-top: var(--space-56);
+  }
+  .wd-panel {
+    padding: var(--space-16) var(--space-16) var(--space-24);
+    border-radius: var(--radius-lg);
+  }
+  .wd-caption[data-ghost] {
+    display: none;
+  }
+  .wd-steps button {
+    width: var(--space-24);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wd-caption {
+    animation: none;
+  }
+  .wd-card,
+  .wd-avatar,
+  .wd-track-line,
+  .wd-steps span {
+    transition: none;
+  }
+}

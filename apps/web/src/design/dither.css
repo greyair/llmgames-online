@@ -1,0 +1,292 @@
+/* Ordered-dither kit. Same Bayer matrices as Paper's Dithering shader, drawn
+   with CSS masks so hundreds of elements can dither without WebGL.
+   Dither is a low-key accent: player avatars, button wipes and the pointer
+   patch on interactive surfaces. Game boards, pieces and scenery stay flat.
+
+   .dither          overlay a dither tone: --dither-color, --dither-mask
+   .dither-edge-*   fade an edge out through a Bayer ramp
+   .dither-plate    surface with a faint dither grain (panels, stages)
+   [data-dither-in] dissolve in through 8 Bayer levels */
+
+.dither {
+  position: relative;
+  isolation: isolate;
+}
+.dither::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--dither-color, currentColor);
+  -webkit-mask: var(--dither-mask, var(--bayer-4)) 0 0 / var(--dither-tile) var(--dither-tile)
+    repeat;
+  mask: var(--dither-mask, var(--bayer-4)) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  opacity: var(--dither-opacity, 1);
+}
+.tone-1 {
+  --dither-mask: var(--bayer-1);
+}
+.tone-2 {
+  --dither-mask: var(--bayer-2);
+}
+.tone-4 {
+  --dither-mask: var(--bayer-4);
+}
+.tone-6 {
+  --dither-mask: var(--bayer-6);
+}
+.tone-8 {
+  --dither-mask: var(--bayer-8);
+}
+.tone-10 {
+  --dither-mask: var(--bayer-10);
+}
+.tone-12 {
+  --dither-mask: var(--bayer-12);
+}
+.tone-14 {
+  --dither-mask: var(--bayer-14);
+}
+
+/* Faint grain for large neutral surfaces. */
+.dither-plate {
+  position: relative;
+  isolation: isolate;
+  background: var(--surface);
+}
+.dither-plate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--dither-ink);
+  opacity: 0.05;
+  -webkit-mask: var(--bayer8-2) 0 0 / var(--dither-tile-8) var(--dither-tile-8) repeat;
+  mask: var(--bayer8-2) 0 0 / var(--dither-tile-8) var(--dither-tile-8) repeat;
+}
+
+/* Dithered edge fades: the edge dissolves in Bayer steps instead of a soft blur. */
+.dither-edge-bottom {
+  -webkit-mask:
+    linear-gradient(var(--palette-ink), var(--palette-ink)) top / 100% calc(100% - var(--space-48))
+      no-repeat,
+    var(--ramp-down) bottom / var(--dither-tile) var(--space-48) repeat-x;
+  mask:
+    linear-gradient(var(--palette-ink), var(--palette-ink)) top / 100% calc(100% - var(--space-48))
+      no-repeat,
+    var(--ramp-down) bottom / var(--dither-tile) var(--space-48) repeat-x;
+}
+.dither-edge-top {
+  -webkit-mask:
+    linear-gradient(var(--palette-ink), var(--palette-ink)) bottom / 100%
+      calc(100% - var(--space-48)) no-repeat,
+    var(--ramp-up) top / var(--dither-tile) var(--space-48) repeat-x;
+  mask:
+    linear-gradient(var(--palette-ink), var(--palette-ink)) bottom / 100%
+      calc(100% - var(--space-48)) no-repeat,
+    var(--ramp-up) top / var(--dither-tile) var(--space-48) repeat-x;
+}
+
+/* A one-cell dithered rule: separators that read as pixels, not hairlines. */
+.dither-rule {
+  height: var(--px);
+  border: 0;
+  margin: var(--space-0);
+  background: var(--line-strong);
+  -webkit-mask: var(--bayer-8) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  mask: var(--bayer-8) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+}
+
+/* Dissolve: steps through Bayer coverage so the element assembles pixel by pixel. */
+@keyframes dither-in {
+  0% {
+    -webkit-mask-image: var(--bayer-1);
+    mask-image: var(--bayer-1);
+  }
+  12% {
+    -webkit-mask-image: var(--bayer-2);
+    mask-image: var(--bayer-2);
+  }
+  25% {
+    -webkit-mask-image: var(--bayer-4);
+    mask-image: var(--bayer-4);
+  }
+  38% {
+    -webkit-mask-image: var(--bayer-6);
+    mask-image: var(--bayer-6);
+  }
+  50% {
+    -webkit-mask-image: var(--bayer-8);
+    mask-image: var(--bayer-8);
+  }
+  62% {
+    -webkit-mask-image: var(--bayer-10);
+    mask-image: var(--bayer-10);
+  }
+  75% {
+    -webkit-mask-image: var(--bayer-12);
+    mask-image: var(--bayer-12);
+  }
+  88% {
+    -webkit-mask-image: var(--bayer-14);
+    mask-image: var(--bayer-14);
+  }
+  100% {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+@keyframes dither-out {
+  0% {
+    -webkit-mask-image: var(--bayer-14);
+    mask-image: var(--bayer-14);
+  }
+  14% {
+    -webkit-mask-image: var(--bayer-12);
+    mask-image: var(--bayer-12);
+  }
+  28% {
+    -webkit-mask-image: var(--bayer-10);
+    mask-image: var(--bayer-10);
+  }
+  42% {
+    -webkit-mask-image: var(--bayer-8);
+    mask-image: var(--bayer-8);
+  }
+  57% {
+    -webkit-mask-image: var(--bayer-6);
+    mask-image: var(--bayer-6);
+  }
+  71% {
+    -webkit-mask-image: var(--bayer-4);
+    mask-image: var(--bayer-4);
+  }
+  85% {
+    -webkit-mask-image: var(--bayer-2);
+    mask-image: var(--bayer-2);
+  }
+  100% {
+    -webkit-mask-image: var(--bayer-1);
+    mask-image: var(--bayer-1);
+    opacity: 0;
+  }
+}
+.dither-in,
+[data-dither-in] {
+  -webkit-mask-size: var(--dither-tile) var(--dither-tile);
+  mask-size: var(--dither-tile) var(--dither-tile);
+  animation: dither-in var(--dur-4) steps(1, end) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.dither-out {
+  -webkit-mask-size: var(--dither-tile) var(--dither-tile);
+  mask-size: var(--dither-tile) var(--dither-tile);
+  animation: dither-out var(--dur-3) steps(1, end) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dither-in,
+  [data-dither-in],
+  .dither-out {
+    animation: none;
+    -webkit-mask: none;
+    mask: none;
+  }
+}
+
+/* Dithered depth: a hard offset shadow drawn as Bayer dots instead of a
+   solid slab. The host needs position and must not clip overflow. */
+.dither-depth {
+  position: relative;
+  isolation: isolate;
+}
+.dither-depth::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--depth-color, var(--depth-ink));
+  translate: var(--depth-x, var(--depth-3)) var(--depth-y, var(--depth-3));
+  -webkit-mask: var(--depth-mask, var(--bayer-8)) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+  mask: var(--depth-mask, var(--bayer-8)) 0 0 / var(--dither-tile) var(--dither-tile) repeat;
+}
+
+/* Two-ink blend: --blend-b dithers over --blend-a, densest at the bottom edge,
+   fading over --ramp-length (24 cells). */
+.dither-blend {
+  position: relative;
+  isolation: isolate;
+  background: var(--blend-a);
+}
+.dither-blend::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--blend-b);
+  -webkit-mask: var(--ramp-up) bottom / var(--dither-tile) var(--ramp-length) repeat-x;
+  mask: var(--ramp-up) bottom / var(--dither-tile) var(--ramp-length) repeat-x;
+}
+
+/* Interaction accent drawn by lib/ditherTouch.ts. :where keeps the host
+   rule at zero specificity so an existing absolute or fixed position wins. */
+:where(.dither-touch-host) {
+  position: relative;
+  isolation: isolate;
+}
+/* Text buttons keep the dots off their labels so the patch frames them. */
+:where(
+  .segmented button,
+  .library-filters button,
+  .ui-tabs-trigger,
+  .typesafe-help-button,
+  .series-icon-button
+) {
+  --touch-knockout: 1;
+}
+.dither-touch {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+/* Paper shader host. The CSS plate underneath covers the first frame and any device without WebGL. */
+.dither-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--field-back);
+}
+.dither-field::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--field-front);
+  opacity: 0.35;
+  -webkit-mask: var(--bayer8-3) 0 0 / var(--dither-tile-8) var(--dither-tile-8) repeat;
+  mask: var(--bayer8-3) 0 0 / var(--dither-tile-8) var(--dither-tile-8) repeat;
+}
+.dither-field-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.dither-field-canvas canvas {
+  image-rendering: pixelated;
+}
