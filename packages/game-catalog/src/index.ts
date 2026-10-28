@@ -47,13 +47,13 @@ export const TURN_TIME_OPTIONS_SECONDS = [30, 60, 90, 120, 150] as const;
 
 /**
  * Per-game room budgets. The lobby budget runs from room creation and is
- * unchanged from the shared default; the match budget starts at the first move
- * so lobby waiting time can never shorten a long game.
+ * unchanged from the shared default; the match budget starts when the host
+ * starts the match, so lobby waiting time can never shorten a long game.
  */
 export type GameLifecycleSpec = {
   /** Waiting-lobby budget measured from room creation. */
   lobbyMs: number;
-  /** Match budget measured from the first accepted move, exclusive of grace. */
+  /** Match budget measured from the start of the match, exclusive of grace. */
   playingMs: number;
 };
 

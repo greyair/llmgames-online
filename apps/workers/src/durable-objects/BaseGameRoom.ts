@@ -4736,7 +4736,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    * Applies the room-lifetime policy without extending it on activity.
    *
    * A waiting lobby is reclaimed at `createdAt + lobbyMs`. Once the match has
-   * started, the deadline is anchored at the first move so lobby waiting time
+   * started, the deadline is anchored at the match start so lobby waiting time
    * cannot shorten a long game.
    */
   private applyRoomLifetimePolicy(): number | null {
