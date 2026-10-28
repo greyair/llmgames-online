@@ -378,9 +378,10 @@
               "maximum": 8
             },
             "gameTotalTime": {
+              "description": "Match clock in milliseconds; each game declares its own maximum",
               "type": "integer",
               "minimum": 60000,
-              "maximum": 2700000
+              "maximum": 5400000
             },
             "turnTime": {
               "description": "Decision timer in milliseconds, from 30000 through 150000",

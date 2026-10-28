@@ -68,6 +68,16 @@ export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
   poker: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 90 * 60 * 1000 },
 };
 
+/** Largest match length any game accepts; the real cap is per game. */
+export const MAX_GAME_TOTAL_TIME_MS = Math.max(
+  ...Object.values(GAME_LIFECYCLE).map((spec) => spec.playingMs),
+);
+
+/** Longest single match a game type accepts on the room creation API. */
+export function maxGameTotalTimeMs(gameType: string): number {
+  return gameLifecycle(gameType).playingMs;
+}
+
 /** Lifecycle budget for a game, defaulting to the shared room policy. */
 export function gameLifecycle(gameType: string): GameLifecycleSpec {
   const normalized = normalizeGameType(gameType);

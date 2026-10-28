@@ -131,11 +131,13 @@
 **修正**
 
 - `AckedActionResult` 增加 `playerId` / `requestId` / `fingerprint`，因此可整体持久化。
-- 新增存储键 `ackedActionRecords`。`persistAckedActions()` 用**一次 `put({ gameState, ackedActionRecords })`** 同时写入状态与回执，两者原子。
+- 新增存储键 `ackedActionRecords`。`persistAckedActions()` 用**一次 `put({ gameState, ackedActionRecords })`** 同时写入状态与回执（单次写入内部原子，但不覆盖"动作写"与"回执写"之间的间隙，见下）。
 - 实例重建时 `restoreAckedActions()` 从存储恢复，过滤超过 TTL 的记录并按上限截断。
 - 房间清理走 `deleteAll()`，回执随之消失。
 
-**残留窗口**：动作状态的保存发生在 `dispatchAction` 内部，回执写入紧随其后。若进程恰在两次写之间崩溃，状态已生效而回执未落盘，重试仍会重新派发。此窗口只在崩溃时存在（不是实例驱逐），且方向安全：宁可重复派发被规则拒绝，也不会谎报成功。要完全消除需把动作与回执合并成单次写，属于对 `dispatchAction` 的结构性改造，留给 M3 的钩子固化阶段。
+**这不是 Exactly-once（重要）**：动作状态的保存发生在 `dispatchAction` 内部，回执写入紧随其后。若进程恰在两次写之间崩溃，状态已生效而回执未落盘，重试会被**重新派发**，由游戏规则裁决——不能假设"必然被拒绝"：例如 Poker 中同一玩家稍后再次轮到时，旧请求可能在新状态下仍属合法。缓存本身也受 5 分钟 TTL 与 64 条上限约束，超限即不再去重。真正的原子提交需要在 M3 固化动作接口时，把"动作结果 + 回执"合并为一次写。
+
+**回执写入失败不再谎报失败**：此前若 `persistAckedActions()` 抛错，动作已生效却会返回 500，客户端必然重试、反而放大重复执行风险。现在捕获该错误、记录 `idempotency_record_failed`，仍返回成功。
 
 ### 6.2 房间目录延期失败（P0-2，已修）
 
@@ -147,6 +149,7 @@
 - `extendDirectoryExpiry()` 处理三种结果：`extended`/`current` 视为成功；`missing` 先尝试用 `reserveRoomCode` + `activateRoomCode` **重建目录行**；抛错则持久化 `directoryExpiryPending` 标记。
 - `saveState()` 在标记存在时重试延期，因此 D1 短暂故障会在下一次动作/计时结算时自愈；实例重建时也会读取该标记。
 - 新增 `room_directory_repaired` / `room_directory_failed` 事件。
+- **第二轮复审补修**：原实现按 `status='active'` 判断"缺失"，若某次"预留成功、激活失败"留下了 `creating` 行，下一轮会被误判为"缺失"，而 `reserveRoomCode` 又因未过期而返回 null，导致 pending 被清除、目录永久停在 `creating`。现在 `missing` 分支先 `readRoomCode()` 读取真实行：同一 roomId 的 `creating` 行直接补做激活；其它 roomId 的占用则记录 `room_directory_conflict` 并放弃；只有真正没有行时才重新预留。
 
 ### 6.3 requestId 动作冲突（P1，已修）
 
@@ -165,12 +168,31 @@
 ### 6.6 复审未采纳的建议
 
 - **恢复"下一次保存重新校验目录"更频繁的 alarm 重试**：未采纳。改为挂在 `saveState()` 上，避免 D1 故障期间用 60 秒 alarm 抢占回合结算。
+  代价（复审指出，成立）：**没有任何后续写入的房间不会重试**。房间一旦有动作或计时结算就会走 `saveState()`；完全静止的房间只能等下一次 alarm 或实例重建。这是刻意的权衡，不另建轮询。
 - **主动认输**：维持延后，理由与复审一致（每游戏结算语义不同）。
 
 ### 6.7 复审后验证
 
 | 命令 | 结果 |
 | --- | --- |
-| `pnpm test`（workers） | 71 文件 / **588 用例**通过（复审前 581，新增 7） |
+| `pnpm test`（workers） | **592 用例**通过（第二轮复审前 588，新增 4） |
 | `pnpm lint` | 8/8 任务、anti-slop 0 error（380 文件）、strict type check、AI 规格校验全部通过 |
-| 新增测试 | `BaseGameRoom.idempotency.test.ts`（3：重启后重放、冲突拒绝、键序无关）、`BaseGameRoom.directory.test.ts`（2：失败重试、缺失重建）、`privateProjection.test.ts`（2：Codenames key、Contexto secret） |
+| 新增测试 | 第一轮：`BaseGameRoom.idempotency.test.ts`（重启重放、冲突拒绝、键序无关）、`BaseGameRoom.directory.test.ts`（失败重试、缺失重建）、`privateProjection.test.ts`（Codenames key、Contexto secret）。第二轮：目录测试新增「预留成功但激活失败后自愈」「不抢占他人房码」，幂等测试新增「回执写入失败不谎报失败」并固化非 Exactly-once 边界，`api/rooms.test.ts` 新增按游戏放开时长 |
+
+## 7. 对局时长按游戏类型放开（第二轮复审后追加）
+
+**背景**：复审指出 M2.7 里"60 分钟 Poker"无法验证，因为 `rooms.ts` 仍以全局 `ROOM_LIFETIME_MS`（45 分钟）为上限。这与 M2.1 引入的 `playingMs` 自相矛盾：预算写到了 90 分钟，入口却不让选。
+
+**修正**
+
+- `game-catalog` 新增 `maxGameTotalTimeMs(gameType)` 与 `MAX_GAME_TOTAL_TIME_MS`（当前为 90 分钟，即所有游戏声明值的上界）。
+- 创建房间 Schema 的上限改为 `MAX_GAME_TOTAL_TIME_MS`；解析出 `gameType` 后，再按该游戏的 `playingMs` 校验，超限返回 400 与明确文案（`Match length for connect4 is limited to 45 minutes`）。Schema 层只做"未知游戏类型之前"的粗筛，避免把所有游戏都锁在 45 分钟。
+- Web 创建表单的时长选项由 `MATCH_MINUTES`（10/15/20/30/45/60/90）按当前游戏过滤；`connect4` 仍是 10–45，`poker` 出现 60/90，`codenames`/`battleship`/`pokemon` 到 60。
+- MCP `room_create` 与本地 stdio 桥接同步放开上限，并在 worker 侧按游戏校验（桥接只做粗筛，权威判断留在服务端）。
+- `ai-spec.json` 重新生成：`room_create.gameTotalTime.maximum` 由 `2700000` 改为 `5400000`，并新增说明。
+
+**兼容性**：只放宽上限，原有 ≤45 分钟的请求行为不变；超过所属游戏上限的请求从"被通用 400 拒绝"变为"被具体游戏的上限拒绝"，文案更明确。
+
+**新增测试**：`api/rooms.test.ts`「accepts a longer match only where the game declares that budget」——`poker` 接受 90 分钟，`connect4` 拒绝 60 分钟并返回确切文案。
+
+**M2.7 验收口径随之更新**：可以直接验证 60/90 分钟 Poker 长局，不再需要绕开 API。

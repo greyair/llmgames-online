@@ -5,6 +5,8 @@ import type { RoomRuntime, RoomStorage } from "../../durable-objects/runtime";
 export class MemoryRoomStorage implements RoomStorage {
   private alarm: number | null = null;
   sql?: RoomStorage["sql"];
+  /** Reject any object-entries write that carries this key, simulating a crash. */
+  failWriteContaining: string | null = null;
 
   constructor(
     readonly values = new Map<string, unknown>(),
@@ -36,6 +38,9 @@ export class MemoryRoomStorage implements RoomStorage {
 
       return;
     }
+
+    if (this.failWriteContaining && Object.hasOwn(keyOrEntries, this.failWriteContaining))
+      throw new Error(`storage write rejected: ${this.failWriteContaining}`);
 
     for (const [key, entry] of Object.entries(keyOrEntries))
       this.values.set(key, this.cloneValues ? structuredClone(entry) : entry);

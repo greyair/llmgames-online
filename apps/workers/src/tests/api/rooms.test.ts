@@ -263,4 +263,36 @@ describe("room HTTP routes", () => {
       expect(harness.calls).toHaveLength(0);
     },
   );
+
+  it("accepts a longer match only where the game declares that budget", async () => {
+    const harness = roomNamespace();
+    const ninetyMinutes = 90 * 60_000;
+
+    const poker = await testApp().request(
+      "https://api.test/create",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ gameType: "poker", gameTotalTime: ninetyMinutes }),
+      },
+      envFor(harness.namespace, fakeDb()),
+    );
+
+    expect(poker.status).toBe(200);
+
+    const tooLong = await testApp().request(
+      "https://api.test/create",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ gameType: "connect4", gameTotalTime: 60 * 60_000 }),
+      },
+      envFor(roomNamespace().namespace, fakeDb()),
+    );
+
+    expect(tooLong.status).toBe(400);
+    expect(await tooLong.json()).toEqual({
+      error: "Match length for connect4 is limited to 45 minutes",
+    });
+  });
 });

@@ -3,7 +3,7 @@ import { isWireObject, type WireValue } from "@llmgames/game-catalog";
 import { isNumber, isString } from "@llmgames/game-catalog";
 
 import { receiveClock } from "@/game-ui/useMatchClock";
-import { isGameEnabled } from "@llmgames/game-catalog";
+import { isGameEnabled, maxGameTotalTimeMs } from "@llmgames/game-catalog";
 import { GameMark } from "./GameMark";
 import { GameGlyph } from "./Library";
 import { LobbySetup } from "@/game-ui/LobbySetup";
@@ -120,6 +120,9 @@ function Stage({
 
 const CONNECTION_RECOVERY_DELAY = 4000;
 
+/** Match lengths offered in the lobby; filtered by each game's own maximum. */
+const MATCH_MINUTES = [10, 15, 20, 30, 45, 60, 90];
+
 type RoomLink = { roomId: string; roomCode: string; gameType: string };
 
 export function Room({
@@ -172,6 +175,15 @@ export function Room({
   const [replay, setReplay] = useState<RewatchPayload | null>(null);
   const [frame, setFrame] = useState<number | null>(null);
   const socket = useRef<GameSocket | null>(null);
+
+  // Each game declares how long its matches may run, so the picker adapts.
+  const minuteChoices = MATCH_MINUTES.filter(
+    (value) => value * 60_000 <= maxGameTotalTimeMs(gameType),
+  );
+
+  const chosenMinutes = minuteChoices.includes(minutes)
+    ? minutes
+    : Math.max(...minuteChoices, 10);
 
   const leaving = useRef(false),
     terminalReceived = useRef(false);
@@ -373,7 +385,7 @@ export function Room({
         create
           ? await createGameRoom({
               gameType,
-              gameTotalTime: minutes * 60000,
+              gameTotalTime: chosenMinutes * 60000,
               turnTime: seconds * 1000,
             })
           : await joinGameRoom({ roomCode: code.trim().toUpperCase() }),
@@ -637,8 +649,8 @@ export function Room({
                     <Choices
                       legend="Match length"
                       name="minutes"
-                      values={[10, 15, 20, 30, 45]}
-                      value={minutes}
+                      values={minuteChoices}
+                      value={chosenMinutes}
                       suffix="m"
                       onChange={setMinutes}
                     />

@@ -48,6 +48,8 @@ import {
   instructionsForGame,
   isGameEnabled,
   listGameToolsCatalog,
+  maxGameTotalTimeMs,
+  MAX_GAME_TOTAL_TIME_MS,
   ROOM_LIFETIME_MS,
   TURN_TIME_MAX_MS,
   TURN_TIME_MIN_MS,
@@ -863,7 +865,13 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
         controllerId: controllerIdSchema,
         gameType: z.string().min(1).max(40).default("connect4").describe(availableGames),
         maxPlayers: z.number().int().min(1).max(8).optional(),
-        gameTotalTime: z.number().int().min(60_000).max(ROOM_LIFETIME_MS).optional(),
+        gameTotalTime: z
+          .number()
+          .int()
+          .min(60_000)
+          .max(MAX_GAME_TOTAL_TIME_MS)
+          .optional()
+          .describe("Match clock in milliseconds; each game declares its own maximum"),
         turnTime: z
           .number()
           .int()
@@ -885,6 +893,13 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
         if (!isGameEnabled(gt)) {
           throw new Error(`Game type "${gt}" is currently unavailable.`);
         }
+
+        if (gameTotalTime !== undefined && gameTotalTime > maxGameTotalTimeMs(gt))
+          throw new Error(
+            `Match length for ${gt} is limited to ${Math.round(
+              maxGameTotalTimeMs(gt) / 60_000,
+            )} minutes.`,
+          );
 
         let roomCode = "";
         let roomId = "";

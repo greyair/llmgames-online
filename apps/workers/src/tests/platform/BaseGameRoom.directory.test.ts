@@ -114,4 +114,72 @@ describe("room directory extension", () => {
 
     expect(row).toMatchObject({ expires_at: started.expiresAt, status: "active" });
   });
+
+  it("finishes an activation that failed after the reservation succeeded", async () => {
+    const test = harness();
+    await test.state.initialized;
+    await post(test.room, "/create", { hostId: "host", hostName: "Host", roomCode: "AC2345" });
+    await post(test.room, "/agent/join", { playerId: "guest", assignedCodename: "SwiftAnchor" });
+
+    const db = test.env.DB;
+    const originalPrepare = db.prepare.bind(db);
+
+    // The row is reserved, then the status update fails: a 'creating' row remains.
+    const spy = vi.spyOn(db, "prepare").mockImplementation((query) => {
+      if (query.includes("SET status = 'active'")) throw new Error("D1 unavailable");
+
+      return originalPrepare(query);
+    });
+
+    try {
+      expect((await post(test.room, "/agent/start", { playerId: "host" })).status).toBe(200);
+    } finally {
+      spy.mockRestore();
+    }
+
+    const stuck = await test.env.DB.prepare(
+      "SELECT status FROM active_rooms WHERE room_code = 'AC2345'",
+    ).first<{ status: string }>();
+
+    expect(stuck?.status).toBe("creating");
+    expect(test.storage.get("directoryExpiryPending")).toBe(true);
+
+    await post(test.room, "/agent/action", {
+      playerId: "host",
+      actionType: "drop_disc",
+      data: { col: 0 },
+    });
+
+    const started = await snapshot(test.storage);
+
+    const repaired = await test.env.DB.prepare(
+      "SELECT status, expires_at FROM active_rooms WHERE room_code = 'AC2345'",
+    ).first<{ status: string; expires_at: number }>();
+
+    expect(repaired).toMatchObject({ status: "active", expires_at: started.expiresAt });
+    expect(test.storage.get("directoryExpiryPending")).toBe(false);
+  });
+
+  it("never takes over a code owned by another room", async () => {
+    const test = harness();
+    await test.state.initialized;
+    await post(test.room, "/create", { hostId: "host", hostName: "Host", roomCode: "AD2345" });
+    await post(test.room, "/agent/join", { playerId: "guest", assignedCodename: "SwiftAnchor" });
+
+    // A different room, with the same code, still owns the directory entry.
+    await test.env.DB.prepare(
+      `INSERT INTO active_rooms (room_code, game_type, room_id, status, expires_at, created_at)
+       VALUES ('AD2345', 'poker', 'poker-AD2345', 'active', ?, ?)`,
+    )
+      .bind(Date.now() + 600_000, Date.now())
+      .run();
+
+    expect((await post(test.room, "/agent/start", { playerId: "host" })).status).toBe(200);
+
+    const owned = await test.env.DB.prepare(
+      "SELECT room_id, status FROM active_rooms WHERE room_code = 'AD2345'",
+    ).first<{ room_id: string; status: string }>();
+
+    expect(owned).toMatchObject({ room_id: "poker-AD2345", status: "active" });
+  });
 });

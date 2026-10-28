@@ -14,6 +14,7 @@ import {
   getGameToolSchema,
   isGameEnabled,
   listGameToolsCatalog,
+  MAX_GAME_TOTAL_TIME_MS,
   ROOM_LIFETIME_MS,
   TURN_TIME_MAX_MS,
   TURN_TIME_MIN_MS,
@@ -159,7 +160,13 @@ Do not create a game-playing loop, script, background task, recursion, or schedu
           .boolean()
           .optional()
           .describe("Save room details for reconnecting after restart, default false"),
-        gameTotalTime: z.number().int().min(60_000).max(ROOM_LIFETIME_MS).optional(),
+        gameTotalTime: z
+          .number()
+          .int()
+          .min(60_000)
+          .max(MAX_GAME_TOTAL_TIME_MS)
+          .optional()
+          .describe("Match clock in milliseconds; the server enforces each game's maximum"),
         turnTime: z.number().int().min(TURN_TIME_MIN_MS).max(TURN_TIME_MAX_MS).optional(),
       },
     },

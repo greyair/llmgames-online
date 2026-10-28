@@ -31,6 +31,7 @@ import { randomInt } from "../lib/csprng";
 import {
   activateRoomCode,
   extendRoomCode,
+  readRoomCode,
   releaseRoomCode,
   reserveRoomCode,
 } from "../lib/activeRooms";
@@ -2867,7 +2868,14 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       this.ackedActions.delete(oldest.value);
     }
 
-    await this.persistAckedActions();
+    try {
+      await this.persistAckedActions();
+    } catch (error) {
+      // The action is already applied. A failed receipt must not report failure,
+      // because the caller would retry a move the game has already accepted.
+      console.error(`${this.roomLabel}: idempotency record failed`, error);
+      logEvent("idempotency_record_failed", { roomType: this.gameState?.type });
+    }
   }
 
   /** Restore durable acknowledgements after an instance restart. */
@@ -4791,15 +4799,37 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       // deadline; only a missing row needs repair.
       if (result !== "missing") return this.clearDirectoryPending();
 
-      const reservation = await reserveRoomCode(this.env.DB, gameType, game.roomCode, game.expiresAt);
+      const existing = await readRoomCode(this.env.DB, game.roomCode);
 
-      if (!reservation) {
+      if (existing && existing.roomId !== roomId) {
         // Another live room owns this code now; never republish someone else's row.
+        logEvent("room_directory_conflict", { roomType: game.type });
+
         return this.clearDirectoryPending();
       }
 
+      // An active row is already past this repair; nothing left to do.
+      if (existing?.status === "active") return this.clearDirectoryPending();
+
+      if (!existing) {
+        const reservation = await reserveRoomCode(
+          this.env.DB,
+          gameType,
+          game.roomCode,
+          game.expiresAt,
+        );
+
+        // A lost race to reserve means the next save starts over from a fresh read.
+        if (!reservation) throw new Error("Room code reservation was taken by another room");
+      }
+
+      // Finish an activation that an earlier failure left half done, or activate
+      // the reservation taken just above.
       await activateRoomCode(this.env.DB, game.roomCode, roomId, game.expiresAt);
-      logEvent("room_directory_repaired", { roomType: game.type });
+      logEvent("room_directory_repaired", {
+        roomType: game.type,
+        stage: existing ? "activate" : "reserve",
+      });
 
       return this.clearDirectoryPending();
     } catch (error) {

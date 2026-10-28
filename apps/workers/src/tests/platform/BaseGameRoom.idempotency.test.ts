@@ -1,7 +1,7 @@
 import { roomTestEnv } from "../fixtures/room-env";
 import { MemoryRoomRuntime } from "../fixtures/memory-runtime";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Connect4Room } from "../../durable-objects/Connect4Room";
 import type { Env } from "../../types";
 
@@ -18,6 +18,15 @@ function harness(env: Env = roomTestEnv()) {
   const newRoom = () => new IdempotencyRoom(state, env);
 
   return { room: newRoom(), recreate: newRoom, state };
+}
+
+/** Fail only the receipt write, as a crash between the two writes would. */
+function failReceiptWrites(state: MemoryRoomRuntime): () => void {
+  state.storage.failWriteContaining = "ackedActionRecords";
+
+  return () => {
+    state.storage.failWriteContaining = null;
+  };
 }
 
 function post<T>(room: IdempotencyRoom, route: string, body: T): Promise<Response> {
@@ -54,6 +63,14 @@ async function seatTwoPlayers(room: IdempotencyRoom): Promise<void> {
 }
 
 const emptyBoard = () => Array.from({ length: 6 }, () => Array(7).fill(0));
+
+function withDisc(col: number, player: number) {
+  const board = emptyBoard();
+
+  board[5]![col] = player;
+
+  return board;
+}
 
 describe("durable action idempotency", () => {
   it("recognises a retried request after the Durable Object restarts", async () => {
@@ -146,5 +163,44 @@ describe("durable action idempotency", () => {
 
     expect(retried.status).toBe(200);
     expect(payload.replayed).toBe(true);
+  });
+
+  it("keeps the applied action when the receipt cannot be written", async () => {
+    const test = harness();
+    await test.state.initialized;
+    await seatTwoPlayers(test.room);
+
+    const restoreWrites = failReceiptWrites(test.state);
+
+    // A crash between the state write and the receipt write loses the receipt.
+    const first = await post(test.room, "/agent/action", {
+      playerId: "host",
+      actionType: "drop_disc",
+      data: { col: 0 },
+      requestId: "unpersisted",
+    });
+
+    restoreWrites();
+
+    // The move is applied, so the caller must not be told it failed.
+    expect(first.status).toBe(200);
+    expect(await board(test.room)).toEqual(withDisc(0, 1));
+
+    // A restart has no receipt for it: the retry is dispatched again and the
+    // game rules decide. This is the documented boundary, not exactly-once.
+    const restarted = test.recreate();
+    await test.state.initialized;
+
+    const retried = await post(restarted, "/agent/action", {
+      playerId: "host",
+      actionType: "drop_disc",
+      data: { col: 0 },
+      requestId: "unpersisted",
+    });
+
+    const payload = await retried.json<{ replayed?: boolean }>();
+
+    expect(payload.replayed).toBeUndefined();
+    expect(await board(restarted)).toEqual(withDisc(0, 1));
   });
 });

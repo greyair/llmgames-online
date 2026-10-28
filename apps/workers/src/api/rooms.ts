@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
   gameRouteSlug,
   isGameEnabled,
+  maxGameTotalTimeMs,
+  MAX_GAME_TOTAL_TIME_MS,
   ROOM_LIFETIME_MS,
   TURN_TIME_MAX_MS,
   TURN_TIME_MIN_MS,
@@ -28,7 +30,7 @@ const createSchema = z
   .object({
     gameType: z.string().min(1).max(40),
     maxPlayers: z.number().int().min(1).max(8).optional(),
-    gameTotalTime: z.number().int().min(60_000).max(ROOM_LIFETIME_MS).optional(),
+    gameTotalTime: z.number().int().min(60_000).max(MAX_GAME_TOTAL_TIME_MS).optional(),
     turnTime: z.number().int().min(TURN_TIME_MIN_MS).max(TURN_TIME_MAX_MS).optional(),
     minBet: z.number().int().positive().max(1_000_000).optional(),
     maxBet: z.number().int().positive().max(10_000_000).optional(),
@@ -84,6 +86,23 @@ roomsRoutes.post("/create", async (c) => {
   if (!gameType) return c.json({ error: "Unsupported game type" }, 400);
 
   if (!isGameEnabled(gameType)) return c.json({ error: "Game type is currently unavailable" }, 404);
+
+  // Each game declares its own maximum match length; the shared schema above only
+  // bounds the request before the game type is known.
+  const requestedTotalTime = parsed.data.gameTotalTime;
+
+  if (
+    requestedTotalTime !== undefined &&
+    requestedTotalTime > maxGameTotalTimeMs(gameType)
+  )
+    return c.json(
+      {
+        error: `Match length for ${gameType} is limited to ${Math.round(
+          maxGameTotalTimeMs(gameType) / 60_000,
+        )} minutes`,
+      },
+      400,
+    );
 
   const user = c.get("user")!;
   const namespace = getRoomNamespace(c.env, gameType);

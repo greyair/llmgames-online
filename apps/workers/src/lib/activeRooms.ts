@@ -88,6 +88,27 @@ export async function activateRoomCode(
   }
 }
 
+/**
+ * Read one directory row regardless of status, so a room can finish an
+ * activation that was interrupted between reservation and activation.
+ */
+export async function readRoomCode(
+  db: D1Database,
+  roomCode: string,
+): Promise<ActiveRoomEntry | null> {
+  const row = await db
+    .prepare(
+      `SELECT room_code, game_type, room_id, status, expires_at, created_at
+       FROM active_rooms
+       WHERE room_code = ?
+       LIMIT 1`,
+    )
+    .bind(roomCode.toUpperCase())
+    .first<ActiveRoomRow>();
+
+  return row ? entryFromRow(row) : null;
+}
+
 /** Why a directory extension did or did not change the row. */
 export type RoomExtendResult = "extended" | "current" | "missing";
 
