@@ -88,6 +88,29 @@ export async function activateRoomCode(
   }
 }
 
+/**
+ * Publish a new expiry for an active room. Phase changes extend a lobby budget
+ * into a match budget, and cleanup still releases the row by exact expiry.
+ */
+export async function extendRoomCode(
+  db: D1Database,
+  roomCode: string,
+  roomId: string,
+  expiresAt: number,
+): Promise<boolean> {
+  const extended = await db
+    .prepare(
+      `UPDATE active_rooms
+       SET expires_at = ?
+       WHERE room_code = ? AND room_id = ? AND status = 'active'
+       RETURNING room_code`,
+    )
+    .bind(expiresAt, roomCode.toUpperCase(), roomId)
+    .first<{ room_code: string }>();
+
+  return extended !== null;
+}
+
 /** Resolve a bare room code without touching or joining a game Durable Object. */
 export async function resolveRoomCode(
   db: D1Database,

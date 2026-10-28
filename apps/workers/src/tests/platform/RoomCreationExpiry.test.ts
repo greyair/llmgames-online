@@ -3,7 +3,12 @@ import { z } from "zod";
 
 import { MemoryRoomRuntime } from "../fixtures/memory-runtime";
 import type { RoomRuntime } from "../../durable-objects/runtime";
-import { ROOM_INACTIVITY_MS, ROOM_LIFETIME_MS, TURN_TIME_MIN_MS } from "@llmgames/game-catalog";
+import {
+  gameLifecycle,
+  ROOM_INACTIVITY_MS,
+  ROOM_LIFETIME_MS,
+  TURN_TIME_MIN_MS,
+} from "@llmgames/game-catalog";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../../types";
 import { BattleshipRoom } from "../../durable-objects/BattleshipRoom";
@@ -76,5 +81,16 @@ describe("room creation expiry", () => {
     expect(stored.timerConfig.turnTime).toBe(
       gameType === "contexto" ? 10 * 60 * 1000 : TURN_TIME_MIN_MS,
     );
+  });
+});
+
+describe("per-game lifecycle budgets", () => {
+  it("gives long games a match budget that no lobby wait can shorten", () => {
+    const poker = gameLifecycle("poker");
+    const connect4 = gameLifecycle("connect4");
+
+    expect(poker.playingMs).toBeGreaterThan(connect4.playingMs);
+    expect(poker.lobbyMs).toBe(ROOM_LIFETIME_MS);
+    expect(gameLifecycle("not-a-game").playingMs).toBe(ROOM_LIFETIME_MS);
   });
 });

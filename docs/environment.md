@@ -69,6 +69,7 @@ local development or your ignored `wrangler-prod.json` for production.
 | `JEV_USER_DAILY_CALL_LIMIT` | Wrangler vars | Per-host daily site-funded Jev budget. Examples set `0`. Personal keys use their own account limits. |
 | `JEV_CREDENTIAL_KEYS` | Secret | Optional version-to-key JSON map for personal Jev and authenticated webhook credentials. Each key decodes to exactly 32 bytes. |
 | `JEV_CREDENTIAL_KEY_VERSION` | Wrangler vars | Version used to encrypt new credentials; defaults to `v1`. Keep old keys while their encrypted records still exist. |
+| `OPERATOR_USER_IDS` | Wrangler vars | Optional comma-separated user ids allowed to read `GET /api/v1/diagnostics`. Unset keeps the endpoint at 404. |
 | `TWITCH_CLIENT_ID` | Legacy only | Streaming is retired; the operator binding does not use this value. Leave unset. |
 | `TWITCH_BROADCASTER_ID` | Legacy only | Streaming is retired; the operator binding does not use this value. Leave unset. |
 | `TWITCH_CLIENT_SECRET` | Legacy only | Streaming is retired; the operator binding does not use this value. Leave unset. |

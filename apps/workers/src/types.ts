@@ -50,6 +50,8 @@ export interface Env {
   /** Zero disables paid Jev decisions. Defaults: 1000 globally, 200 per host/day. */
   JEV_DAILY_CALL_LIMIT?: string;
   JEV_USER_DAILY_CALL_LIMIT?: string;
+  /** Comma-separated user ids allowed to read /api/v1/diagnostics. Unset disables it. */
+  OPERATOR_USER_IDS?: string;
   ENCRYPTION_SECRET: string;
   GOOGLE_CLIENT_SECRET: string;
   TURNSTILE_SECRET_KEY: string;
@@ -114,6 +116,8 @@ export type ServerMessage =
         message?: string;
         state?: unknown;
         acceptedRevision?: number;
+        /** The request was already applied and its outcome replayed. */
+        replayed?: boolean;
       };
     }
   | {

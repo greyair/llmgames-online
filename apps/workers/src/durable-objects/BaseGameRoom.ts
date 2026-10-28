@@ -11,8 +11,8 @@ import { isBoolean, isFunction, isNumber, isObject, isString } from "@llmgames/g
 import {
   compactAgentDecisionState,
   battleshipAgentState,
+  gameLifecycle,
   ROOM_INACTIVITY_MS,
-  ROOM_LIFETIME_MS,
   TURN_TIME_MAX_MS,
   TURN_TIME_MIN_MS,
 } from "@llmgames/game-catalog";
@@ -28,10 +28,11 @@ import type {
 } from "./types";
 import { channelLabel, generateUniqueCodename, isCodenameFormat } from "../lib/codenames";
 import { randomInt } from "../lib/csprng";
-import { releaseRoomCode } from "../lib/activeRooms";
+import { releaseRoomCode, extendRoomCode } from "../lib/activeRooms";
 import { broadcastProjection } from "../lib/broadcastProjection";
 import { normalizeGameType, roomIdFor } from "../lib/roomRouting";
 import { buildCompletedGameArchive, persistCompletedGameArchive } from "../lib/gameLogs";
+import { logEvent } from "../lib/observability";
 import { ensureLegacyMcpRoomPlayer } from "../auth/mcpRoomPlayers";
 import {
   claimSponsoredJevTrial,
@@ -66,8 +67,20 @@ export const MAX_REWATCH_FRAME_BYTES = 256 * 1024;
 
 export const FINAL_STATE_DELIVERY_GRACE_MS = 30_000;
 
+/**
+ * A match keeps its room alive past the match clock so the timeout result,
+ * final delivery and archive retry can finish before the room is reclaimed.
+ */
+export const MATCH_END_GRACE_MS = 5 * 60_000;
+
 /** Accept an otherwise legal turn action for up to two seconds after UI zero. */
 export const TURN_EXPIRY_GRACE_MS = 2_000;
+
+/** How long a repeated requestId replays its original outcome instead of acting. */
+export const ACTION_RESULT_TTL_MS = 5 * 60_000;
+
+/** Bounded per-room memory of acknowledged requests (oldest entries are dropped). */
+export const ACTION_RESULT_MEMORY = 64;
 
 const UTF8_ENCODER = new TextEncoder();
 
@@ -148,6 +161,11 @@ function optionalNumber(value: WireObject, key: string): number | undefined {
   const field = objectValue(value, key);
 
   return isNumber(field) && Number.isFinite(field) ? field : undefined;
+}
+
+/** Optional caller-supplied id that lets a retried request replay its outcome. */
+function validRequestId(value: WireValue): string | undefined {
+  return isString(value) && value.length > 0 && value.length <= 64 ? value : undefined;
 }
 
 function parseRoomCreationConfig<T>(value: T): GameRoomConfig | null {
@@ -289,6 +307,14 @@ interface WsSessionAttachment {
 
 /** Soft cap so a viral room link cannot unbounded-grow spectator lists. */
 const MAX_SPECTATORS = 32;
+
+/** Outcome of one addressed action request, replayed instead of re-dispatching. */
+interface AckedActionResult {
+  ok: boolean;
+  message?: string;
+  acceptedRevision: number;
+  at: number;
+}
 
 export interface WaitForTurnResult {
   timedOut: boolean;
@@ -452,6 +478,9 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   private jev: JevSeat | null = null;
   private jevInFlight = false;
 
+  /** Acknowledged (playerId, requestId) outcomes; see ACTION_RESULT_TTL_MS. */
+  private ackedActions = new Map<string, AckedActionResult>();
+
   /** Used for log prefixes, e.g. "Connect4Room" */
   protected abstract readonly roomLabel: string;
 
@@ -602,6 +631,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     this.gameState.turnState.currentPlayerId = null;
     this.gameState.updatedAt = now;
     this.stopTimers();
+    logEvent("room_lifecycle", {
+      phase: "playing",
+      reason: "room_expired",
+      roomType: this.gameState.type,
+      players: this.gameState.players.length,
+    });
     this.recordEvent("game_ended", { reason: "room_expired" });
     await this.saveState();
     this.broadcastProjected("game_ended", { reason: "room_expired" });
@@ -851,6 +886,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   private agentActionErrorResponse(
     playerId: string | undefined,
     rejection: ActionRejection,
+    extra?: { replayed?: boolean },
   ): Response {
     const state =
       playerId && this.gameState && this.isRoomMember(playerId)
@@ -863,15 +899,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     const legalActions = parsed.success ? (parsed.data.you?.legalActions ?? []) : [];
 
-    return this.jsonResponse(
-      {
-        ok: false,
-        error: publicActionError(rejection),
-        state,
-        legalActions,
-      },
-      rejection.httpStatus,
-    );
+    const error = publicActionError(rejection);
+
+    if (extra?.replayed)
+      return this.jsonResponse({ ok: false, replayed: true, error, state, legalActions }, rejection.httpStatus);
+
+    return this.jsonResponse({ ok: false, error, state, legalActions }, rejection.httpStatus);
   }
 
   private initializeFinalDeliveryRecipients(): void {
@@ -1319,6 +1352,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         playerId: isString(requestedPlayerId) ? requestedPlayerId : undefined,
         actionType: isString(requestedAction) ? requestedAction : undefined,
         data: raw ? objectValue(raw, "data") : undefined,
+        requestId: validRequestId(raw ? objectValue(raw, "requestId") : undefined),
       };
 
       actionType = body.actionType ?? actionType;
@@ -1363,14 +1397,42 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       this.terminalResponseHolds += 1;
       holdsTerminalResponse = true;
 
+      const replayed = this.replayAckedAction(body.playerId, body.requestId);
+
+      if (replayed && !replayed.ok)
+        return this.agentActionErrorResponse(
+          body.playerId,
+          classifyActionError(replayed.message ?? "Rejected", body.actionType),
+          { replayed: true },
+        );
+
+      if (replayed)
+        return this.jsonResponse({
+          ok: true,
+          replayed: true,
+          acceptedRevision: replayed.acceptedRevision,
+          state: this.buildAgentView(body.playerId),
+        });
+
       const err = await this.dispatchAction(player, {
         actionType: body.actionType,
         data: body.data ?? {},
       });
 
       if (err) {
+        this.rememberAckedAction(body.playerId, body.requestId, {
+          ok: false,
+          message: err.message,
+          acceptedRevision: this.eventSeq,
+        });
+
         return this.agentActionErrorResponse(body.playerId, err);
       }
+
+      this.rememberAckedAction(body.playerId, body.requestId, {
+        ok: true,
+        acceptedRevision: this.eventSeq,
+      });
 
       const state = this.buildAgentView(body.playerId);
       const ended = this.gameState.status === "ended";
@@ -1391,6 +1453,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       return response;
     } catch (e) {
       console.error(`${this.roomLabel}: agent action failed`, e);
+      logEvent("mcp_action_failed", {
+        stage: "dispatch",
+        actionType,
+        roomType: this.gameState?.type,
+      });
 
       return this.agentActionErrorResponse(playerId, internalActionError(actionType));
     } finally {
@@ -1401,10 +1468,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     }
   }
 
-  /** POST /agent/start — body: { playerId } (host only) */
+  /** POST /agent/start — body: { playerId, requestId? } (host only) */
   private async handleAgentStart(request: Request): Promise<Response> {
     const actionType = "start_game";
     let playerId: string | undefined;
+    let requestId: string | undefined;
 
     try {
       const input = wireValueSchema.parse(await request.json());
@@ -1413,9 +1481,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
       const body = {
         playerId: isString(requestedPlayerId) ? requestedPlayerId : undefined,
+        requestId: validRequestId(raw ? objectValue(raw, "requestId") : undefined),
       };
 
       playerId = body.playerId;
+      requestId = body.requestId;
 
       if (!body.playerId) {
         return this.agentActionErrorResponse(
@@ -1440,7 +1510,23 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
       if (this.gameState.series && this.gameState.status === "playing")
         return this.jsonResponse({ ok: true });
+
+      const replayed = this.replayAckedAction(body.playerId, body.requestId);
+
+      if (replayed)
+        return this.jsonResponse({
+          ok: replayed.ok,
+          replayed: true,
+          acceptedRevision: replayed.acceptedRevision,
+          state: this.buildAgentView(body.playerId),
+        });
+
       await this.startGame();
+
+      this.rememberAckedAction(body.playerId, body.requestId, {
+        ok: true,
+        acceptedRevision: this.eventSeq,
+      });
 
       return this.jsonResponse({
         ok: true,
@@ -1448,6 +1534,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       });
     } catch (e) {
       if (e instanceof ExpectedGameStartError) {
+        this.rememberAckedAction(playerId, requestId, {
+          ok: false,
+          message: e.message,
+          acceptedRevision: this.eventSeq,
+        });
+
         return this.agentActionErrorResponse(playerId, classifyActionError(e.message, actionType));
       }
 
@@ -2494,7 +2586,36 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           const payload =
             msg.type === "action" ? msg.payload : { actionType: "start_game", data: {} };
 
+          const replayed = this.replayAckedAction(player.id, requestId);
+
+          if (replayed && requestId) {
+            this.sendTo(ws, {
+              type: "action_result",
+              payload: {
+                requestId,
+                ok: replayed.ok,
+                replayed: true,
+                ...(replayed.ok
+                  ? {
+                      state: this.buildClientView(player.id),
+                      acceptedRevision: replayed.acceptedRevision,
+                    }
+                  : { message: replayed.message }),
+              },
+            });
+
+            break;
+          }
+
           const error = await this.dispatchAction(player, payload, false);
+
+          this.rememberAckedAction(
+            player.id,
+            requestId,
+            error
+              ? { ok: false, message: error.message, acceptedRevision: this.eventSeq }
+              : { ok: true, acceptedRevision: this.eventSeq },
+          );
 
           if (requestId) {
             this.sendTo(ws, {
@@ -2606,6 +2727,49 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   }
 
   // ─── Action dispatch ───────────────────────────────────────────
+
+  /**
+   * Resolve a previously acknowledged request. A retried request must replay its
+   * original outcome: re-dispatching could apply a legal-looking intent twice.
+   */
+  private replayAckedAction(
+    playerId: string,
+    requestId: string | undefined,
+  ): AckedActionResult | undefined {
+    if (!requestId) return undefined;
+
+    const key = `${playerId}:${requestId}`;
+    const acked = this.ackedActions.get(key);
+
+    if (!acked) return undefined;
+
+    if (acked.at + ACTION_RESULT_TTL_MS <= Date.now()) {
+      this.ackedActions.delete(key);
+
+      return undefined;
+    }
+
+    return acked;
+  }
+
+  private rememberAckedAction(
+    playerId: string | undefined,
+    requestId: string | undefined,
+    result: Omit<AckedActionResult, "at">,
+  ): void {
+    if (!playerId || !requestId) return;
+
+    const key = `${playerId}:${requestId}`;
+    this.ackedActions.delete(key);
+    this.ackedActions.set(key, { ...result, at: Date.now() });
+
+    while (this.ackedActions.size > ACTION_RESULT_MEMORY) {
+      const oldest = this.ackedActions.keys().next();
+
+      if (oldest.done) break;
+      this.ackedActions.delete(oldest.value);
+    }
+  }
 
   /**
    * Routes an incoming `action` message to either {@link handleSharedAction}
@@ -3355,6 +3519,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     }
 
     this.gameState.status = "playing";
+    this.gameState.playStartedAt = Date.now();
     this.gameState.gameTimeRemaining = this.gameState.timerConfig.gameTotalTime;
     this.gameState.turnState = {
       ...this.gameState.turnState,
@@ -3377,6 +3542,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     await this.captureBroadcastPermission();
     this.startTimers();
     await this.saveState();
+    await this.extendDirectoryExpiry();
     await this.markMeaningfulActivity();
     this.recordEvent("game_started", {
       currentPlayerId: this.gameState.turnState.currentPlayerId,
@@ -4410,6 +4576,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     if (!db || !bucket) {
       console.error(`${this.roomLabel}: incomplete game-log bindings`);
+      logEvent("archive_failed", { stage: "bindings", roomType: this.gameState.type });
 
       return Promise.resolve(false);
     }
@@ -4425,6 +4592,13 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       .then(() => true)
       .catch((error) => {
         console.error(`${this.roomLabel}: game-log archive failed`, error);
+        logEvent("archive_failed", {
+          stage: "persist",
+          roomType: archive.document.gameType,
+          gameId: archive.document.gameId,
+          endReason: archive.document.endReason,
+          events: archive.document.events.length,
+        });
 
         return false;
       });
@@ -4438,17 +4612,29 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   }
 
   /**
-   * Applies the shared room-lifetime policy without extending it on activity.
-   * The deadline is always derived from the original creation timestamp.
+   * Applies the room-lifetime policy without extending it on activity.
+   *
+   * A waiting lobby is reclaimed at `createdAt + lobbyMs`. Once the match has
+   * started, the deadline is anchored at the first move so lobby waiting time
+   * cannot shorten a long game.
    */
   private applyRoomLifetimePolicy(): number | null {
     if (!this.gameState) return null;
 
-    const expiresAt = this.gameState.createdAt + ROOM_LIFETIME_MS;
+    const lifecycle = gameLifecycle(this.gameState.type);
+    const playStartedAt = this.gameState.playStartedAt;
+    const playing = this.gameState.status === "playing" && playStartedAt !== undefined;
+
+    const expiresAt = playing
+      ? playStartedAt +
+        Math.min(this.gameState.timerConfig.gameTotalTime, lifecycle.playingMs) +
+        MATCH_END_GRACE_MS
+      : this.gameState.createdAt + lifecycle.lobbyMs;
+
     this.gameState.expiresAt = expiresAt;
     this.gameState.timerConfig.gameTotalTime = Math.min(
       this.gameState.timerConfig.gameTotalTime,
-      ROOM_LIFETIME_MS,
+      lifecycle.playingMs,
     );
     this.gameState.gameTimeRemaining = Math.min(
       this.gameState.gameTimeRemaining,
@@ -4456,6 +4642,26 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     );
 
     return expiresAt;
+  }
+
+  /**
+   * Keep the D1 room directory in step with a phase change. The row is released
+   * by exact expiry during cleanup, so the two timestamps must always match.
+   */
+  private async extendDirectoryExpiry(): Promise<void> {
+    const game = this.gameState;
+    const gameType = game ? normalizeGameType(game.type) : null;
+
+    if (!game || !gameType || !this.env.DB) return;
+
+    try {
+      await extendRoomCode(this.env.DB, game.roomCode, roomIdFor(gameType, game.roomCode), game.expiresAt);
+    } catch (error) {
+      // A stale directory row hides a live room from /rooms/join; the room itself
+      // keeps running, and the next save retries through this same path.
+      console.error(`${this.roomLabel}: room directory extension failed`, error);
+      logEvent("room_directory_failed", { stage: "extend", roomType: game.type });
+    }
   }
 
   /** Persist a newly created room and start its inactivity deadline. */
@@ -4743,6 +4949,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   /** End and purge a room whose players made no meaningful progress for five minutes. */
   private async expireInactiveRoom(): Promise<void> {
     if (!this.gameState || this.gameState.status === "ended") return;
+    logEvent("room_lifecycle", {
+      phase: this.gameState.status,
+      reason: "room_inactive",
+      roomType: this.gameState.type,
+      players: this.gameState.players.length,
+    });
     this.gameState.status = "ended";
     this.gameState.turnState.phase = "ended";
     this.gameState.turnState.currentPlayerId = null;
@@ -4862,6 +5074,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         }
       } catch (error) {
         console.error(`${this.roomLabel}: final broadcast snapshot failed; retrying`, error);
+        logEvent("archive_failed", { stage: "directory", roomType: this.gameState.type });
         await this.state.storage.setAlarm(Date.now() + 60_000);
 
         return;
@@ -4911,6 +5124,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     this.terminalBroadcastSent = false;
     this.terminalResponseHolds = 0;
     this.archivePersist = null;
+    this.ackedActions.clear();
     await this.state.storage.deleteAlarm();
     await this.state.storage.deleteAll();
     this.historyReady = false;
@@ -4925,6 +5139,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         );
       } catch (error) {
         console.error("Failed to release active room code", error);
+        logEvent("room_directory_failed", { stage: "release", roomType: directoryGameType });
       }
     }
   }

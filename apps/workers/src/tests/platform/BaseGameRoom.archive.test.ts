@@ -81,7 +81,7 @@ class ArchiveRoom extends BaseGameRoom<BaseGameState & { winner: string | null }
   }
 }
 
-function harness(failFirstUpload = false, failFirstDirectory = false) {
+function harness(failFirstUpload = false, failFirstDirectory = false, failFirstIndex = false) {
   const storage = new Map<string, unknown>();
 
   const sql = new SqliteRoomSql();
@@ -115,6 +115,15 @@ function harness(failFirstUpload = false, failFirstDirectory = false) {
     }
 
     return originalPrepare(query);
+  });
+  let indexAttempts = 0;
+  const originalBatch = db.batch.bind(db);
+  vi.spyOn(db, "batch").mockImplementation(async (statements) => {
+    indexAttempts++;
+
+    if (failFirstIndex && indexAttempts === 1) throw new Error("D1 index unavailable");
+
+    return originalBatch(statements);
   });
   const env = testEnv({ DB: db, GAME_LOGS: bucket });
 
@@ -254,5 +263,30 @@ describe("completed game archive lifecycle", () => {
       expect.any(Error),
     );
     errorLog.mockRestore();
+  });
+
+  it("keeps the outbox when the D1 index fails after the R2 upload", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const test = harness(false, false, true);
+    await create(test.room);
+
+    try {
+      test.room.finish();
+      await test.room.fetch(new Request("https://room.test/agent/view?playerId=agent-seat-id"));
+
+      await vi.waitFor(() => expect(test.getUploadAttempts()).toBe(1));
+      expect(test.uploaded).toEqual(["game-logs/v1/archive-game-id.json.gz"]);
+      // The upload is idempotent, so the room stays an outbox until D1 is indexed.
+      expect(test.storage.size).toBeGreaterThan(0);
+      expect(test.getAlarm()).not.toBeNull();
+
+      await test.room.alarm();
+
+      await vi.waitFor(() => expect(test.storage.size).toBe(0));
+      expect(test.getUploadAttempts()).toBe(2);
+      expect(test.uploaded).toEqual(["game-logs/v1/archive-game-id.json.gz"]);
+    } finally {
+      errorLog.mockRestore();
+    }
   });
 });

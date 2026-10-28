@@ -18,6 +18,7 @@ import type { Env, Variables } from "../types";
 import { createLlmgamesMcpServer } from "../mcp/createServer";
 import { mcpWwwAuthenticate } from "../auth/mcpOAuthRoutes";
 import { mcpResourceUrl } from "../auth/mcpOAuth";
+import { logEvent } from "../lib/observability";
 import { ENABLED_GAME_TYPES, GAME_INSTRUCTIONS } from "@llmgames/game-catalog";
 
 export const mcpRoutes = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -146,6 +147,10 @@ mcpRoutes.all("/", async (c) => {
   }
 
   if (!user) {
+    // A presented-but-rejected bearer token is a real failure; a bare request is
+    // just the OAuth discovery handshake and must not flood the log.
+    if (c.req.header("authorization")) logEvent("mcp_auth_failed", { stage: "token" });
+
     return c.json(
       {
         error: "unauthorized",

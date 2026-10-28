@@ -4,6 +4,7 @@ import { RecordingSQLiteD1 } from "../fixtures/recording-db";
 import { describe, expect, it } from "vitest";
 import {
   activateRoomCode,
+  extendRoomCode,
   releaseRoomCode,
   reserveRoomCode,
   resolveRoomCode,
@@ -86,6 +87,39 @@ describe("active room directory", () => {
     await releaseRoomCode(db, "ab2345", "reversi-AB2345", 9000);
     expect(calls[0]!.sql).toContain("AND status = 'active' AND expires_at = ?");
     expect(calls[0]!.args).toEqual(["AB2345", "reversi-AB2345", 9000]);
+  });
+
+  it("extends only the active row it owns and keeps cleanup exact", async () => {
+    const { db, calls } = fakeDb({
+      room_code: "AB2345",
+      game_type: "poker",
+      room_id: "poker-AB2345",
+      status: "active",
+      expires_at: 9000,
+      created_at: 1000,
+    });
+
+    await expect(extendRoomCode(db, "ab2345", "poker-AB2345", 90_000)).resolves.toBe(true);
+    expect(calls[0]!.sql).toContain("AND status = 'active'");
+    expect(calls[0]!.args).toEqual([90_000, "AB2345", "poker-AB2345"]);
+
+    // The extended row stays resolvable until cleanup releases that exact expiry.
+    await expect(resolveRoomCode(db, "ab2345", 20_000)).resolves.not.toBeNull();
+    await releaseRoomCode(db, "ab2345", "poker-AB2345", 90_000);
+    await expect(resolveRoomCode(db, "ab2345", 20_000)).resolves.toBeNull();
+  });
+
+  it("reports when there is no active row to extend", async () => {
+    const { db } = fakeDb({
+      room_code: "AB2345",
+      game_type: "poker",
+      room_id: "poker-AB2345",
+      status: "creating",
+      expires_at: 9000,
+      created_at: 1000,
+    });
+
+    await expect(extendRoomCode(db, "AB2345", "poker-AB2345", 90_000)).resolves.toBe(false);
   });
 
   it("maps live lookups and releases only the matching room", async () => {

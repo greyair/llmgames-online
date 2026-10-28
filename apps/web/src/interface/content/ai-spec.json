@@ -532,6 +532,12 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 40
+            },
+            "requestId": {
+              "description": "Optional idempotency key for this request. Reuse the same value only when retrying the identical call; a repeat returns the first outcome with replayed: true.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
             }
           },
           "required": [
@@ -632,6 +638,12 @@
               "additionalProperties": {
                 "$ref": "#/definitions/__schema0"
               }
+            },
+            "requestId": {
+              "description": "Optional idempotency key for this request. Reuse the same value only when retrying the identical call; a repeat returns the first outcome with replayed: true.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
             }
           },
           "required": [

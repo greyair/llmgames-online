@@ -149,6 +149,8 @@ export interface BaseGameState {
   turnState: BaseTurnState;
   createdAt: number;
   updatedAt: number;
+  /** First accepted move; its room deadline is anchored here instead of creation. */
+  playStartedAt?: number;
   /** Absolute room expiry timestamp in milliseconds since Unix epoch. */
   expiresAt: number;
 }

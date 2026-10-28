@@ -236,6 +236,17 @@ const roomIdSchema = z
   .max(64)
   .regex(/^[a-z0-9_-]+-[A-HJ-NP-Z2-9]{6}$/i);
 
+/** Optional retry key. Reusing it replays the first outcome instead of acting twice. */
+const requestIdSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .optional()
+  .describe(
+    "Optional idempotency key for this request. Reuse the same value only when retrying " +
+      "the identical call; a repeat returns the first outcome with replayed: true.",
+  );
+
 /** Infer the game type from a canonical room ID (connect4-ABC234). */
 function gameTypeFromRoomId(roomId: string): string {
   const m = roomId.match(/^(.+)-([A-Z2-9]{6})$/i);
@@ -1212,19 +1223,18 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
     gameType: string | undefined,
     actionType: string,
     data?: WireValue,
+    requestId?: string,
   ) {
     const { roomPlayer } = await requireAgentRoomPlayer(ctx, controllerId, roomId);
 
     const gt = gameType || gameTypeFromRoomId(roomId);
+    const action = { playerId: roomPlayer.playerId, actionType, data: data ?? {} };
+    const body = requestId ? { ...action, requestId } : action;
 
     return doJson(ctx.env, gt, roomId, "/agent/action", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        playerId: roomPlayer.playerId,
-        actionType,
-        data: data ?? {},
-      }),
+      body: JSON.stringify(body),
     });
   }
 
@@ -1237,18 +1247,21 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
         controllerId: controllerIdSchema,
         roomId: roomIdSchema,
         gameType: gameTypeSchema.optional(),
+        requestId: requestIdSchema,
       },
     },
-    async ({ controllerId, roomId, gameType }) => {
+    async ({ controllerId, roomId, gameType, requestId }) => {
       try {
         const { roomPlayer } = await requireAgentRoomPlayer(ctx, controllerId, roomId);
 
         const gt = gameType || gameTypeFromRoomId(roomId);
+        const start = { playerId: roomPlayer.playerId };
+        const body = requestId ? { ...start, requestId } : start;
 
         const data = await doJson(ctx.env, gt, roomId, "/agent/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ playerId: roomPlayer.playerId }),
+          body: JSON.stringify(body),
         });
 
         return jsonResult(data);
@@ -1344,24 +1357,35 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
           .record(z.string(), jsonValueSchema)
           .optional()
           .describe("Action payload (see get_tool_schema). Omit or {} when no fields."),
+        requestId: requestIdSchema,
       },
     },
-    async ({ controllerId, roomId, gameType, actionType, data }) => {
+    async ({ controllerId, roomId, gameType, actionType, data, requestId }) => {
       try {
         if (new TextEncoder().encode(JSON.stringify(data ?? {})).byteLength > 32 * 1024) {
           throw new Error("Action payload exceeds 32 KiB");
         }
 
-        const result = await agentAction(controllerId, roomId, gameType, actionType, data ?? {});
+        const result = await agentAction(
+          controllerId,
+          roomId,
+          gameType,
+          actionType,
+          data ?? {},
+          requestId,
+        );
 
         const payload = objectPayload(result);
         const state = payloadField(payload, "state");
         const projected = objectPayload(state);
 
+        const replayed = payloadField(payload, "replayed") === true;
+
         if (payloadField(projected, "status") === "ended") {
           const terminal = {
             ok: true,
             terminal: true,
+            replayed,
             acceptedRevision: payloadField(payload, "acceptedRevision"),
             reason: payloadField(payload, "endReason") ?? "ended",
             finalState: compactAgentDecisionState(state),
@@ -1371,13 +1395,14 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
 
           const series = payloadField(projected, "series");
 
-          if (series) Object.assign(terminal, { series });
+          if (series) return jsonResult({ ...terminal, series });
 
           return jsonResult(terminal);
         }
 
         return jsonResult({
           ok: true,
+          replayed,
           acceptedRevision: payloadField(payload, "acceptedRevision"),
           next: "wait_for_turn",
         });

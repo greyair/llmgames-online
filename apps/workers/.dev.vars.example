@@ -15,3 +15,7 @@ TURNSTILE_SECRET_KEY=
 # Replace the placeholder; the decoded key must be exactly 32 bytes.
 # JEV_CREDENTIAL_KEYS='{"v1":"replace-with-your-base64-encoded-32-byte-key"}'
 # Select v1 in JEV_CREDENTIAL_KEY_VERSION under Wrangler vars.
+
+# Optional: comma-separated user ids allowed to read GET /api/v1/diagnostics.
+# Leave unset to keep the endpoint disabled (404).
+# OPERATOR_USER_IDS=

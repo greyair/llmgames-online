@@ -6,6 +6,7 @@ import { apiRoutes } from "./api/routes";
 import { sessionMiddleware } from "./auth/session";
 import { mcpOAuthApiRoutes, mcpOAuthWellKnownRoutes } from "./auth/mcpOAuthRoutes";
 import { isAllowedWebOrigin } from "./auth/webOrigins";
+import { logEvent } from "./lib/observability";
 
 // Create Hono app
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -100,6 +101,11 @@ app.onError((_err, c) => {
   // Do not log exception objects: upstream errors can contain credentials or URLs.
   const requestId = crypto.randomUUID();
   console.error("REQUEST_FAILED", { requestId });
+  logEvent("request_failed", {
+    requestId,
+    method: c.req.method,
+    path: new URL(c.req.url).pathname,
+  });
   c.header("X-Request-ID", requestId);
   c.header("Cache-Control", "no-store");
 

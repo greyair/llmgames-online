@@ -164,6 +164,24 @@ describe("PokerRoom projection", () => {
       { rank: "Q", suit: "D" },
     ]);
   });
+
+  it("hides every hole card from a spectator seat", () => {
+    const state = gameState();
+    const view = projector.project("watcher", state);
+
+    const hidden = [
+      { rank: "?", suit: "?", hidden: true },
+      { rank: "?", suit: "?", hidden: true },
+    ];
+
+    for (const seat of view.seats) expect(seat.hole).toEqual(hidden);
+
+    const serialized = JSON.stringify(view);
+
+    expect(serialized).not.toContain('"rank":"A"');
+    expect(serialized).not.toContain('"rank":"K"');
+    expect(view.deck).toBeUndefined();
+  });
 });
 
 it("broadcast strips private data after applying the anonymous spectator projection", () => {

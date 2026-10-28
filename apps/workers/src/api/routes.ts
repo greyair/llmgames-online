@@ -5,6 +5,7 @@ import { seriesRoutes } from "./series";
 import { roomsRoutes } from "./rooms";
 import { wsRoutes } from "./ws";
 import { mcpRoutes } from "./mcp";
+import { diagnosticsRoutes } from "./diagnostics";
 
 export const apiRoutes = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -24,5 +25,8 @@ protectedApi.route("/rooms", roomsRoutes);
 protectedApi.route("/series", seriesRoutes);
 
 protectedApi.route("/ws", wsRoutes);
+
+// Read-only operator view; answers 404 unless OPERATOR_USER_IDS lists the caller.
+protectedApi.route("/diagnostics", diagnosticsRoutes);
 
 apiRoutes.route("/", protectedApi);

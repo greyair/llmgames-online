@@ -9,7 +9,7 @@ import { TestRoomSocket } from "../fixtures/socket";
 import { ROOM_INACTIVITY_MS, ROOM_LIFETIME_MS, TURN_TIME_MAX_MS } from "@llmgames/game-catalog";
 import { describe, expect, it, vi } from "vitest";
 
-import { BaseGameRoom, TURN_EXPIRY_GRACE_MS } from "../../durable-objects/BaseGameRoom";
+import { BaseGameRoom, MATCH_END_GRACE_MS, TURN_EXPIRY_GRACE_MS } from "../../durable-objects/BaseGameRoom";
 import type { BaseGameState, Player } from "../../durable-objects/types";
 
 class LifecycleTestRoom extends BaseGameRoom<BaseGameState> {
@@ -910,6 +910,75 @@ describe("Durable Object room lifetime", () => {
     expect(await guestFinal.json()).toMatchObject({ state: { status: "ended" } });
     await vi.waitFor(() => expect(harness.storage.size).toBe(0));
     expect(harness.getAlarm()).toBeNull();
+  });
+
+  it("anchors a playing room at its first move instead of the lobby deadline", async () => {
+    const harness = createHarness();
+    await createRoom(harness.room, { gameTotalTime: 45 * 60_000 });
+
+    // snapshot() returns the live state object, so keep the lobby deadline now.
+    const createdAt = harness.room.snapshot().createdAt;
+    const lobbyExpiry = harness.room.snapshot().expiresAt;
+    expect(lobbyExpiry).toBe(createdAt + ROOM_LIFETIME_MS);
+
+    await post(harness.room, "/agent/join", {
+      playerId: "guest",
+      assignedCodename: "SwiftAnchor",
+    });
+    await post(harness.room, "/agent/start", { playerId: "host" });
+
+    const started = harness.room.snapshot();
+    expect(started.playStartedAt).toBeTypeOf("number");
+    expect(started.expiresAt).toBe(
+      z.number().parse(started.playStartedAt) + started.timerConfig.gameTotalTime + MATCH_END_GRACE_MS,
+    );
+    // The first move happens milliseconds after creation in this fixture.
+    expect(started.expiresAt).toBeGreaterThanOrEqual(lobbyExpiry + MATCH_END_GRACE_MS);
+    expect(started.expiresAt).toBeLessThan(lobbyExpiry + MATCH_END_GRACE_MS + 5_000);
+  });
+
+  it("keeps a match that started late alive past the original lobby deadline", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const harness = createHarness();
+      const openedAt = Date.now();
+      await createRoom(harness.room, { gameTotalTime: 45 * 60_000 });
+
+      // A lobby that waited 20 minutes before the guest arrived.
+      vi.setSystemTime(openedAt + 20 * 60_000);
+      await post(harness.room, "/agent/join", {
+        playerId: "guest",
+        assignedCodename: "SwiftAnchor",
+      });
+      await post(harness.room, "/agent/start", { playerId: "host" });
+
+      const started = harness.room.snapshot();
+      expect(started.playStartedAt).toBe(openedAt + 20 * 60_000);
+
+      // Play one move per minute, as a real match would, so the inactivity rule
+      // sees progress while the original 45-minute lobby deadline passes.
+      for (let minute = 21; minute <= 46; minute += 1) {
+        vi.setSystemTime(openedAt + minute * 60_000);
+        await harness.room.alarm();
+
+        const response = await post(harness.room, "/agent/action", {
+          playerId: "host",
+          actionType: "move",
+          data: {},
+        });
+
+        expect(response.status).toBe(200);
+      }
+
+      expect(harness.room.snapshot().expiresAt).toBeGreaterThan(openedAt + 45 * 60_000);
+      expect(harness.room.snapshot().status).toBe("playing");
+      await expect(harness.room.fetch(new Request("https://room.test/state"))).resolves.toMatchObject({
+        status: 200,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("marks an attached seat disconnected after a WebSocket transport error", async () => {

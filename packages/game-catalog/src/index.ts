@@ -45,6 +45,37 @@ export const TURN_TIME_MAX_MS = 150 * 1000;
 
 export const TURN_TIME_OPTIONS_SECONDS = [30, 60, 90, 120, 150] as const;
 
+/**
+ * Per-game room budgets. The lobby budget runs from room creation and is
+ * unchanged from the shared default; the match budget starts at the first move
+ * so lobby waiting time can never shorten a long game.
+ */
+export type GameLifecycleSpec = {
+  /** Waiting-lobby budget measured from room creation. */
+  lobbyMs: number;
+  /** Match budget measured from the first accepted move, exclusive of grace. */
+  playingMs: number;
+};
+
+export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
+  connect4: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
+  reversi: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
+  checkers: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
+  contexto: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
+  codenames: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
+  battleship: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
+  pokemon: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
+  poker: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 90 * 60 * 1000 },
+};
+
+/** Lifecycle budget for a game, defaulting to the shared room policy. */
+export function gameLifecycle(gameType: string): GameLifecycleSpec {
+  const normalized = normalizeGameType(gameType);
+  const known = KNOWN_GAME_TYPES.find((id) => id === normalized);
+
+  return known ? GAME_LIFECYCLE[known] : { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS };
+}
+
 export type DataFieldSpec = {
   type: string;
   description: string;
