@@ -206,3 +206,33 @@
 **修正**：回放分支区分成功与失败——失败走 `agentActionErrorResponse()`，返回原始错误类别、消息与 `replayed: true`；成功才返回 200。
 
 **测试**：`「replays a failed start as a failure, not an empty success」`——单人房间开局（应当被拒），首次返回 409；用同一 `requestId` 重试仍返回 409，`replayed: true`，错误消息包含 "at least"。
+
+## 8. 归档详情读取契约修复（线上缺陷）
+
+**现象**：历史记录能列出对局（数据来自 D1 `game_logs`），但点开详情报 `Game log document has an invalid shape`。
+
+**根因**：前端用**列表**的参与者 Schema 校验 **R2 归档文档**，两套契约不同。
+
+| 字段 | R2 归档（`lib/gameLogs.ts`） | 前端文档校验（修复前） |
+| --- | --- | --- |
+| 玩家名 | `name` | `displayName`（必填） |
+| `codename` / `environmentLabel` / `ownerGamertag` | 有值才写 | 必须存在（可 null） |
+
+用线上真实归档验证（reversi，2 名参与者、182 事件、61 帧）：
+
+```
+new schema : PASS
+old schema : FAIL ["participants",0,"displayName"]
+participant keys: ref,name,isAgent,codename,environmentLabel,ownerGamertag
+```
+
+**修复**
+
+- 新增 `packages/game-catalog/src/game-log-document.ts`：`archiveParticipantSchema` / `gameLogDocumentSchema`，作为归档文档的**唯一契约**，写入端与读取端共用。
+- 前端 `services/auth.ts` 的 `documentSchema` 直接引用该契约，`AgentGameLogDocument.participants` 类型随之改为 `name`；D1 列表仍用原有 `participantSchema`（`displayName`），两套契约不再混用。
+- 写入端在 `buildCompletedGameArchive()` 内用 `archivedParticipantsAreReadable()` 校验参与者；不符合只记 `archive_contract_violation` 事件，不阻断归档。
+- e2e 假数据改为按归档契约构造（此前直接复用列表数据，导致测试通过而真实记录打不开）。
+
+**不需要**重写历史：R2 中文档一直是 `name` 形状，改读取端即可。已用线上真实对象验证可解析。
+
+**测试**：workers `「builds a document that the history reader accepts」`；web `archive-document.test.ts` 三例（写入形状通过、旧归档 null 通过、列表形状被拒绝）。

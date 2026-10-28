@@ -1,4 +1,11 @@
-import { isObject, isString, wireValueSchema, type WireValue } from "@llmgames/game-catalog";
+import {
+  archivedParticipantsAreReadable,
+  isObject,
+  isString,
+  wireValueSchema,
+  type WireValue,
+} from "@llmgames/game-catalog";
+import { logEvent } from "./observability";
 
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import type { RewatchPayload } from "../types";
@@ -106,6 +113,11 @@ export function buildCompletedGameArchive(
   const winnerValue = "winner" in state ? state.winner : undefined;
 
   const winner = isString(winnerValue) ? (refs.get(winnerValue) ?? winnerValue) : null;
+
+  // The reader only understands this shape; report drift instead of archiving a
+  // document that history detail can never open.
+  if (!archivedParticipantsAreReadable(participants))
+    logEvent("archive_contract_violation", { gameType: state.type, gameId: state.id });
 
   return {
     participants,

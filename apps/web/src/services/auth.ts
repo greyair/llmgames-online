@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { wireValueSchema, type WireValue, isNumber, isString } from "@llmgames/game-catalog";
+import {
+  gameLogDocumentSchema,
+  wireValueSchema,
+  type GameLogDocument,
+  type WireValue,
+  isNumber,
+  isString,
+} from "@llmgames/game-catalog";
 
 /**
  * Authentication service for Google OAuth
@@ -66,9 +73,9 @@ export interface AgentGameLogDocument {
   endedAt: number;
   endReason: string;
   winner: string | null;
-  participants: Omit<AgentGameLogParticipant, "isYours">[];
-  events: AgentGameLogEvent[];
-  rewatch: WireValue;
+  participants: GameLogDocument["participants"];
+  events: GameLogDocument["events"];
+  rewatch: GameLogDocument["rewatch"];
 }
 
 const authPayloadSchema = z
@@ -154,25 +161,11 @@ function isAgentGameLogSummary<T>(value: T): value is T & AgentGameLogSummary {
   return summarySchema.safeParse(value).success;
 }
 
-const documentSchema = z.object({
-  version: z.literal(1),
-  gameId: z.string().min(1),
-  gameType: z.string().min(1),
-  startedAt: z.number(),
-  endedAt: z.number(),
-  endReason: z.string(),
-  winner: z.string().nullable(),
-  participants: z.array(participantSchema.omit({ isYours: true })),
-  events: z.array(
-    z.object({
-      seq: z.number(),
-      at: z.number(),
-      type: z.string(),
-      summary: wireValueSchema.optional(),
-    }),
-  ),
-  rewatch: z.object({ frames: z.array(wireValueSchema) }),
-});
+/**
+ * Archived documents come from R2 and use the archive contract, which is not the
+ * same as the D1 summary rows above (`name` here, `displayName` there).
+ */
+const documentSchema = gameLogDocumentSchema;
 
 function isAgentGameLogDocument<T>(value: T): value is T & AgentGameLogDocument {
   return documentSchema.safeParse(value).success;

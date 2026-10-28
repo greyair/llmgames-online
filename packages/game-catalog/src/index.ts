@@ -4,6 +4,8 @@ export * from "./value-contracts.js";
 
 export * from "./series.js";
 
+export * from "./game-log-document.js";
+
 export { battleshipAgentState } from "./battleship-state.js";
 
 import { BATTLESHIP_FLEET_FORMAT } from "./fleet.js";

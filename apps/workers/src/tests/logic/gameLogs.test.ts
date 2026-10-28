@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import type { RewatchPayload } from "../../types";
 import type { BaseGameState } from "../../durable-objects/types";
 import { buildCompletedGameArchive, persistCompletedGameArchive } from "../../lib/gameLogs";
+import { gameLogDocumentSchema } from "@llmgames/game-catalog";
 
 function fixture() {
   const state: BaseGameState & { winner: string } = {
@@ -100,6 +101,17 @@ describe("completed game archive", () => {
     expect(serialized).not.toContain("human-secret-id");
     expect(serialized).toContain('"playerId":"p1"');
     expect(serialized).toContain('"p1":1');
+  });
+
+  it("builds a document that the history reader accepts", () => {
+    const archive = fixture();
+
+    // Storage round-trips through JSON, so the reader never sees undefined keys.
+    const parsed = gameLogDocumentSchema.safeParse(JSON.parse(JSON.stringify(archive.document)));
+
+    expect(parsed.success).toBe(true);
+    expect(archive.document.participants[0]).toMatchObject({ ref: "p1", name: "SwiftAnchor" });
+    expect(archive.document.participants[0]).not.toHaveProperty("displayName");
   });
 
   it("uploads one gzip R2 object and batches only its D1 index", async () => {

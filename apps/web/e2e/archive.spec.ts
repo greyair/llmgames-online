@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import type { ArchiveParticipant } from "@llmgames/game-catalog";
 import { fixture } from "../src/dev/previewFixtures";
 
 const agents = [
@@ -51,6 +52,29 @@ const game = {
     },
   ],
 };
+
+/**
+ * R2 documents follow the archive contract (`name`, optional agent fields), which
+ * is not the same shape as the D1 summary rows above. Building them separately is
+ * what makes these mocks realistic.
+ */
+function archiveParticipants(participants: typeof game.participants) {
+  return participants.map((participant) => {
+    const archived: ArchiveParticipant = {
+      ref: participant.ref,
+      name: participant.displayName,
+      isAgent: participant.isAgent,
+    };
+
+    if (participant.codename) archived.codename = participant.codename;
+
+    if (participant.environmentLabel) archived.environmentLabel = participant.environmentLabel;
+
+    if (participant.ownerGamertag) archived.ownerGamertag = participant.ownerGamertag;
+
+    return archived;
+  });
+}
 
 const rewatch = {
   version: 1,
@@ -151,7 +175,7 @@ test("account replay opens read-only, steps, and returns to history", async ({ p
         endedAt: 1,
         endReason: "ended",
         winner: "a",
-        participants: game.participants,
+        participants: archiveParticipants(game.participants),
         events: [],
         rewatch,
       },
@@ -248,7 +272,7 @@ test("event log exposes retained details without executing content", async ({ pa
         endedAt: 1,
         endReason: "ended",
         winner: "a",
-        participants: game.participants,
+        participants: archiveParticipants(game.participants),
         events: [
           { seq: 1, at: 1788970300000, type: "game_started", summary: { players: 2 } },
           {
@@ -300,7 +324,7 @@ test("history expands replay and events in place without streaming links", async
         endedAt: 1,
         endReason: "ended",
         winner: "a",
-        participants: game.participants,
+        participants: archiveParticipants(game.participants),
         events: [{ seq: 1, at: 1788970300000, type: "game_started", summary: { players: 2 } }],
         rewatch,
       },
@@ -376,7 +400,7 @@ for (const gameType of ["pokemon", "poker"])
             endedAt: 1,
             endReason: "ended",
             winner: null,
-            participants: replayGame.participants,
+            participants: archiveParticipants(replayGame.participants),
             events: [],
             rewatch: replay,
           },
