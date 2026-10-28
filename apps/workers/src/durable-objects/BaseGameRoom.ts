@@ -339,6 +339,13 @@ interface WsSessionAttachment {
 /** Soft cap so a viral room link cannot unbounded-grow spectator lists. */
 const MAX_SPECTATORS = 32;
 
+/** A caller-supplied request id plus the intent it must be bound to. */
+interface AckRequest {
+  playerId: string;
+  requestId: string;
+  fingerprint: string;
+}
+
 /** Outcome of one addressed action request, replayed instead of re-dispatching. */
 interface AckedActionResult {
   playerId: string;
@@ -612,6 +619,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
           return;
         }
+
+        // A restart may land between the match save and the directory update;
+        // finish that repair before arming the next alarm.
+        if (this.directoryExpiryPending) await this.extendDirectoryExpiry();
 
         if (expiresAt !== null) {
           await this.state.storage.put("gameState", this.gameState);
@@ -1472,25 +1483,23 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
               { replayed: true },
             );
 
-      const err = await this.dispatchAction(player, {
-        actionType: body.actionType,
-        data: body.data ?? {},
-      });
+      const ack =
+        body.requestId && body.playerId
+          ? { playerId: body.playerId, requestId: body.requestId, fingerprint }
+          : undefined;
+
+      const err = await this.dispatchAction(
+        player,
+        { actionType: body.actionType, data: body.data ?? {} },
+        true,
+        ack,
+      );
 
       if (err) {
-        await this.rememberAckedAction(body.playerId, body.requestId, fingerprint, {
-          ok: false,
-          message: err.message,
-          acceptedRevision: this.eventSeq,
-        });
+        await this.persistRejection(ack, err.message);
 
         return this.agentActionErrorResponse(body.playerId, err);
       }
-
-      await this.rememberAckedAction(body.playerId, body.requestId, fingerprint, {
-        ok: true,
-        acceptedRevision: this.eventSeq,
-      });
 
       const state = this.buildAgentView(body.playerId);
       const ended = this.gameState.status === "ended";
@@ -1575,9 +1584,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (replay && "conflict" in replay)
         return this.agentActionErrorResponse(body.playerId, idempotencyConflict(actionType));
 
-      if (replay)
+      if (replay && "acked" in replay && !replay.acked.ok)
+        return this.agentActionErrorResponse(
+          body.playerId,
+          classifyActionError(replay.acked.message ?? "Rejected", actionType),
+          { replayed: true },
+        );
+
+      if (replay && "acked" in replay)
         return this.jsonResponse({
-          ok: replay.acked.ok,
+          ok: true,
           replayed: true,
           acceptedRevision: replay.acked.acceptedRevision,
           state: this.buildAgentView(body.playerId),
@@ -1585,10 +1601,14 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
       await this.startGame();
 
-      await this.rememberAckedAction(body.playerId, body.requestId, fingerprint, {
-        ok: true,
-        acceptedRevision: this.eventSeq,
-      });
+      // The match state is already durable; this write attaches its receipt.
+      if (body.requestId)
+        this.rememberAckedAction(
+          { playerId: body.playerId, requestId: body.requestId, fingerprint },
+          { ok: true, acceptedRevision: this.eventSeq },
+        );
+
+      await this.saveState();
 
       return this.jsonResponse({
         ok: true,
@@ -1596,11 +1616,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       });
     } catch (e) {
       if (e instanceof ExpectedGameStartError) {
-        await this.rememberAckedAction(playerId, requestId, actionFingerprint(actionType, {}), {
-          ok: false,
-          message: e.message,
-          acceptedRevision: this.eventSeq,
-        });
+        if (playerId && requestId)
+          await this.persistRejection(
+            { playerId, requestId, fingerprint: actionFingerprint(actionType, {}) },
+            e.message,
+          );
 
         return this.agentActionErrorResponse(playerId, classifyActionError(e.message, actionType));
       }
@@ -2687,16 +2707,18 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
             break;
           }
 
-          const error = await this.dispatchAction(player, payload, false);
-
-          await this.rememberAckedAction(
-            player.id,
-            requestId,
-            fingerprint,
-            error
-              ? { ok: false, message: error.message, acceptedRevision: this.eventSeq }
-              : { ok: true, acceptedRevision: this.eventSeq },
+          const error = await this.dispatchAction(
+            player,
+            payload,
+            false,
+            requestId ? { playerId: player.id, requestId, fingerprint } : undefined,
           );
+
+          if (error && requestId)
+            await this.persistRejection(
+              { playerId: player.id, requestId, fingerprint },
+              error.message,
+            );
 
           if (requestId) {
             this.sendTo(ws, {
@@ -2843,20 +2865,23 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    * the state and its acknowledgements atomic, so a restarted instance can still
    * recognise a retried request instead of applying it twice.
    */
-  private async rememberAckedAction(
-    playerId: string | undefined,
-    requestId: string | undefined,
-    fingerprint: string,
-    result: { ok: boolean; message?: string; acceptedRevision: number },
-  ): Promise<void> {
-    if (!playerId || !requestId) return;
+  /**
+   * Record an outcome in memory. The next `saveState()` writes it together with
+   * the game state, which is what makes a retry safe across a restart.
+   */
+  private rememberAckedAction(ack: AckRequest | undefined, result: {
+    ok: boolean;
+    message?: string;
+    acceptedRevision: number;
+  }): void {
+    if (!ack) return;
 
-    const key = `${playerId}:${requestId}`;
+    const key = `${ack.playerId}:${ack.requestId}`;
     this.ackedActions.delete(key);
     this.ackedActions.set(key, {
-      playerId,
-      requestId,
-      fingerprint,
+      playerId: ack.playerId,
+      requestId: ack.requestId,
+      fingerprint: ack.fingerprint,
       ...result,
       at: Date.now(),
     });
@@ -2867,12 +2892,54 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (oldest.done) break;
       this.ackedActions.delete(oldest.value);
     }
+  }
+
+  /**
+   * Persist a rejection receipt. Rejected actions do not change state, so this
+   * needs no atomic pairing with `gameState`.
+   */
+  /**
+   * Persist a state change together with its receipt. When the single write
+   * fails nothing reached storage, so the in-memory state is rolled back and the
+   * caller sees an error it may safely retry.
+   */
+  private async saveAppliedAction(actionType: string): Promise<boolean> {
+    try {
+      await this.saveState();
+
+      return true;
+    } catch (error) {
+      console.error(`${this.roomLabel}: action write failed`, error);
+      logEvent("action_write_failed", { actionType, roomType: this.gameState?.type });
+
+      try {
+        this.gameState = (await this.state.storage.get<TState>("gameState")) ?? null;
+        await this.restoreAckedActions();
+      } catch (rollbackError) {
+        // Storage is unreadable too; report the failure and let the platform
+        // recreate this room from its last durable snapshot.
+        console.error(`${this.roomLabel}: action rollback failed`, rollbackError);
+        logEvent("action_rollback_failed", { actionType });
+      }
+
+      return false;
+    }
+  }
+
+  private async persistRejection(ack: AckRequest | undefined, message: string): Promise<void> {
+    if (!ack) return;
+
+    this.rememberAckedAction(ack, {
+      ok: false,
+      message,
+      acceptedRevision: this.eventSeq,
+    });
 
     try {
       await this.persistAckedActions();
     } catch (error) {
-      // The action is already applied. A failed receipt must not report failure,
-      // because the caller would retry a move the game has already accepted.
+      // Reporting failure would invite a retry of a request that was already
+      // answered; keep the in-memory record and move on.
       console.error(`${this.roomLabel}: idempotency record failed`, error);
       logEvent("idempotency_record_failed", { roomType: this.gameState?.type });
     }
@@ -2897,6 +2964,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     await this.state.storage.put({
       gameState: this.gameState,
       [ACKED_ACTION_KEY]: [...this.ackedActions.values()],
+      [DIRECTORY_PENDING_KEY]: this.directoryExpiryPending,
     });
   }
 
@@ -2918,6 +2986,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     player: Player,
     payload: { actionType: string; data: WireValue },
     sendErrors = true,
+    ack?: AckRequest,
   ): Promise<ActionRejection | void> {
     if (
       payload.actionType.length > 64 ||
@@ -2986,6 +3055,13 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     }
 
     if (handled) {
+      // The shared handler already saved any state change; this second write is
+      // what pairs the final state with its receipt.
+      this.rememberAckedAction(ack, { ok: true, acceptedRevision: this.eventSeq + 1 });
+
+      if (!(await this.saveAppliedAction(payload.actionType)))
+        return internalActionError(payload.actionType);
+
       await this.markMeaningfulActivity();
       this.recordEvent("action", {
         actionType: payload.actionType,
@@ -3040,7 +3116,15 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     }
 
     this.gameState.updatedAt = Date.now();
-    await this.saveState();
+    // Receipt first, then the single write that holds both: a crash cannot leave
+    // an applied move without the record that makes its retry a replay. The
+    // action event is recorded right after this save, so its seq is the revision
+    // the original caller reports.
+    this.rememberAckedAction(ack, { ok: true, acceptedRevision: this.eventSeq + 1 });
+
+    if (!(await this.saveAppliedAction(payload.actionType)))
+      return internalActionError(payload.actionType);
+
     await this.markMeaningfulActivity();
     this.broadcastState();
     this.recordEvent("action", {
@@ -3670,8 +3754,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     await this.captureBroadcastPermission();
     this.startTimers();
+    // The match deadline changes here. Persist the repair marker with the state so
+    // a restart between the two steps still knows the directory row is behind.
+    this.directoryExpiryPending = true;
+    // saveState persists the marker and retries the directory in the same step.
     await this.saveState();
-    await this.extendDirectoryExpiry();
     await this.markMeaningfulActivity();
     this.recordEvent("game_started", {
       currentPlayerId: this.gameState.turnState.currentPlayerId,
@@ -5184,7 +5271,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     if (!this.gameState) return;
     this.syncRunningTimers(Date.now());
     this.gameState.updatedAt = Date.now();
-    await this.state.storage.put("gameState", this.gameState);
+
+    // State, its request receipts and the directory-repair marker travel in one
+    // write, so a crash can never persist a move without its receipt.
+    const entries = {
+      gameState: this.gameState,
+      ackedActionRecords: [...this.ackedActions.values()],
+      directoryExpiryPending: this.directoryExpiryPending,
+    };
+
+    await this.state.storage.put(entries);
 
     // Persist a wake-up for the next decision/match deadline as well as expiry.
     // Local setInterval callbacks alone do not survive an isolate restart.

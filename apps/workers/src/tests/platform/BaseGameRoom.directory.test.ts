@@ -182,4 +182,45 @@ describe("room directory extension", () => {
 
     expect(owned).toMatchObject({ room_id: "poker-AD2345", status: "active" });
   });
+
+  it("resumes a directory repair after a restart without new actions", async () => {
+    const test = harness();
+    await test.state.initialized;
+    await post(test.room, "/create", { hostId: "host", hostName: "Host", roomCode: "AE2345" });
+    await post(test.room, "/agent/join", { playerId: "guest", assignedCodename: "SwiftAnchor" });
+
+    const db = test.env.DB;
+    const originalPrepare = db.prepare.bind(db);
+
+    // D1 is down for the whole start: the state write succeeds, the directory
+    // does not, and no later action will arrive to trigger a retry.
+    const spy = vi.spyOn(db, "prepare").mockImplementation((query) => {
+      if (query.includes("active_rooms")) throw new Error("D1 unavailable");
+
+      return originalPrepare(query);
+    });
+
+    try {
+      expect((await post(test.room, "/agent/start", { playerId: "host" })).status).toBe(200);
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(test.storage.get("directoryExpiryPending")).toBe(true);
+
+    // A restart alone must finish the repair: no player action is needed.
+    const restarted = new DirectoryRoom(test.state, test.env);
+
+    await test.state.initialized;
+
+    const started = await snapshot(test.storage);
+
+    const row = await test.env.DB.prepare(
+      "SELECT status, expires_at FROM active_rooms WHERE room_code = 'AE2345'",
+    ).first<{ status: string; expires_at: number }>();
+
+    expect(row).toMatchObject({ status: "active", expires_at: started.expiresAt });
+    expect(test.storage.get("directoryExpiryPending")).toBe(false);
+    expect(restarted).toBeTruthy();
+  });
 });

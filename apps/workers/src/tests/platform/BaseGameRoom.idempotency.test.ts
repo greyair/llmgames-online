@@ -14,7 +14,9 @@ class IdempotencyRoom extends Connect4Room {
 
 function harness(env: Env = roomTestEnv()) {
   const storage = new Map<string, unknown>();
-  const state = new MemoryRoomRuntime(storage, () => undefined);
+  // Clone like real Durable Object storage, so a write failure leaves storage
+  // holding the previous snapshot instead of a mutated in-memory object.
+  const state = new MemoryRoomRuntime(storage, () => undefined, [], true);
   const newRoom = () => new IdempotencyRoom(state, env);
 
   return { room: newRoom(), recreate: newRoom, state };
@@ -165,42 +167,75 @@ describe("durable action idempotency", () => {
     expect(payload.replayed).toBe(true);
   });
 
-  it("keeps the applied action when the receipt cannot be written", async () => {
+  it("rejects the action when state and receipt cannot be written together", async () => {
     const test = harness();
     await test.state.initialized;
     await seatTwoPlayers(test.room);
 
     const restoreWrites = failReceiptWrites(test.state);
 
-    // A crash between the state write and the receipt write loses the receipt.
     const first = await post(test.room, "/agent/action", {
       playerId: "host",
       actionType: "drop_disc",
       data: { col: 0 },
-      requestId: "unpersisted",
+      requestId: "atomic",
     });
 
     restoreWrites();
 
-    // The move is applied, so the caller must not be told it failed.
-    expect(first.status).toBe(200);
-    expect(await board(test.room)).toEqual(withDisc(0, 1));
+    // One write carries both, so a failed write applies nothing at all.
+    expect(first.status).toBe(500);
+    expect(await board(test.room)).toEqual(emptyBoard());
 
-    // A restart has no receipt for it: the retry is dispatched again and the
-    // game rules decide. This is the documented boundary, not exactly-once.
     const restarted = test.recreate();
     await test.state.initialized;
 
+    expect(await board(restarted)).toEqual(emptyBoard());
+
+    // The retry now applies exactly once and keeps its receipt.
     const retried = await post(restarted, "/agent/action", {
       playerId: "host",
       actionType: "drop_disc",
       data: { col: 0 },
-      requestId: "unpersisted",
+      requestId: "atomic",
     });
 
-    const payload = await retried.json<{ replayed?: boolean }>();
-
-    expect(payload.replayed).toBeUndefined();
+    expect(retried.status).toBe(200);
     expect(await board(restarted)).toEqual(withDisc(0, 1));
+
+    const again = await post(restarted, "/agent/action", {
+      playerId: "host",
+      actionType: "drop_disc",
+      data: { col: 0 },
+      requestId: "atomic",
+    });
+
+    expect(await again.json<{ replayed?: boolean }>()).toMatchObject({ replayed: true });
+    expect(await board(restarted)).toEqual(withDisc(0, 1));
+  });
+
+
+  it("replays a failed start as a failure, not an empty success", async () => {
+    const test = harness();
+    await test.state.initialized;
+
+    // Only the host is seated, so the start must be refused.
+    await post(test.room, "/create", { hostId: "host", hostName: "Host", roomCode: "ABC234" });
+
+    const first = await post(test.room, "/agent/start", { playerId: "host", requestId: "start-once" });
+
+    expect(first.status).toBe(409);
+
+    const retried = await post(test.room, "/agent/start", {
+      playerId: "host",
+      requestId: "start-once",
+    });
+
+    const payload = await retried.json<{ ok?: boolean; replayed?: boolean; error?: { message?: string } }>();
+
+    expect(retried.status).toBe(409);
+    expect(payload.ok).toBe(false);
+    expect(payload.replayed).toBe(true);
+    expect(payload.error?.message).toEqual(expect.stringContaining("at least"));
   });
 });

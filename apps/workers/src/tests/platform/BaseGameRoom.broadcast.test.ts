@@ -113,10 +113,22 @@ describe("broadcast projection boundary", () => {
     expect(directoryWrites[0]!.args.at(-1)).toBe(0);
     expect(directoryWrites[0]!.args).not.toContain("private-account");
 
+    // saveState writes gameState together with its receipts and repair marker.
     const savedGames = z
       .array(z.array(wireValueSchema))
       .parse(writes.mock.calls)
-      .flatMap((call) => (call[0] === "gameState" ? [wireObjectSchema.parse(call[1])] : []));
+      .flatMap((call) => {
+        const [first, second] = call;
+        const entries = wireObjectSchema.safeParse(first);
+
+        const state = entries.success
+          ? entries.data.gameState
+          : first === "gameState"
+            ? second
+            : undefined;
+
+        return state === undefined ? [] : [wireObjectSchema.parse(state)];
+      });
 
     expect(savedGames.length).toBeGreaterThan(0);
 

@@ -124,20 +124,21 @@
 
 外部复审指出两处 P0 与一处 P1，逐条核实后确认成立，已修正；两处 P2 中一项实现、一项按游戏补测试。
 
-### 6.1 幂等记录持久化（P0-1，已修）
+### 6.1 幂等记录持久化（P0-1，已修；第三轮复审后改为真正原子）
 
-**问题**：`ackedActions` 只存在于实例内存。Durable Object 重建后同一 `requestId` 的重复请求会重新派发；对 Poker 这类"同一动作可合法重复"的游戏，仅靠规则拒绝不足以防重。
+**问题**：`ackedActions` 最初只存在于实例内存，DO 重建后同一 `requestId` 会重新派发。第二轮改为"回执单独一次写入"，仍存在"动作已落盘、回执未落盘"的间隙。
 
-**修正**
+**最终方案（第三轮复审后）**
 
-- `AckedActionResult` 增加 `playerId` / `requestId` / `fingerprint`，因此可整体持久化。
-- 新增存储键 `ackedActionRecords`。`persistAckedActions()` 用**一次 `put({ gameState, ackedActionRecords })`** 同时写入状态与回执（单次写入内部原子，但不覆盖"动作写"与"回执写"之间的间隙，见下）。
-- 实例重建时 `restoreAckedActions()` 从存储恢复，过滤超过 TTL 的记录并按上限截断。
-- 房间清理走 `deleteAll()`，回执随之消失。
+- `saveState()` 的一次 `put` 同时写入 `gameState`、`ackedActionRecords` 与 `directoryExpiryPending`。
+- 成功的动作在**这次写入之前**把回执放进内存（`rememberAckedAction()`），因此"动作生效"和"回执存在"不可分割：要么两者都在磁盘上，要么都不在。
+- 写入失败时 `saveAppliedAction()` 会从存储回滚内存状态（`storage.get("gameState")` 重新载入并重建回执表），返回 500。此时磁盘上既没有动作也没有回执，调用方重试只会执行一次。
+- 被拒绝的动作不改变状态，因此走 `persistRejection()` 单独写入回执，无需与状态配对。
+- 实例重建时 `restoreAckedActions()` 恢复回执，过滤过期项并按上限截断。
 
-**这不是 Exactly-once（重要）**：动作状态的保存发生在 `dispatchAction` 内部，回执写入紧随其后。若进程恰在两次写之间崩溃，状态已生效而回执未落盘，重试会被**重新派发**，由游戏规则裁决——不能假设"必然被拒绝"：例如 Poker 中同一玩家稍后再次轮到时，旧请求可能在新状态下仍属合法。缓存本身也受 5 分钟 TTL 与 64 条上限约束，超限即不再去重。真正的原子提交需要在 M3 固化动作接口时，把"动作结果 + 回执"合并为一次写。
+**仍然存在的边界**：回执表受 5 分钟 TTL 与 64 条上限约束，超出窗口的 `requestId` 不再去重；崩溃后重放依赖该记录存在。因此对外应描述为"在去重窗口内实现原子幂等"，而不是全局 exactly-once。
 
-**回执写入失败不再谎报失败**：此前若 `persistAckedActions()` 抛错，动作已生效却会返回 500，客户端必然重试、反而放大重复执行风险。现在捕获该错误、记录 `idempotency_record_failed`，仍返回成功。
+**测试**：`「rejects the action when state and receipt cannot be written together」`——写入被拒绝时返回 500、内存回滚为空盘、重启后棋盘仍为空、同一 `requestId` 重试恰好生效一次且再重试为 `replayed`。
 
 ### 6.2 房间目录延期失败（P0-2，已修）
 
@@ -149,6 +150,7 @@
 - `extendDirectoryExpiry()` 处理三种结果：`extended`/`current` 视为成功；`missing` 先尝试用 `reserveRoomCode` + `activateRoomCode` **重建目录行**；抛错则持久化 `directoryExpiryPending` 标记。
 - `saveState()` 在标记存在时重试延期，因此 D1 短暂故障会在下一次动作/计时结算时自愈；实例重建时也会读取该标记。
 - 新增 `room_directory_repaired` / `room_directory_failed` 事件。
+- **第三轮复审补修**：原实现"先存开局状态、再延长目录"，若两步之间实例重启，没有任何标记说明目录落后，长局过期后房码会失效。现在开局时会**先把 `directoryExpiryPending = true` 与状态写进同一次 `put`**，再尝试延长；`restorePersistedRoom()` 在恢复结束时若发现该标记会主动补做一次，因此静止房间也能自愈。
 - **第二轮复审补修**：原实现按 `status='active'` 判断"缺失"，若某次"预留成功、激活失败"留下了 `creating` 行，下一轮会被误判为"缺失"，而 `reserveRoomCode` 又因未过期而返回 null，导致 pending 被清除、目录永久停在 `creating`。现在 `missing` 分支先 `readRoomCode()` 读取真实行：同一 roomId 的 `creating` 行直接补做激活；其它 roomId 的占用则记录 `room_directory_conflict` 并放弃；只有真正没有行时才重新预留。
 
 ### 6.3 requestId 动作冲突（P1，已修）
@@ -196,3 +198,11 @@
 **新增测试**：`api/rooms.test.ts`「accepts a longer match only where the game declares that budget」——`poker` 接受 90 分钟，`connect4` 拒绝 60 分钟并返回确切文案。
 
 **M2.7 验收口径随之更新**：可以直接验证 60/90 分钟 Poker 长局，不再需要绕开 API。
+
+### 6.8 开局失败重试丢失错误（第三轮复审，已修）
+
+**问题**：`POST /agent/start` 回放失败回执时返回 HTTP 200 且不带原始错误（`{ ok: false, replayed: true, state }`），MCP 客户端会把重试当成普通成功响应。
+
+**修正**：回放分支区分成功与失败——失败走 `agentActionErrorResponse()`，返回原始错误类别、消息与 `replayed: true`；成功才返回 200。
+
+**测试**：`「replays a failed start as a failure, not an empty success」`——单人房间开局（应当被拒），首次返回 409；用同一 `requestId` 重试仍返回 409，`replayed: true`，错误消息包含 "at least"。
