@@ -9,7 +9,8 @@ const files = globSync("src/**/*.css", { cwd: root });
 
 const componentFiles = globSync("src/**/*.{ts,tsx}", { cwd: root });
 
-const tokenFile = "src/design/tokens.css";
+// globSync returns OS-native separators, so compare resolved paths instead of literals.
+const tokenFile = resolve(root, "src/design/tokens.css");
 
 const definitions = new Set();
 
@@ -31,7 +32,7 @@ const spacing =
 const positiveLength = /(?<![\w.-])(?:\d*\.)?\d+(?:px|rem)\b/;
 
 for (const { file, css } of parsed) {
-  if (file === tokenFile) continue;
+  if (resolve(root, file) === tokenFile) continue;
   css.walkDecls((d) => {
     const fail = (message) =>
       failures.push(`${file}:${d.source.start.line} ${message}: ${d.prop}: ${d.value}`);

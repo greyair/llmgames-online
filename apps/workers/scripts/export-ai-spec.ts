@@ -232,7 +232,10 @@ async function main() {
   const output = `${JSON.stringify(spec, null, 2)}\n`;
 
   if (process.argv.includes("--check")) {
-    if ((await readFile(path, "utf8")) !== output)
+    // A Windows checkout with core.autocrlf rewrites the committed LF file, so normalize before comparing.
+    const committed = (await readFile(path, "utf8")).replaceAll("\r\n", "\n");
+
+    if (committed !== output)
       throw new Error("AI spec is stale. Run pnpm generate:ai-spec.");
     console.log(
       `AI spec matches all ${tools.length} MCP tools, 8 game catalogs and 7 hosted Jev adapters. No network calls.`,

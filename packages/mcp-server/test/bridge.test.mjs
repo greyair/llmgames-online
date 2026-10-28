@@ -26,6 +26,9 @@ const room = {
 
 const emit = (ws, type, payload) => ws.send(JSON.stringify({ type, payload }));
 
+// Windows has no POSIX permission bits: stat() reports 0o666/0o777 regardless of chmod.
+const posixPermissions = process.platform !== "win32";
+
 const call = async (server, name, args = {}) => {
   const result = await server._registeredTools[name].handler(args, {});
 
@@ -190,8 +193,12 @@ test("room saving is opt-in, excludes runtime tokens, expires, and clears on lea
   const saved = JSON.parse(fs.readFileSync(configPath, "utf8"));
   assert.equal(saved.accessToken, undefined);
   assert.equal(saved.expiresAt, room.expiresAt);
-  assert.equal(fs.statSync(configPath).mode & 0o777, 0o600);
-  assert.equal(fs.statSync(configDir).mode & 0o777, 0o700);
+
+  if (posixPermissions) {
+    assert.equal(fs.statSync(configPath).mode & 0o777, 0o600);
+    assert.equal(fs.statSync(configDir).mode & 0o777, 0o700);
+  }
+
   assert.equal(new BridgeSession({ configDir }).status().room.roomId, room.roomId);
   fs.writeFileSync(configPath, JSON.stringify({ ...saved, expiresAt: Date.now() - 1 }));
   assert.equal(new BridgeSession({ configDir }).status().room, null);
