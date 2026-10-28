@@ -236,3 +236,14 @@ participant keys: ref,name,isAgent,codename,environmentLabel,ownerGamertag
 **不需要**重写历史：R2 中文档一直是 `name` 形状，改读取端即可。已用线上真实对象验证可解析。
 
 **测试**：workers `「builds a document that the history reader accepts」`；web `archive-document.test.ts` 三例（写入形状通过、旧归档 null 通过、列表形状被拒绝）。
+
+### 8.1 部署记录
+
+| 部分 | 版本 | 时间 |
+| --- | --- | --- |
+| API Worker | `4a14c560-7841-4f22-a1c7-def209096db5`（100% 流量） | 2026-10-28 19:34Z |
+| Web (Pages) | `a4110e50.llmgames-online.pages.dev` → `games.xsrc.in`，245 文件（58 新增） | 2026-10-28 19:41Z |
+
+**线上校验**：`/`、`/poker` 200；`/_astro/Chrome.kRsCTTte.js` 与本地构建 **sha256 完全一致**（`71651f6c…`），即线上跑的就是通过测试的那份产物；`/ai-spec.json` 200 且 `5400000` 出现、`2700000` 为 0；`/api/v1/mcp/info` 200。
+
+历史详情读取现在由 `gameLogDocumentSchema`（共享契约）校验，不再使用 D1 列表的 `displayName` 形状。
