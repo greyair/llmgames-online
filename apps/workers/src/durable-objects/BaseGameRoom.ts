@@ -28,7 +28,12 @@ import type {
 } from "./types";
 import { channelLabel, generateUniqueCodename, isCodenameFormat } from "../lib/codenames";
 import { randomInt } from "../lib/csprng";
-import { releaseRoomCode, extendRoomCode } from "../lib/activeRooms";
+import {
+  activateRoomCode,
+  extendRoomCode,
+  releaseRoomCode,
+  reserveRoomCode,
+} from "../lib/activeRooms";
 import { broadcastProjection } from "../lib/broadcastProjection";
 import { normalizeGameType, roomIdFor } from "../lib/roomRouting";
 import { buildCompletedGameArchive, persistCompletedGameArchive } from "../lib/gameLogs";
@@ -50,6 +55,7 @@ import { generateJevFleets } from "../agents/jevBattleship";
 import { getJevCredential, decryptJevKey, reservePersonalJevCall } from "../agents/jevCredentials";
 import {
   classifyActionError,
+  idempotencyConflict,
   internalActionError,
   publicActionError,
   type ActionRejection,
@@ -81,6 +87,12 @@ export const ACTION_RESULT_TTL_MS = 5 * 60_000;
 
 /** Bounded per-room memory of acknowledged requests (oldest entries are dropped). */
 export const ACTION_RESULT_MEMORY = 64;
+
+/** Durable copy of acknowledged requests, written with the game state. */
+const ACKED_ACTION_KEY = "ackedActionRecords";
+
+/** Marks a directory row that still has to catch up with the room's match budget. */
+const DIRECTORY_PENDING_KEY = "directoryExpiryPending";
 
 const UTF8_ENCODER = new TextEncoder();
 
@@ -166,6 +178,24 @@ function optionalNumber(value: WireObject, key: string): number | undefined {
 /** Optional caller-supplied id that lets a retried request replay its outcome. */
 function validRequestId(value: WireValue): string | undefined {
   return isString(value) && value.length > 0 && value.length <= 64 ? value : undefined;
+}
+
+/** Stable JSON so key order cannot change an idempotency fingerprint. */
+function canonicalJson(value: WireValue | undefined): string {
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+
+  if (isObjectValue(value))
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+      .join(",")}}`;
+
+  return JSON.stringify(value ?? null);
+}
+
+/** Identify the exact intent behind a request id. */
+function actionFingerprint(actionType: string, data: WireValue | undefined): string {
+  return `${actionType}|${canonicalJson(data ?? {})}`;
 }
 
 function parseRoomCreationConfig<T>(value: T): GameRoomConfig | null {
@@ -310,6 +340,10 @@ const MAX_SPECTATORS = 32;
 
 /** Outcome of one addressed action request, replayed instead of re-dispatching. */
 interface AckedActionResult {
+  playerId: string;
+  requestId: string;
+  /** Action type plus canonical payload, so a reused id cannot replay another move. */
+  fingerprint: string;
   ok: boolean;
   message?: string;
   acceptedRevision: number;
@@ -481,6 +515,9 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   /** Acknowledged (playerId, requestId) outcomes; see ACTION_RESULT_TTL_MS. */
   private ackedActions = new Map<string, AckedActionResult>();
 
+  /** A previous directory extension failed and must be retried on the next save. */
+  private directoryExpiryPending = false;
+
   /** Used for log prefixes, e.g. "Connect4Room" */
   protected abstract readonly roomLabel: string;
 
@@ -494,7 +531,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   constructor(state: RoomRuntime, env: Env) {
     this.state = state;
     this.env = env;
-    this.state.blockConcurrencyWhile(async () => {
+    this.state.blockConcurrencyWhile(() => this.restorePersistedRoom());
+  }
+
+  /**
+   * Restore the persisted room, its timers and its history after an instance
+   * restart. A failure is reported before it is rethrown so a restart loop stays
+   * visible in Worker logs.
+   */
+  private async restorePersistedRoom(): Promise<void> {
+    try {
       const [stored, lastMeaningfulActivityAt, legacyLobbyLastActiveAt] = await Promise.all([
         this.state.storage.get<TState>("gameState"),
         this.state.storage.get<number>("lastMeaningfulActivityAt"),
@@ -522,6 +568,8 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (stored) {
         const persistedUpdatedAt = stored.updatedAt;
         this.gameState = stored;
+        this.directoryExpiryPending = (await this.state.storage.get<boolean>(DIRECTORY_PENDING_KEY)) === true;
+        await this.restoreAckedActions();
         await this.migratePersistedLegacyAgentIds();
         await this.restoreBroadcastPermission();
         this.lastMeaningfulActivityAt ||= persistedUpdatedAt || stored.createdAt;
@@ -573,7 +621,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           this.startTimers();
         }
       }
-    });
+    } catch (error) {
+      logEvent("state_restore_failed", { stage: "load" });
+      throw error;
+    }
   }
 
   /** Purge an inactive live room after five minutes, or any room at its fixed deadline. */
@@ -1397,22 +1448,28 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       this.terminalResponseHolds += 1;
       holdsTerminalResponse = true;
 
-      const replayed = this.replayAckedAction(body.playerId, body.requestId);
+      const fingerprint = actionFingerprint(body.actionType, body.data);
+      const replay = this.replayAckedAction(body.playerId, body.requestId, fingerprint);
 
-      if (replayed && !replayed.ok)
+      if (replay && "conflict" in replay)
         return this.agentActionErrorResponse(
           body.playerId,
-          classifyActionError(replayed.message ?? "Rejected", body.actionType),
-          { replayed: true },
+          idempotencyConflict(body.actionType),
         );
 
-      if (replayed)
-        return this.jsonResponse({
-          ok: true,
-          replayed: true,
-          acceptedRevision: replayed.acceptedRevision,
-          state: this.buildAgentView(body.playerId),
-        });
+      if (replay)
+        return replay.acked.ok
+          ? this.jsonResponse({
+              ok: true,
+              replayed: true,
+              acceptedRevision: replay.acked.acceptedRevision,
+              state: this.buildAgentView(body.playerId),
+            })
+          : this.agentActionErrorResponse(
+              body.playerId,
+              classifyActionError(replay.acked.message ?? "Rejected", body.actionType),
+              { replayed: true },
+            );
 
       const err = await this.dispatchAction(player, {
         actionType: body.actionType,
@@ -1420,7 +1477,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       });
 
       if (err) {
-        this.rememberAckedAction(body.playerId, body.requestId, {
+        await this.rememberAckedAction(body.playerId, body.requestId, fingerprint, {
           ok: false,
           message: err.message,
           acceptedRevision: this.eventSeq,
@@ -1429,7 +1486,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         return this.agentActionErrorResponse(body.playerId, err);
       }
 
-      this.rememberAckedAction(body.playerId, body.requestId, {
+      await this.rememberAckedAction(body.playerId, body.requestId, fingerprint, {
         ok: true,
         acceptedRevision: this.eventSeq,
       });
@@ -1511,19 +1568,23 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (this.gameState.series && this.gameState.status === "playing")
         return this.jsonResponse({ ok: true });
 
-      const replayed = this.replayAckedAction(body.playerId, body.requestId);
+      const fingerprint = actionFingerprint(actionType, {});
+      const replay = this.replayAckedAction(body.playerId, body.requestId, fingerprint);
 
-      if (replayed)
+      if (replay && "conflict" in replay)
+        return this.agentActionErrorResponse(body.playerId, idempotencyConflict(actionType));
+
+      if (replay)
         return this.jsonResponse({
-          ok: replayed.ok,
+          ok: replay.acked.ok,
           replayed: true,
-          acceptedRevision: replayed.acceptedRevision,
+          acceptedRevision: replay.acked.acceptedRevision,
           state: this.buildAgentView(body.playerId),
         });
 
       await this.startGame();
 
-      this.rememberAckedAction(body.playerId, body.requestId, {
+      await this.rememberAckedAction(body.playerId, body.requestId, fingerprint, {
         ok: true,
         acceptedRevision: this.eventSeq,
       });
@@ -1534,7 +1595,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       });
     } catch (e) {
       if (e instanceof ExpectedGameStartError) {
-        this.rememberAckedAction(playerId, requestId, {
+        await this.rememberAckedAction(playerId, requestId, actionFingerprint(actionType, {}), {
           ok: false,
           message: e.message,
           acceptedRevision: this.eventSeq,
@@ -2586,21 +2647,39 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           const payload =
             msg.type === "action" ? msg.payload : { actionType: "start_game", data: {} };
 
-          const replayed = this.replayAckedAction(player.id, requestId);
+          const fingerprint = actionFingerprint(payload.actionType, payload.data);
+          const replay = this.replayAckedAction(player.id, requestId, fingerprint);
 
-          if (replayed && requestId) {
+          if (replay && requestId && "conflict" in replay) {
             this.sendTo(ws, {
               type: "action_result",
               payload: {
                 requestId,
-                ok: replayed.ok,
+                ok: false,
+                code: "IDEMPOTENCY_CONFLICT",
+                message:
+                  "This requestId was already used for a different action. Use a new id for a new intent.",
+              },
+            });
+
+            break;
+          }
+
+          if (replay && requestId && "acked" in replay) {
+            const acked = replay.acked;
+
+            this.sendTo(ws, {
+              type: "action_result",
+              payload: {
+                requestId,
+                ok: acked.ok,
                 replayed: true,
-                ...(replayed.ok
+                ...(acked.ok
                   ? {
                       state: this.buildClientView(player.id),
-                      acceptedRevision: replayed.acceptedRevision,
+                      acceptedRevision: acked.acceptedRevision,
                     }
-                  : { message: replayed.message }),
+                  : { message: acked.message }),
               },
             });
 
@@ -2609,9 +2688,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
           const error = await this.dispatchAction(player, payload, false);
 
-          this.rememberAckedAction(
+          await this.rememberAckedAction(
             player.id,
             requestId,
+            fingerprint,
             error
               ? { ok: false, message: error.message, acceptedRevision: this.eventSeq }
               : { ok: true, acceptedRevision: this.eventSeq },
@@ -2732,10 +2812,15 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    * Resolve a previously acknowledged request. A retried request must replay its
    * original outcome: re-dispatching could apply a legal-looking intent twice.
    */
+  /**
+   * Resolve a previously acknowledged request. `{ conflict: true }` means the id
+   * was reused for a different intent, which must never replay another move.
+   */
   private replayAckedAction(
     playerId: string,
     requestId: string | undefined,
-  ): AckedActionResult | undefined {
+    fingerprint: string,
+  ): { acked: AckedActionResult } | { conflict: true } | undefined {
     if (!requestId) return undefined;
 
     const key = `${playerId}:${requestId}`;
@@ -2749,19 +2834,31 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       return undefined;
     }
 
-    return acked;
+    return acked.fingerprint === fingerprint ? { acked } : { conflict: true };
   }
 
-  private rememberAckedAction(
+  /**
+   * Record an outcome and persist it with the game state. A single `put` keeps
+   * the state and its acknowledgements atomic, so a restarted instance can still
+   * recognise a retried request instead of applying it twice.
+   */
+  private async rememberAckedAction(
     playerId: string | undefined,
     requestId: string | undefined,
-    result: Omit<AckedActionResult, "at">,
-  ): void {
+    fingerprint: string,
+    result: { ok: boolean; message?: string; acceptedRevision: number },
+  ): Promise<void> {
     if (!playerId || !requestId) return;
 
     const key = `${playerId}:${requestId}`;
     this.ackedActions.delete(key);
-    this.ackedActions.set(key, { ...result, at: Date.now() });
+    this.ackedActions.set(key, {
+      playerId,
+      requestId,
+      fingerprint,
+      ...result,
+      at: Date.now(),
+    });
 
     while (this.ackedActions.size > ACTION_RESULT_MEMORY) {
       const oldest = this.ackedActions.keys().next();
@@ -2769,6 +2866,30 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (oldest.done) break;
       this.ackedActions.delete(oldest.value);
     }
+
+    await this.persistAckedActions();
+  }
+
+  /** Restore durable acknowledgements after an instance restart. */
+  private async restoreAckedActions(): Promise<void> {
+    const stored = (await this.state.storage.get<AckedActionResult[]>(ACKED_ACTION_KEY)) ?? [];
+    const now = Date.now();
+
+    this.ackedActions.clear();
+
+    for (const record of stored.slice(-ACTION_RESULT_MEMORY)) {
+      if (record.at + ACTION_RESULT_TTL_MS <= now) continue;
+      this.ackedActions.set(`${record.playerId}:${record.requestId}`, record);
+    }
+  }
+
+  private async persistAckedActions(): Promise<void> {
+    if (!this.gameState) return;
+
+    await this.state.storage.put({
+      gameState: this.gameState,
+      [ACKED_ACTION_KEY]: [...this.ackedActions.values()],
+    });
   }
 
   /**
@@ -4625,11 +4746,18 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     const playStartedAt = this.gameState.playStartedAt;
     const playing = this.gameState.status === "playing" && playStartedAt !== undefined;
 
+    const lobbyExpiresAt = this.gameState.createdAt + lifecycle.lobbyMs;
+
+    // A match only ever extends the room: starting late must not shorten the
+    // lobby deadline, and a long match must not be cut by it.
     const expiresAt = playing
-      ? playStartedAt +
-        Math.min(this.gameState.timerConfig.gameTotalTime, lifecycle.playingMs) +
-        MATCH_END_GRACE_MS
-      : this.gameState.createdAt + lifecycle.lobbyMs;
+      ? Math.max(
+          lobbyExpiresAt,
+          playStartedAt +
+            Math.min(this.gameState.timerConfig.gameTotalTime, lifecycle.playingMs) +
+            MATCH_END_GRACE_MS,
+        )
+      : lobbyExpiresAt;
 
     this.gameState.expiresAt = expiresAt;
     this.gameState.timerConfig.gameTotalTime = Math.min(
@@ -4654,14 +4782,41 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     if (!game || !gameType || !this.env.DB) return;
 
+    const roomId = roomIdFor(gameType, game.roomCode);
+
     try {
-      await extendRoomCode(this.env.DB, game.roomCode, roomIdFor(gameType, game.roomCode), game.expiresAt);
+      const result = await extendRoomCode(this.env.DB, game.roomCode, roomId, game.expiresAt);
+
+      // "current" means an earlier attempt (or a newer room) already covers this
+      // deadline; only a missing row needs repair.
+      if (result !== "missing") return this.clearDirectoryPending();
+
+      const reservation = await reserveRoomCode(this.env.DB, gameType, game.roomCode, game.expiresAt);
+
+      if (!reservation) {
+        // Another live room owns this code now; never republish someone else's row.
+        return this.clearDirectoryPending();
+      }
+
+      await activateRoomCode(this.env.DB, game.roomCode, roomId, game.expiresAt);
+      logEvent("room_directory_repaired", { roomType: game.type });
+
+      return this.clearDirectoryPending();
     } catch (error) {
-      // A stale directory row hides a live room from /rooms/join; the room itself
-      // keeps running, and the next save retries through this same path.
+      // A stale directory row hides a live room from /rooms/join. Keep playing and
+      // retry on the next save so a short D1 outage heals itself.
       console.error(`${this.roomLabel}: room directory extension failed`, error);
       logEvent("room_directory_failed", { stage: "extend", roomType: game.type });
+      this.directoryExpiryPending = true;
+      await this.state.storage.put(DIRECTORY_PENDING_KEY, true);
     }
+  }
+
+  private async clearDirectoryPending(): Promise<void> {
+    if (!this.directoryExpiryPending) return;
+
+    this.directoryExpiryPending = false;
+    await this.state.storage.put(DIRECTORY_PENDING_KEY, false);
   }
 
   /** Persist a newly created room and start its inactivity deadline. */
@@ -5004,6 +5159,9 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     // Persist a wake-up for the next decision/match deadline as well as expiry.
     // Local setInterval callbacks alone do not survive an isolate restart.
     if (this.gameState.status !== "ended") await this.scheduleNextRoomAlarm();
+
+    // A directory row that lagged behind this room catches up on the next save.
+    if (this.directoryExpiryPending) await this.extendDirectoryExpiry();
   }
 
   /**

@@ -72,6 +72,8 @@ diagnosticsRoutes.get("/", async (c) => {
 
   const totalEnded = ends.reduce((total, row) => total + row.games, 0);
 
+  c.header("Cache-Control", "no-store");
+
   return c.json({
     windowHours: WINDOW_HOURS,
     generatedAt: now,
@@ -90,16 +92,22 @@ diagnosticsRoutes.get("/", async (c) => {
       normal: totalEnded - abnormal,
       byEndReason: ends,
     },
-    series: seriesRows.results ?? [],
+    series: {
+      // Series are live state, not a 24-hour window like the counts above.
+      scope: "all_time",
+      byStatus: seriesRows.results ?? [],
+    },
     logEvents: {
       note: "Failure counters are structured log events, not stored rows.",
       names: [
         "archive_failed",
-        "archive_directory_failed",
+        "room_directory_failed",
+        "room_directory_repaired",
+        "room_lifecycle",
         "state_restore_failed",
         "mcp_action_failed",
         "mcp_auth_failed",
-        "room_lifecycle",
+        "request_failed",
       ],
     },
   });

@@ -118,6 +118,8 @@ export type ServerMessage =
         acceptedRevision?: number;
         /** The request was already applied and its outcome replayed. */
         replayed?: boolean;
+        /** Stable machine code for refusals that happen before dispatch. */
+        code?: string;
       };
     }
   | {

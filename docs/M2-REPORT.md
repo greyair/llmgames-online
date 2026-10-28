@@ -119,3 +119,58 @@
    - 缺少一个"新游戏最小实现"的可执行验收用例。建议 M3 第一步先补一个 `fixtures/minimal-game.ts`（仅实现必需钩子）跑通一局，再动插件注册表。
 
 **判定**：可以进入 M3，但第一步应为"钩子契约固化 + 最小游戏夹具"，而非直接改写 8 款游戏的注册方式。
+
+## 6. M2.6 复审修正（外部代码复审后追加）
+
+外部复审指出两处 P0 与一处 P1，逐条核实后确认成立，已修正；两处 P2 中一项实现、一项按游戏补测试。
+
+### 6.1 幂等记录持久化（P0-1，已修）
+
+**问题**：`ackedActions` 只存在于实例内存。Durable Object 重建后同一 `requestId` 的重复请求会重新派发；对 Poker 这类"同一动作可合法重复"的游戏，仅靠规则拒绝不足以防重。
+
+**修正**
+
+- `AckedActionResult` 增加 `playerId` / `requestId` / `fingerprint`，因此可整体持久化。
+- 新增存储键 `ackedActionRecords`。`persistAckedActions()` 用**一次 `put({ gameState, ackedActionRecords })`** 同时写入状态与回执，两者原子。
+- 实例重建时 `restoreAckedActions()` 从存储恢复，过滤超过 TTL 的记录并按上限截断。
+- 房间清理走 `deleteAll()`，回执随之消失。
+
+**残留窗口**：动作状态的保存发生在 `dispatchAction` 内部，回执写入紧随其后。若进程恰在两次写之间崩溃，状态已生效而回执未落盘，重试仍会重新派发。此窗口只在崩溃时存在（不是实例驱逐），且方向安全：宁可重复派发被规则拒绝，也不会谎报成功。要完全消除需把动作与回执合并成单次写，属于对 `dispatchAction` 的结构性改造，留给 M3 的钩子固化阶段。
+
+### 6.2 房间目录延期失败（P0-2，已修）
+
+**问题**：`extendRoomCode()` 返回的布尔被忽略；且方法只在 `startGame()` 调用一次，注释里说的"下一次保存重试"并不存在。
+
+**修正**
+
+- `extendRoomCode()` 改为返回 `"extended" | "current" | "missing"`，且 SQL 带 `AND expires_at < ?` 单调前进——旧房间的延迟更新不可能缩短或劫持被复用的房码。
+- `extendDirectoryExpiry()` 处理三种结果：`extended`/`current` 视为成功；`missing` 先尝试用 `reserveRoomCode` + `activateRoomCode` **重建目录行**；抛错则持久化 `directoryExpiryPending` 标记。
+- `saveState()` 在标记存在时重试延期，因此 D1 短暂故障会在下一次动作/计时结算时自愈；实例重建时也会读取该标记。
+- 新增 `room_directory_repaired` / `room_directory_failed` 事件。
+
+### 6.3 requestId 动作冲突（P1，已修）
+
+同一 `requestId` 现在绑定动作指纹（`actionType` + 规范化 JSON，键序无关）。同 id 同动作 → 回放；同 id 不同动作 → 不再回放首次结果，返回 `IDEMPOTENCY_CONFLICT`（HTTP 409，WebSocket 回执带 `code`）。
+
+### 6.4 诊断接口（P2，已修）
+
+- 响应增加 `Cache-Control: no-store`。
+- `series` 计数明确标注 `scope: "all_time"`，与 24 小时窗口的 `games` 区分。
+- `state_restore_failed` 从"声明"变为"实际产生"：`BaseGameRoom` 的状态恢复逻辑抽成 `restorePersistedRoom()`，失败时先记事件再抛出，重启循环在日志里可见。
+
+### 6.5 私有投影测试矩阵（P2，部分补齐）
+
+新增 `tests/platform/privateProjection.test.ts`：Codenames 的 key 对 operative 与旁观者均为 `null`、仅 spymaster 可见；Contexto 进行中不投影 `secret`，且任何投影都不含 `rankTable`。结合既有的 Poker 底牌测试与 `agentProjection.test.ts`（Battleship 水雷、Pokemon 手牌），四类隐藏信息已有覆盖。Battleship 舰队坐标仍依赖既有测试，未单独加旁观者用例。
+
+### 6.6 复审未采纳的建议
+
+- **恢复"下一次保存重新校验目录"更频繁的 alarm 重试**：未采纳。改为挂在 `saveState()` 上，避免 D1 故障期间用 60 秒 alarm 抢占回合结算。
+- **主动认输**：维持延后，理由与复审一致（每游戏结算语义不同）。
+
+### 6.7 复审后验证
+
+| 命令 | 结果 |
+| --- | --- |
+| `pnpm test`（workers） | 71 文件 / **588 用例**通过（复审前 581，新增 7） |
+| `pnpm lint` | 8/8 任务、anti-slop 0 error（380 文件）、strict type check、AI 规格校验全部通过 |
+| 新增测试 | `BaseGameRoom.idempotency.test.ts`（3：重启后重放、冲突拒绝、键序无关）、`BaseGameRoom.directory.test.ts`（2：失败重试、缺失重建）、`privateProjection.test.ts`（2：Codenames key、Contexto secret） |

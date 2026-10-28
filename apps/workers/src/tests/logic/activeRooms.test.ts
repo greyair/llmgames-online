@@ -99,9 +99,10 @@ describe("active room directory", () => {
       created_at: 1000,
     });
 
-    await expect(extendRoomCode(db, "ab2345", "poker-AB2345", 90_000)).resolves.toBe(true);
+    await expect(extendRoomCode(db, "ab2345", "poker-AB2345", 90_000)).resolves.toBe("extended");
     expect(calls[0]!.sql).toContain("AND status = 'active'");
-    expect(calls[0]!.args).toEqual([90_000, "AB2345", "poker-AB2345"]);
+    expect(calls[0]!.sql).toContain("expires_at < ?");
+    expect(calls[0]!.args).toEqual([90_000, "AB2345", "poker-AB2345", 90_000]);
 
     // The extended row stays resolvable until cleanup releases that exact expiry.
     await expect(resolveRoomCode(db, "ab2345", 20_000)).resolves.not.toBeNull();
@@ -119,7 +120,8 @@ describe("active room directory", () => {
       created_at: 1000,
     });
 
-    await expect(extendRoomCode(db, "AB2345", "poker-AB2345", 90_000)).resolves.toBe(false);
+    // A reservation that was never activated is reported as missing, not current.
+    await expect(extendRoomCode(db, "AB2345", "poker-AB2345", 90_000)).resolves.toBe("missing");
   });
 
   it("maps live lookups and releases only the matching room", async () => {

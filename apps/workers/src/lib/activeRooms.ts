@@ -88,27 +88,43 @@ export async function activateRoomCode(
   }
 }
 
+/** Why a directory extension did or did not change the row. */
+export type RoomExtendResult = "extended" | "current" | "missing";
+
 /**
- * Publish a new expiry for an active room. Phase changes extend a lobby budget
- * into a match budget, and cleanup still releases the row by exact expiry.
+ * Publish a new expiry for an active room. The update only moves forward, so a
+ * late retry from an old room can never shorten or steal a reused room code.
  */
 export async function extendRoomCode(
   db: D1Database,
   roomCode: string,
   roomId: string,
   expiresAt: number,
-): Promise<boolean> {
+): Promise<RoomExtendResult> {
+  const code = roomCode.toUpperCase();
+
   const extended = await db
     .prepare(
       `UPDATE active_rooms
        SET expires_at = ?
-       WHERE room_code = ? AND room_id = ? AND status = 'active'
+       WHERE room_code = ? AND room_id = ? AND status = 'active' AND expires_at < ?
        RETURNING room_code`,
     )
-    .bind(expiresAt, roomCode.toUpperCase(), roomId)
+    .bind(expiresAt, code, roomId, expiresAt)
     .first<{ room_code: string }>();
 
-  return extended !== null;
+  if (extended) return "extended";
+
+  const row = await db
+    .prepare(
+      `SELECT expires_at FROM active_rooms
+       WHERE room_code = ? AND room_id = ? AND status = 'active'
+       LIMIT 1`,
+    )
+    .bind(code, roomId)
+    .first<{ expires_at: number }>();
+
+  return row ? "current" : "missing";
 }
 
 /** Resolve a bare room code without touching or joining a game Durable Object. */

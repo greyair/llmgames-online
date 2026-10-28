@@ -10,6 +10,7 @@ export type ActionErrorCode =
   | "NOT_SEATED"
   | "NOT_FOUND"
   | "INTERNAL_STATE"
+  | "IDEMPOTENCY_CONFLICT"
   | "ACTION_REJECTED";
 
 export type ActionErrorCategory =
@@ -289,6 +290,19 @@ export function publicActionError(rejection: ActionRejection): ActionError {
   const { httpStatus: _httpStatus, ...error } = rejection;
 
   return error;
+}
+
+/** A retried request id was reused for a different intent. */
+export function idempotencyConflict(actionType: string): ActionRejection {
+  return {
+    code: "IDEMPOTENCY_CONFLICT",
+    category: "input",
+    message:
+      "This requestId was already used for a different action. Use a new id for a new intent.",
+    actionType,
+    recovery: "correct_input",
+    httpStatus: 409,
+  };
 }
 
 export function internalActionError(actionType: string): ActionRejection {
