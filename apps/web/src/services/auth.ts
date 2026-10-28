@@ -425,8 +425,12 @@ export async function getAgentGameLog(gameId: string): Promise<AgentGameLogDocum
  * Initiate Google OAuth login
  * @param turnstileToken - Token from Turnstile widget (optional in development)
  */
-export async function login(turnstileToken?: string, returnTo?: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/auth/oauth/google`, {
+export async function login(
+  turnstileToken?: string,
+  returnTo?: string,
+  provider: "google" | "github" = "google",
+): Promise<void> {
+  const response = await fetch(`${API_BASE}/auth/oauth/${provider}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

@@ -122,3 +122,7 @@ in-room spectator privacy.
 
 Build and dry-run checks establish local compatibility. They do not prove
 custom-domain routing, email delivery, OAuth registration, or production play.
+
+## Optional GitHub sign-in
+
+Register a GitHub OAuth App using the site URL and callback `https://YOUR_HOST/api/v1/auth/oauth/github/callback`. Set `GITHUB_CLIENT_ID` in the ignored Worker configuration and `GITHUB_CLIENT_SECRET` using Wrangler Secrets. Apply the D1 migration before deploying the Worker. GitHub requires a verified primary email. Accounts with an email already used by another sign-in method are not linked automatically.

@@ -724,6 +724,10 @@ mcpOAuthApiRoutes.post("/token", async (c) => {
     }
   }
 
+  if (params.client_assertion !== undefined || params.client_assertion_type !== undefined) {
+    return oauthError("invalid_client", "Client assertion authentication is not supported", 401);
+  }
+
   const grantType = params.grant_type;
   const clientId = params.client_id;
 

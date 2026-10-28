@@ -282,7 +282,17 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
   const [verificationKey, setVerificationKey] = useState(0);
   const [interactive, setInteractive] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+
+  const [error, setError] = useState(() => {
+    const reason = new URLSearchParams(location.search).get("error");
+
+    if (reason === "github_email_conflict") return "This email already belongs to an account. Sign in using the original method.";
+
+    if (reason === "unverified_email") return "A verified primary email is required to sign in.";
+
+    return reason ? "Sign-in could not be completed. Please try again." : "";
+  });
+
   useMessageCue(error, "error");
   const verified = Boolean(previewState) || Boolean(token);
   const verifying = !verified && !interactive && !busy;
@@ -310,13 +320,13 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
     </svg>
   );
 
-  async function submit(operation: "google" | "email" | "verify") {
+  async function submit(operation: "google" | "github" | "email" | "verify") {
     if (operation !== "verify" && !verified) return;
     setBusy(true);
     setError("");
 
     try {
-      if (operation === "google") await login(token, returnTo);
+      if (operation === "google" || operation === "github") await login(token, returnTo, operation);
       else if (operation === "verify") {
         const redirectUrl = await verifyEmailCode(challenge, code);
         forgetCurrentUser();
@@ -424,6 +434,17 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
             >
               {verifying ? <VerifyingMark /> : googleMark}
               {googleAction}
+            </Button>
+            <Button
+              className="account-google"
+              size="lg"
+              variant="outline"
+              disabled={busy || !verified}
+              aria-busy={verifying || undefined}
+              onClick={() => void submit("github")}
+            >
+              {verifying ? <VerifyingMark /> : null}
+              Continue with GitHub
             </Button>
             <div className="signin-divider" aria-hidden="true">
               <span>or</span>

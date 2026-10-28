@@ -5,7 +5,7 @@
  * - GET  /api/v1/mcp/info  — human/discovery metadata (not MCP protocol)
  * - ALL  /api/v1/mcp       — MCP Streamable HTTP
  *
- * Auth: MCP OAuth 2.1 — host opens browser → Google login → consent
+ * Auth: MCP OAuth 2.1 — host opens browser → sign in → consent
  *   → Bearer access JWT (typ=mcp_at) for your llmgames human account.
  *
  * Multi-agent: `agent_claim` returns a task controller. The server assigns and
@@ -45,7 +45,7 @@ mcpRoutes.get("/info", (c) => {
         tokenEndpoint: `${origin}/api/v1/oauth/token`,
         registrationEndpoint: `${origin}/api/v1/oauth/register`,
         scopes: ["mcp"],
-        userLogin: "Google (same as web app)",
+        userLogin: "Google or GitHub (same as web app)",
       },
     },
     agents: {

@@ -1,0 +1,4 @@
+CREATE TABLE github_identities (
+  github_id TEXT PRIMARY KEY NOT NULL,
+  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE
+);

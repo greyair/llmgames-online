@@ -57,6 +57,8 @@ local development or your ignored `wrangler-prod.json` for production.
 | `FRONTEND_URL` | Wrangler vars | Main site origin for authentication redirects and room links. |
 | `ALLOWED_ORIGINS` | Wrangler vars | Optional comma-separated extra permitted browser origins. |
 | `GOOGLE_CLIENT_ID` | Wrangler vars | Required for Google OAuth sign-in. |
+| `GITHUB_CLIENT_ID` | Wrangler vars | Optional GitHub OAuth App client ID. |
+| `GITHUB_CLIENT_SECRET` | Secret | Optional GitHub OAuth App client secret. |
 | `TURNSTILE_SITE_KEY` | Wrangler vars | Public site-key configuration; use the same widget as the main web build. |
 | `EMAIL_FROM` | Wrangler vars | Required for email-code sign-in; must match an allowed sender in the `EMAIL` binding. |
 | `ENCRYPTION_SECRET` | Secret | Required for account sessions, MCP OAuth and email-code hashing. Generate a fresh random value. |

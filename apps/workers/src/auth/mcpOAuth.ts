@@ -49,6 +49,7 @@ const clientMetadataSchema = z.object({
   grant_types: z.array(z.string()).optional(),
   response_types: z.array(z.string()).optional(),
   token_endpoint_auth_method: z.string().optional(),
+  token_endpoint_auth_methods_supported: z.array(z.string()).min(1).optional(),
   scope: z.string().optional(),
   client_uri: z.string().optional(),
   logo_uri: z.string().optional(),
@@ -301,7 +302,7 @@ export async function resolveClient(
   try {
     const res = await fetch(clientId, {
       headers: { Accept: "application/json" },
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(5000),
     });
 
@@ -330,7 +331,7 @@ export async function resolveClient(
         (grant) => !["authorization_code", "refresh_token"].includes(grant),
       ) ||
       JSON.stringify(meta.response_types ?? ["code"]) !== JSON.stringify(["code"]) ||
-      (meta.token_endpoint_auth_method ?? "none") !== "none" ||
+      !(meta.token_endpoint_auth_methods_supported ?? [meta.token_endpoint_auth_method ?? "none"]).includes("none") ||
       (meta.scope != null && meta.scope !== MCP_SCOPE)
     ) {
       return null;

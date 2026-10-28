@@ -386,6 +386,14 @@ export async function upsertUser(
     .first<User>();
 
   if (existing) {
+    const githubIdentity = await c.env.DB.prepare(
+      "SELECT github_id FROM github_identities WHERE user_id = ?",
+    )
+      .bind(existing.id)
+      .first();
+
+    if (githubIdentity) throw new Error("Account requires GitHub sign-in");
+
     if (!googleUser.name) return ensureUserGamertag(c.env.DB, existing);
     // Update existing user
     await c.env.DB.prepare("UPDATE users SET name = ?, updated_at = ? WHERE id = ?")

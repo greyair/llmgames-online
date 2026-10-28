@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import type { Env, Variables } from "../types";
 import { googleAuth, googleCallback, logout, startGoogleOAuth } from "./google";
 import { requestEmailCode, verifyEmailCode, emailRequestGuard } from "./email";
+import { githubStart, githubCallback } from "./github";
 import { verifyTurnstile } from "./turnstile";
 import { enforceRateLimit } from "./oauthSecurity";
 import { selectInitialGamertag } from "./gamertags";
@@ -26,6 +27,20 @@ authRoutes.route("/users/me/agent-webhooks", agentWebhookRoutes);
 authRoutes.post("/email/request", emailRequestGuard, verifyTurnstile, requestEmailCode);
 
 authRoutes.post("/email/verify", emailRequestGuard, verifyEmailCode);
+
+authRoutes.post("/oauth/github", verifyTurnstile, githubStart);
+
+authRoutes.get("/oauth/github/callback", async (c) => {
+  const limited = await enforceRateLimit(
+    c.env.DB,
+    c.req.header("CF-Connecting-IP"),
+    "github-oauth-callback",
+    120,
+    3600,
+  );
+
+  return limited || githubCallback(c);
+});
 
 // Google OAuth initiation (web app JSON flow)
 // In development, Turnstile is optional (checked inside middleware)

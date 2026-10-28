@@ -34,7 +34,7 @@ const parseSessionPayload = z
   .nullable()
   .catch(null).parse;
 
-/** Only successful Google/email authentication creates a session. No sliding renewal. */
+/** Only successful sign-in creates a session. No sliding renewal. */
 export async function createSession(c: AuthContext, user: User): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
 

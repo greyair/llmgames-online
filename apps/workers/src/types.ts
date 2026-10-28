@@ -35,6 +35,8 @@ export interface Env {
 
   // Environment variables
   GOOGLE_CLIENT_ID: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
   TURNSTILE_SITE_KEY: string;
   FRONTEND_URL: string;
   /** Comma-separated extra CORS origins (e.g. apex + www) */

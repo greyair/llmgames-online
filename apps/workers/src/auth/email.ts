@@ -238,6 +238,10 @@ export async function verifyEmailCode(c: AuthContext) {
       { error: "Code is incorrect or expired. After five attempts, request a new code." },
       400,
     );
+  const githubIdentity = await c.env.DB.prepare("SELECT github_id FROM github_identities JOIN users ON users.id = github_identities.user_id WHERE users.email = ?").bind(row.email).first();
+
+  if (githubIdentity) return c.json({ error: "This account requires GitHub sign-in." }, 409);
+
   const user = await upsertUser(c, { email: row.email, verified_email: true });
   const session = await createSession(c, user);
   const origin = new URL(c.req.url).origin;

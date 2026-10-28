@@ -485,3 +485,14 @@ describe("email code sign-in", () => {
     expect(h.send).not.toHaveBeenCalled();
   });
 });
+
+it("does not let a verified old email sign into a GitHub account", async () => {
+  const h = harness();
+  h.sqlite.prepare("INSERT INTO users (id, email) VALUES (?, ?)").run("github-user", "player@example.com");
+  h.sqlite.prepare("INSERT INTO github_identities (github_id, user_id) VALUES (?, ?)").run("123", "github-user");
+  const challenge = await h.request();
+  const response = await h.post("verify", { challengeId: challenge.id, code: challenge.code }, challenge.cookie);
+  expect(response.status).toBe(409);
+  expect(await response.json()).toEqual({ error: "This account requires GitHub sign-in." });
+  expect(response.headers.get("set-cookie")).toBeNull();
+});
