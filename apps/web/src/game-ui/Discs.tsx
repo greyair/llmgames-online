@@ -57,6 +57,7 @@ export function Discs({
   send: (name: string, data: WireValue) => void;
 }) {
   const t = useT();
+
   const reversi = state.type === "reversi",
     action = reversi ? "place_disc" : "drop_disc";
 
@@ -222,6 +223,7 @@ export function Discs({
       const isLast = lastMove?.row === r && lastMove?.col === c;
       const isLegal = Boolean(enabled && flips.has(`${r}:${c}`));
       const flipCount = flips.get(`${r}:${c}`);
+
       const content =
         piece === 0
           ? t("board.squareEmpty")
@@ -234,6 +236,7 @@ export function Discs({
                   ? "match.colorRed"
                   : "match.colorYellow",
             );
+
       const label = [
         t("board.cell", { row: r + 1, col: c + 1, content }),
         isLast ? t("board.lastMove") : "",

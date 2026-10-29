@@ -25,6 +25,7 @@ export function Checkers({
   send: (name: string, data: WireValue) => void;
 }) {
   const t = useT();
+
   const [selection, setSelection] = useState<{ row: number; col: number; revision: string } | null>(
     null,
   );
@@ -204,9 +205,11 @@ export function Checkers({
                   const isLast = lastMove?.row === row && lastMove?.col === col;
                   const isFrom = lastMove?.fromRow === row && lastMove?.fromCol === col;
                   const colorName = t(color === "black" ? "board.colorBlack" : "board.colorWhite");
+
                   const content = piece
                     ? t(piece > 2 ? "board.king" : "board.man", { color: colorName })
                     : t("board.squareEmpty");
+
                   const label = [
                     t("board.cell", { row: row + 1, col: col + 1, content }),
                     enabled && move ? t("board.moveHere") : "",
