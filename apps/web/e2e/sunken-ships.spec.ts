@@ -1,5 +1,6 @@
 import type {} from "./browser-state";
 import { test, expect } from "@playwright/test";
+import { waitForApp } from "./wait-for-app";
 
 for (const viewport of [
   { width: 1440, height: 900 },
@@ -104,12 +105,18 @@ for (const spectator of [false, true])
     await page.goto(
       spectator ? "/design-preview/spectator?state=watch-battleship" : "/design-preview/battleship",
     );
+    await waitForApp(page);
     await page.getByText("Demo controls", { exact: true }).click();
-    await page.getByRole("button", { name: "Preview sinking", exact: true }).click();
     const firstBoard = spectator ? "own" : "target";
-    await expect(
-      page.locator(`.sea[data-board=${firstBoard}] [data-sunken-ship=cruiser][data-sinking=true]`),
-    ).toBeVisible();
+
+    // `data-sinking` only exists while the sink animation plays. Start waiting
+    // before the click so a fast animation cannot finish unseen.
+    const cruiserSinking = page
+      .locator(`.sea[data-board=${firstBoard}] [data-sunken-ship=cruiser][data-sinking=true]`)
+      .waitFor({ state: "visible", timeout: 10000 });
+
+    await page.getByRole("button", { name: "Preview sinking", exact: true }).click();
+    await cruiserSinking;
     await expect(page.locator(".ship-sunk-announcement")).toHaveText("Cruiser sunk");
     await expect.poll(() => page.evaluate(() => window.sinkNotes)).toBe(1);
     await page.screenshot({
@@ -121,12 +128,15 @@ for (const spectator of [false, true])
     // The broadcast operator owns its own sound toggle; normal spectator rooms expose the shared one.
     if (!spectator) await page.getByRole("button", { name: "Mute sound effects" }).click();
     else await page.evaluate(() => localStorage.setItem("llmgames-interface-sound", "off"));
-    await page.getByRole("button", { name: "Preview sinking", exact: true }).click();
-    await expect(
-      page.locator(
+
+    const destroyerSinking = page
+      .locator(
         `.sea[data-board=${spectator ? "target" : "own"}] [data-sunken-ship=destroyer][data-sinking=true]`,
-      ),
-    ).toBeVisible();
+      )
+      .waitFor({ state: "visible", timeout: 10000 });
+
+    await page.getByRole("button", { name: "Preview sinking", exact: true }).click();
+    await destroyerSinking;
     await expect(page.locator(".ship-sunk-announcement")).toHaveCount(0, { timeout: 4000 });
     expect(await page.evaluate(() => window.sinkNotes)).toBe(1);
     await page.goto(

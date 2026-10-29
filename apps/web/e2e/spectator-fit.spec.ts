@@ -19,6 +19,24 @@ const viewports = [
   { width: 1920, height: 1080 },
 ];
 
+/**
+ * Wait until the layout stops moving. Measuring mid-animation reads transformed
+ * rectangles, which used to fail this spec only when the machine was busy.
+ */
+async function settle(page: import("@playwright/test").Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+
+    const running = document
+      .getAnimations()
+      .map((animation) => animation.finished.catch(() => undefined));
+
+    // Entrance animations are finite; decorative loops never settle, so bound the wait.
+    await Promise.race([Promise.all(running), new Promise((done) => setTimeout(done, 1500))]);
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  });
+}
+
 for (const viewport of viewports)
   for (const scenario of scenarios)
     test(`${scenario} broadcast fits ${viewport.width}x${viewport.height}`, async ({ page }) => {
@@ -30,6 +48,7 @@ for (const viewport of viewports)
 
       await expect(desk).toBeVisible();
       await expect(board).toBeVisible();
+      await settle(page);
 
       const fit = await page.evaluate(() => {
         const viewport = { right: innerWidth, bottom: innerHeight };

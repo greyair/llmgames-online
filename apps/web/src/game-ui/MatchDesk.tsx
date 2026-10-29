@@ -1,5 +1,6 @@
 import { isNumber } from "@llmgames/game-catalog";
 
+import { useT } from "@/i18n";
 import { useMatchClock } from "./useMatchClock";
 import { MatchResult } from "./MatchResult";
 import { ThemeToggle } from "@/interface/ThemeToggle";
@@ -60,6 +61,7 @@ function TurnProgress({ state, duration }: { state: ClientView; duration: number
 }
 
 function DecisionClock({ state, duration }: { state: ClientView; duration: number }) {
+  const t = useT();
   const remaining = useMatchClock(state).turn;
   const visible = decisionVisible(state, remaining);
   const turnKey = `${state.roomCode ?? ""}:${state.turnState?.turnNumber ?? ""}:${state.turnState?.phase ?? ""}:${state.turnState?.currentPlayerId ?? ""}:${state.turnState?.startedAt ?? ""}`;
@@ -91,7 +93,7 @@ function DecisionClock({ state, duration }: { state: ClientView; duration: numbe
       data-urgent={urgent}
       data-own={Boolean(state.you?.isYourTurn && !state.replayReadOnly)}
       data-progress={progress}
-      aria-label="Turn time remaining"
+      aria-label={t("match.turnTimeRemaining")}
     >
       <strong>{clockText(remaining)}</strong>
       <span className="desk-decision-track" aria-hidden="true">
@@ -101,19 +103,14 @@ function DecisionClock({ state, duration }: { state: ClientView; duration: numbe
   );
 }
 
-function MatchClock({
-  state,
-  label = "Match time remaining",
-}: {
-  state: ClientView;
-  label?: string;
-}) {
+function MatchClock({ state, label }: { state: ClientView; label?: string }) {
+  const t = useT();
   const remaining = useMatchClock(state).game;
 
   if (state.status === "ended" || !isNumber(remaining) || !Number.isFinite(remaining)) return null;
 
   return (
-    <span className="desk-match-time" aria-label={label}>
+    <span className="desk-match-time" aria-label={label ?? t("match.matchTimeRemaining")}>
       {clockText(remaining)}
     </span>
   );
@@ -128,7 +125,7 @@ export function PlayerRow({
   score,
   self,
   timer,
-  activeLabel = "To move",
+  activeLabel,
 }: {
   player: NonNullable<ClientView["players"]>[number];
   active: boolean;
@@ -140,9 +137,21 @@ export function PlayerRow({
   timer?: ReactNode;
   activeLabel?: string;
 }) {
+  const t = useT();
   const twoTone = gameType === "checkers" || gameType === "reversi";
   const pieceColor = twoTone ? (index % 2 ? "white" : "black") : index % 2 ? "yellow" : "red";
-  const pieceLabel = `${pieceColor[0]!.toUpperCase()}${pieceColor.slice(1)} pieces`;
+
+  const colorName = t(
+    pieceColor === "white"
+      ? "match.colorWhite"
+      : pieceColor === "black"
+        ? "match.colorBlack"
+        : pieceColor === "red"
+          ? "match.colorRed"
+          : "match.colorYellow",
+  );
+
+  const pieceLabel = t("match.piecesOf", { color: colorName });
   const showPiece = !gameType || ["connect4", "reversi", "checkers"].includes(gameType);
 
   return (
@@ -158,7 +167,7 @@ export function PlayerRow({
         <PlayerName player={player} extra={roleLabel} />
       </div>
       <span className="desk-player-meta">
-        {active && <span className="desk-active-label">{activeLabel}</span>}
+        {active && <span className="desk-active-label">{activeLabel ?? t("match.toMove")}</span>}
         {showPiece && (
           <span className="desk-piece-stat">
             <span
@@ -169,7 +178,10 @@ export function PlayerRow({
             {twoTone && isNumber(score) && (
               <strong
                 className="desk-piece-count"
-                aria-label={`${score} ${pieceColor} ${gameType === "checkers" ? "pieces" : "discs"}`}
+                aria-label={t(gameType === "checkers" ? "match.countPieces" : "match.countDiscs", {
+                  count: score,
+                  color: colorName,
+                })}
               >
                 {score}
               </strong>
@@ -204,18 +216,20 @@ export function MatchDesk({
   broadcast?: boolean;
   finalReveal?: ClientView | null;
 }) {
+  const t = useT();
+
   const status =
     state.status === "waiting"
-      ? "Lobby"
+      ? t("match.lobby")
       : state.status === "ended"
-        ? "Finished"
+        ? t("match.finished")
         : state.turnState?.phase === "hand_over"
-          ? "Hand finished"
+          ? t("match.handFinished")
           : state.you?.isSpectator
-            ? "Spectating"
+            ? t("match.spectating")
             : state.you?.isYourTurn
-              ? "Your move"
-              : "Waiting";
+              ? t("match.yourMove")
+              : t("match.waiting");
 
   const deskRef = useRef<HTMLDivElement>(null);
 
@@ -423,29 +437,29 @@ export function MatchDesk({
 
   const dockControls = !stream && (replay || state.status === "ended");
   const visibleControls = resultPending ? null : controls;
-  const title = getGame(state.type)?.title ?? "Game";
+  const title = getGame(state.type)?.title ?? t("match.gameFallback");
 
   const subtitle =
     state.status === "waiting"
-      ? "Lobby"
+      ? t("match.lobby")
       : state.turnState?.phase === "hand_over"
-        ? `Hand ${state.handNumber ?? 1} finished`
+        ? t("match.handSummary", { hand: state.handNumber ?? 1 })
         : state.type === "contexto"
-          ? `${state.totalGuesses ?? 0} room guesses`
-          : `Turn ${state.turnState?.turnNumber ?? 1}`;
+          ? t("match.guessCount", { count: state.totalGuesses ?? 0 })
+          : t("match.turnSummary", { turn: state.turnState?.turnNumber ?? 1 });
 
   const gameOptions = (
     <div className="desk-options-panel">
       <div className="desk-option desk-mobile-setting">
-        <span>Sound</span>
+        <span>{t("match.sound")}</span>
         <SoundControl />
       </div>
       <div className="desk-option desk-mobile-setting">
-        <span>Fullscreen</span>
+        <span>{t("match.fullscreen")}</span>
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Toggle fullscreen in settings"
+          aria-label={t("match.fullscreenSettings")}
           onClick={toggleFullscreen}
         >
           <Icon name="expand" size={18} />
@@ -455,19 +469,19 @@ export function MatchDesk({
         state.status === "playing" &&
         isNumber(state.gameTimeRemaining) && (
           <div className="desk-option desk-mobile-setting">
-            <span>Match left</span>
-            <MatchClock state={state} label="Match time in settings" />
+            <span>{t("match.matchLeft")}</span>
+            <MatchClock state={state} label={t("match.matchTimeSettings")} />
           </div>
         )}
       <div className="desk-option">
-        <span>Theme</span>
+        <span>{t("match.theme")}</span>
         <ThemeToggle />
       </div>
       {!dockControls && visibleControls && (
         <div className="desk-host-controls">{visibleControls}</div>
       )}
       <Button variant="secondary" size="sm" onClick={onExit}>
-        Leave game
+        {t("match.leave")}
       </Button>
     </div>
   );
@@ -492,14 +506,14 @@ export function MatchDesk({
               data-turn={ownDecision || undefined}
             >
               <span className="desk-turn-flash" aria-hidden="true" />
-              <header className="desk-bar" aria-label={`Game controls, ${status}`}>
+              <header className="desk-bar" aria-label={t("match.controlsLabel", { status })}>
                 <div className="desk-bar-start">
                   {!stream && (
                     <Button
                       className="desk-round"
                       variant="secondary"
                       size="icon"
-                      aria-label="Leave game"
+                      aria-label={t("match.leave")}
                       onClick={onExit}
                     >
                       <Icon name="back" size={20} />
@@ -522,7 +536,7 @@ export function MatchDesk({
                         className="desk-round"
                         variant="ghost"
                         size="icon"
-                        aria-label="Toggle fullscreen"
+                        aria-label={t("match.fullscreen")}
                         onClick={toggleFullscreen}
                       >
                         <Icon name="expand" size={18} />
@@ -537,7 +551,7 @@ export function MatchDesk({
                           }
                         }}
                       >
-                        <summary aria-label="Game options">
+                        <summary aria-label={t("match.options")}>
                           <Icon name="more" size={22} />
                         </summary>
                         {gameOptions}
@@ -548,7 +562,7 @@ export function MatchDesk({
               </header>
               <main className="desk-layout">
                 {state.status !== "waiting" && (
-                  <section className="desk-players" aria-label="Players" tabIndex={0}>
+                  <section className="desk-players" aria-label={t("match.players")} tabIndex={0}>
                     {state.players?.map((player, index) => {
                       const seat =
                         ["connect4", "reversi", "checkers"].includes(state.type ?? "") &&
@@ -573,8 +587,8 @@ export function MatchDesk({
                                   const role = state.assignments?.[player.id];
 
                                   return role
-                                    ? `${role.team === "red" ? "Red" : "Blue"} · ${role.role === "spymaster" ? "Spymaster" : "Operative"}`
-                                    : "Unassigned";
+                                    ? `${t(role.team === "red" ? "lobby.red" : "lobby.blue")} · ${t(role.role === "spymaster" ? "lobby.spymaster" : "match.operative")}`
+                                    : t("match.unassigned");
                                 })()
                               : undefined
                           }
@@ -589,11 +603,11 @@ export function MatchDesk({
                     })}
                   </section>
                 )}
-                <section className="desk-play" aria-label="Game board">
+                <section className="desk-play" aria-label={t("match.board")}>
                   {children}
                 </section>
                 {dockControls && visibleControls && (
-                  <aside className="desk-replay-controls" aria-label="Replay controls">
+                  <aside className="desk-replay-controls" aria-label={t("match.replayControls")}>
                     {visibleControls}
                   </aside>
                 )}

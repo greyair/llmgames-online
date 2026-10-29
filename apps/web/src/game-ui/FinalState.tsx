@@ -2,6 +2,7 @@ import { wordBoardSchema, cardSeatsSchema } from "@/domain/view-contracts";
 
 import type { ReactNode } from "react";
 import type { ClientView } from "@/domain/game-state";
+import { useT } from "@/i18n";
 import { playerPrimaryName } from "@/features/shared/playerIdentity";
 import { Discs } from "./Discs";
 import { Checkers } from "./Checkers";
@@ -87,6 +88,8 @@ function FinalShips({
   state: ClientView;
   renderPlayer?: (playerId?: string) => ReactNode;
 }) {
+  const t = useT();
+
   const own = state.yourBoard ?? null,
     opponent = state.opponent ?? null;
 
@@ -114,7 +117,7 @@ function FinalShips({
   });
 
   return (
-    <section className="result-final result-ships" aria-label="Final state">
+    <section className="result-final result-ships" aria-label={t("match.finalState")}>
       <Battleship
         state={{ ...state, spectatorBoards: boards, replayReadOnly: true }}
         finalResult
@@ -126,13 +129,14 @@ function FinalShips({
 }
 
 function FinalWords({ state }: { state: ClientView }) {
+  const t = useT();
   const progress = state.progress ?? {};
 
   return (
-    <section className="result-final result-final-words" aria-label="Final state">
+    <section className="result-final result-final-words" aria-label={t("match.finalState")}>
       {state.secret && (
         <div className="result-word-target">
-          <span>Final word</span>
+          <span>{t("match.finalWord")}</span>
           <strong>{state.secret}</strong>
         </div>
       )}
@@ -185,21 +189,22 @@ function FinalWords({ state }: { state: ClientView }) {
 }
 
 function FinalCodenames({ state }: { state: ClientView }) {
+  const t = useT();
   const board = wordBoardSchema.safeParse(state.board).data ?? [];
 
   if (!board.length) return null;
 
   return (
-    <section className="result-final" aria-label="Final state">
+    <section className="result-final" aria-label={t("match.finalState")}>
       <header>
-        <h2>Final key</h2>
+        <h2>{t("match.finalKey")}</h2>
         <p>
           {board.every((card) => card.affiliation)
             ? "The complete key is visible. Guessed cards are marked."
             : "Guessed cards are marked. Hidden affiliations remain concealed."}
         </p>
       </header>
-      <div className="result-word-grid" role="group" aria-label="Final Codenames board">
+      <div className="result-word-grid" role="group" aria-label={t("match.finalCodenamesBoard")}>
         {board.map((card) => (
           <div
             key={card.index}
@@ -210,7 +215,7 @@ function FinalCodenames({ state }: { state: ClientView }) {
             aria-label={`${card.word}, ${card.affiliation ?? "unknown"}${card.revealed ? ", revealed" : ""}`}
           >
             <span>{card.word}</span>
-            {card.revealed && <small>Revealed</small>}
+            {card.revealed && <small>{t("match.revealed")}</small>}
           </div>
         ))}
       </div>
@@ -225,6 +230,8 @@ function FinalPoker({
   state: ClientView;
   renderPlayer?: (id?: string) => ReactNode;
 }) {
+  const t = useT();
+
   const seats = [...(cardSeatsSchema.safeParse(state.seats).data ?? [])].sort((a, b) => {
     if (a.playerId === state.winner) return -1;
 
@@ -234,9 +241,9 @@ function FinalPoker({
   });
 
   return (
-    <section className="result-final result-poker" aria-label="Final state">
+    <section className="result-final result-poker" aria-label={t("match.finalState")}>
       <header>
-        <h2>Final chips</h2>
+        <h2>{t("match.finalChips")}</h2>
       </header>
       <div className="result-poker-standings">
         {seats.map((seat) => {
@@ -264,6 +271,7 @@ export function FinalState({
   renderShipPlayer?: (playerId?: string) => ReactNode;
   renderCardPlayer?: (playerId?: string) => ReactNode;
 }) {
+  const t = useT();
   const fullReveal = Boolean(reveal?.status === "ended" && reveal.type === state.type);
 
   const final: ClientView = fullReveal
@@ -279,7 +287,7 @@ export function FinalState({
 
   if (["connect4", "reversi", "checkers"].includes(state.type ?? "") && Array.isArray(final.board))
     return (
-      <section className="result-board" aria-label="Final board">
+      <section className="result-board" aria-label={t("match.finalBoard")}>
         {state.type === "checkers" ? (
           <Checkers state={final} send={() => {}} />
         ) : (

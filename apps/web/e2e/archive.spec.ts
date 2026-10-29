@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import type { ArchiveParticipant } from "@llmgames/game-catalog";
 import { fixture } from "../src/dev/previewFixtures";
+import { waitForApp } from "./wait-for-app";
 
 const agents = [
   {
@@ -429,6 +430,7 @@ for (const gameType of ["pokemon", "poker"])
         }),
       );
       await page.goto("/history");
+      await waitForApp(page);
 
       const row = page.locator(".history-entry").filter({
         has: page.getByRole("heading", {

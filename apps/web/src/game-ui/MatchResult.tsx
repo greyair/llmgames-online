@@ -18,10 +18,11 @@ import { playerPrimaryName } from "@/features/shared/playerIdentity";
 import { GamePlayerAvatar } from "./GamePlayerAvatar";
 import { PlayerName } from "./PlayerName";
 import "./match-result.css";
+import { useT, type Translate } from "@/i18n";
 import { FinalState } from "./FinalState";
 import { VictoryConfetti } from "./VictoryConfetti";
 
-function outcome(state: ClientView) {
+function outcome(state: ClientView, t: Translate) {
   const team = state.winnerTeam;
   const winner = state.players?.find((player) => player.id === state.winner);
   const draw = state.winner === "draw";
@@ -32,14 +33,14 @@ function outcome(state: ClientView) {
       Boolean(team && team === state.you?.team));
 
   const title = draw
-    ? "A draw. Well played."
+    ? t("match.outcomeDraw")
     : won
-      ? "You win!"
+      ? t("match.outcomeWin")
       : team
-        ? `${team === "red" ? "Red" : "Blue"} team wins!`
+        ? t("match.outcomeTeamWin", { team: t(team === "red" ? "lobby.red" : "lobby.blue") })
         : winner
-          ? `${playerPrimaryName(winner)} wins!`
-          : "Match complete";
+          ? t("match.outcomeWinnerWin", { name: playerPrimaryName(winner) })
+          : t("match.outcomeComplete");
 
   const tone =
     draw || !(winner || team)
@@ -173,6 +174,7 @@ export function MatchResult({
   controls?: ReactNode;
   broadcast?: boolean;
 }) {
+  const t = useT();
   const layout = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const root = layout.current;
@@ -225,7 +227,7 @@ export function MatchResult({
 
     return () => observer.disconnect();
   }, [state.type, state.status]);
-  const result = outcome(state);
+  const result = outcome(state, t);
   const reduceMotion = useReducedMotion();
   const announced = useRef("");
   useEffect(() => {
@@ -251,7 +253,7 @@ export function MatchResult({
       ? undefined
       : state.lastAnnouncement?.trim();
 
-  const exitLabel = "Find another game";
+  const exitLabel = t("match.findAnotherGame");
 
   const playerCards =
     state.players?.map((player) => {
@@ -299,13 +301,13 @@ export function MatchResult({
       data-broadcast={broadcast}
     >
       {result.celebrate && result.tone !== "loss" && <VictoryConfetti />}
-      <section className="result-summary" aria-label="Match summary">
+      <section className="result-summary" aria-label={t("match.summary")}>
         <Burst tone={result.tone} />
         {result.celebrate && (
           <motion.div
             className="result-trophy"
             role="img"
-            aria-label="Winner trophy"
+            aria-label={t("match.winnerTrophy")}
             initial={reduceMotion ? false : { opacity: 0, scale: 0.4, rotate: -18 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 16, delay: 0.05 }}
@@ -324,23 +326,21 @@ export function MatchResult({
           <div className="result-facts">
             {!broadcast && (
               <span className="result-game">
-                {getGame(state.type)?.title ?? "Game"} · Final result
+                {t("match.gameFinal", {
+                  game: getGame(state.type)?.title ?? t("match.gameFallback"),
+                })}
               </span>
             )}
             <span>
               <CountUp value={factCount} silent={broadcast} />{" "}
               {state.type === "contexto"
-                ? factCount === 1
-                  ? "room guess"
-                  : "room guesses"
-                : factCount === 1
-                  ? "turn"
-                  : "turns"}
+                ? t(factCount === 1 ? "match.roomGuessOne" : "match.roomGuessMany")
+                : t(factCount === 1 ? "match.turnOne" : "match.turnMany")}
             </span>
             {state.handNumber !== undefined && (
               <span>
                 <CountUp value={state.handNumber} silent />{" "}
-                {state.handNumber === 1 ? "hand" : "hands"}
+                {t(state.handNumber === 1 ? "match.handOne" : "match.handMany")}
               </span>
             )}
           </div>
@@ -355,7 +355,7 @@ export function MatchResult({
               renderCardPlayer={(id) => playerCards.find((card) => card.key === id)}
             />
             {!ships && state.type !== "poker" && (
-              <div className="result-players" aria-label="Players">
+              <div className="result-players" aria-label={t("match.players")}>
                 {playerCards}
               </div>
             )}

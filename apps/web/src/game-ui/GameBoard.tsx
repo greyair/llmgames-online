@@ -1,6 +1,7 @@
 import type { WireValue } from "@llmgames/game-catalog";
 import type { ClientView } from "@/domain/game-state";
 import { lazy, Suspense } from "react";
+import { useT } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { LoadingPanel } from "@/components/ui/loading-panel";
 import { GameMark } from "@/interface/GameMark";
@@ -45,13 +46,15 @@ export function GameBoard({
 }
 
 function Board({ state, send }: BoardProps) {
+  const t = useT();
+
   if (state.status === "waiting")
     return (
       <div className="board-unavailable">
         <GameMark id={state.type ?? ""} size={72} className="board-unavailable-mark" />
-        <Badge tone="live">Starting soon</Badge>
-        <h2>Players are getting ready</h2>
-        <p>The board will appear when the host starts the game.</p>
+        <Badge tone="live">{t("match.startingSoon")}</Badge>
+        <h2>{t("match.gettingReady")}</h2>
+        <p>{t("match.boardWillAppear")}</p>
       </div>
     );
 
@@ -72,8 +75,8 @@ function Board({ state, send }: BoardProps) {
 
   return (
     <div className="board-unavailable" role="status">
-      <h2>Game unavailable</h2>
-      <p>This game type is not supported. Return to the game list to choose another match.</p>
+      <h2>{t("match.unavailable")}</h2>
+      <p>{t("match.unsupported")}</p>
     </div>
   );
 }

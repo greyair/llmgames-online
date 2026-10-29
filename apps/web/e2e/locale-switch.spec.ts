@@ -227,3 +227,30 @@ for (const width of [390, 1440]) {
     });
   }
 }
+
+test.describe("in-match copy", () => {
+  test("translates the match desk and the game-over headline", async ({ browser, baseURL }) => {
+    const context = await browser.newContext({
+      baseURL,
+      locale: "zh-CN",
+      storageState: { cookies: [], origins: [] },
+    });
+
+    const page = await context.newPage();
+
+    try {
+      await page.goto("/design-preview/battleship");
+      await expect(page.getByRole("region", { name: "棋盘" })).toBeVisible();
+      await expect(page.getByRole("banner", { name: /对局控制/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: "离开游戏" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "玩家" })).toBeVisible();
+
+      await page.goto("/design-preview/battleship?state=win");
+      await expect(
+        page.getByRole("heading", { level: 1, name: /你赢了|获胜|对局结束|平局/ }),
+      ).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+});

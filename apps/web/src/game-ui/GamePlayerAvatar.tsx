@@ -1,4 +1,5 @@
 import { createContext } from "react";
+import { useT } from "@/i18n";
 import { PlayerAvatar } from "@/components/ui/player-avatar";
 import { isAgentIdentity, playerPrimaryName } from "@/features/shared/playerIdentity";
 import type { GamePlayer } from "@/features/shared/gameOverCopy";
@@ -6,11 +7,13 @@ import typeSafeLogo from "@/assets/typesafe-logo.svg?url";
 import "./player-name.css";
 
 export function JevLogo({ size = 28 }: { size?: number }) {
+  const t = useT();
+
   return (
     <img
       className="jev-logo"
       src={typeSafeLogo}
-      alt="Jev · TypeSafe logo"
+      alt={t("match.jevLogo")}
       width={size}
       height={size}
       style={{ width: size, height: size }}
