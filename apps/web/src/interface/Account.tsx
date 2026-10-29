@@ -21,6 +21,7 @@ import { HoleyLoader } from "@/components/ui/holey-loader";
 import { LoadingPanel } from "@/components/ui/loading-panel";
 import { SignOutConfirmation } from "./SignOutConfirmation";
 import { ErrorMessage, useMessageCue } from "./accountFeedback";
+import { useT } from "@/i18n";
 import "./account.css";
 
 export function safeReturnTo(value: string | null) {
@@ -43,13 +44,15 @@ function message<T>(error: T) {
 }
 
 function AccountFrame({ children }: { children: ReactNode }) {
+  const t = useT();
+
   return (
     <Chrome
       active="account"
       authenticated={false}
       actions={
         <ButtonLink href="/play" variant="outline" size="sm">
-          Browse games
+          {t("room.browseGames")}
         </ButtonLink>
       }
     >
@@ -104,6 +107,7 @@ function Verification({
   onToken: (token: string) => void;
   onInteractive: (value: boolean) => void;
 }) {
+  const t = useT();
   const element = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -224,7 +228,7 @@ function Verification({
     >
       {error && (
         <div role="alert">
-          Verification could not load.{" "}
+          {t("login.verificationFailed")}{" "}
           <Button
             variant="outline"
             size="sm"
@@ -233,7 +237,7 @@ function Verification({
               setAttempt((n) => n + 1);
             }}
           >
-            Retry verification
+            {t("login.retryVerification")}
           </Button>
         </div>
       )}
@@ -275,6 +279,7 @@ function CodeField({ value, onChange }: { value: string; onChange: (value: strin
 }
 
 function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: string }) {
+  const t = useT();
   const [email, setEmail] = useState(previewState ? "alex@example.test" : "");
   const [code, setCode] = useState("");
   const [challenge, setChallenge] = useState(previewState === "auth-code" ? "preview-code" : "");
@@ -286,18 +291,18 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
   const [error, setError] = useState(() => {
     const reason = new URLSearchParams(location.search).get("error");
 
-    if (reason === "github_email_conflict") return "This email already belongs to an account. Sign in using the original method.";
+    if (reason === "github_email_conflict") return t("login.conflict");
 
-    if (reason === "unverified_email") return "A verified primary email is required to sign in.";
+    if (reason === "unverified_email") return t("login.unverified");
 
-    return reason ? "Sign-in could not be completed. Please try again." : "";
+    return reason ? t("login.failed") : "";
   });
 
   useMessageCue(error, "error");
   const verified = Boolean(previewState) || Boolean(token);
   const verifying = !verified && !interactive && !busy;
-  const emailAction = busy ? "Connecting…" : verifying ? "Verifying…" : "Send sign-in code";
-  const googleAction = busy ? "Connecting…" : verifying ? "Verifying…" : "Continue with Google";
+  const emailAction = busy ? t("login.connecting") : verifying ? t("login.verifying") : t("login.sendCode");
+  const googleAction = busy ? t("login.connecting") : verifying ? t("login.verifying") : t("login.google");
 
   const googleMark = (
     <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
@@ -365,7 +370,7 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
             }
           }
         >
-          {challenge ? "Check your inbox" : "Sign in"}
+          {challenge ? t("login.inbox") : t("login.title")}
         </h1>
         <p
           className="reveal"
@@ -376,11 +381,11 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
           }
         >
           {challenge ? (
-            `Enter the six-digit code sent to ${email}.`
+            t("login.codeSent", { email })
           ) : (
             <>
-              Your next game starts here.
-              <br /> Sign in to play with friends and connect your agents.
+              {t("login.lead")}
+              <br /> {t("login.leadMore")}
             </>
           )}
         </p>
@@ -403,11 +408,11 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
             }}
           >
             <label className="ui-label" htmlFor="code">
-              Sign-in code
+              {t("login.code")}
             </label>
             <CodeField value={code} onChange={setCode} />
             <Button type="submit" size="lg" disabled={busy}>
-              {busy ? "Checking code…" : "Sign in"}
+              {busy ? t("login.checking") : t("login.title")}
             </Button>
             <Button
               type="button"
@@ -419,7 +424,7 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
                 setError("");
               }}
             >
-              Use another email or request a new code
+              {t("login.anotherEmail")}
             </Button>
           </form>
         ) : (
@@ -444,10 +449,10 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
               onClick={() => void submit("github")}
             >
               {verifying ? <VerifyingMark /> : null}
-              Continue with GitHub
+              {t("login.github")}
             </Button>
             <div className="signin-divider" aria-hidden="true">
-              <span>or</span>
+              <span>{t("login.or")}</span>
             </div>
             <form
               className="signin-form"
@@ -457,7 +462,7 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
               }}
             >
               <label className="ui-label" htmlFor="email">
-                Email address
+                {t("login.email")}
               </label>
               <Input
                 id="email"
@@ -489,8 +494,8 @@ function SignIn({ returnTo, previewState }: { returnTo: string; previewState?: s
         )}
       </div>
       <p className="account-footnote">
-        By continuing, you agree to our <a href="/terms">Terms of Service</a> and acknowledge our{" "}
-        <a href="/privacy">Privacy Policy</a>.
+        {t("login.agree")} <a href="/terms">{t("login.terms")}</a> {t("login.and")}{" "}
+        <a href="/privacy">{t("login.privacy")}</a>.
       </p>
     </section>
   );
@@ -517,15 +522,16 @@ function Onboarding({
   setName: (value: string) => void;
   onSubmit: () => void;
 }) {
+  const t = useT();
   const shown = name.trim();
 
   return (
     <AccountFrame>
       <div className="onboarding">
-        <h1>Choose your player name</h1>
+        <h1>{t("onboarding.title")}</h1>
         <p className="account-lead">
-          This name appears at the table
-          <br /> and on your agents.
+          {t("onboarding.lead")}
+          <br /> {t("onboarding.leadMore")}
         </p>
         <div className="onboarding-preview" aria-hidden="true" data-empty={!shown || undefined}>
           <div className="onboarding-seat" data-kind="human">
@@ -537,9 +543,9 @@ function Onboarding({
             />
             <div>
               <strong>{shown || "YourName"}</strong>
-              <small>At the table</small>
+              <small>{t("onboarding.table")}</small>
             </div>
-            <span className="onboarding-tag">You</span>
+            <span className="onboarding-tag">{t("onboarding.you")}</span>
           </div>
           <div className="onboarding-seat" data-kind="agent">
             <PlayerAvatar name="agent:SwiftAnchor" size={44} label="Agent preview" />
@@ -547,7 +553,7 @@ function Onboarding({
               <strong className="mono">SwiftAnchor</strong>
               <small className="mono">{shown || "YourName"} · Claude</small>
             </div>
-            <span className="onboarding-tag">Agent</span>
+            <span className="onboarding-tag">{t("onboarding.agent")}</span>
           </div>
         </div>
         {error && <ErrorMessage key={error}>{error}</ErrorMessage>}
@@ -559,7 +565,7 @@ function Onboarding({
           }}
         >
           <label className="ui-label" htmlFor="gamertag">
-            Player name
+            {t("onboarding.name")}
           </label>
           <Input
             id="gamertag"
@@ -573,11 +579,10 @@ function Onboarding({
             autoComplete="nickname"
           />
           <small id="name-help" className="ui-hint">
-            3–20 letters, numbers or underscores. Start and end with a letter or number. Choose
-            carefully, this name is permanent.
+            {t("onboarding.help")}
           </small>
           <Button type="submit" size="lg" disabled={busy}>
-            {busy ? "Saving…" : "Let’s play"}
+            {busy ? t("onboarding.saving") : t("onboarding.play")}
           </Button>
         </form>
       </div>
@@ -586,6 +591,7 @@ function Onboarding({
 }
 
 function Profile({ user, returnTo }: { user: User; returnTo: string }) {
+  const t = useT();
   const current = user;
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -625,7 +631,7 @@ function Profile({ user, returnTo }: { user: User; returnTo: string }) {
       user={current}
       actions={
         <ButtonLink href="/play" variant="outline" size="sm">
-          Browse games
+          {t("room.browseGames")}
         </ButtonLink>
       }
     >
@@ -695,9 +701,9 @@ function Profile({ user, returnTo }: { user: User; returnTo: string }) {
             <div className="profile-session">
               <div>
                 <h2 id="profile-session-title" className="panel-title">
-                  Sessions
+                  {t("profile.sessions")}
                 </h2>
-                <p>Sign out here, or end every browser session at once.</p>
+                <p>{t("profile.sessionsHelp")}</p>
               </div>
               <div className="profile-session-actions">
                 <SignOutConfirmation
@@ -719,14 +725,14 @@ function Profile({ user, returnTo }: { user: User; returnTo: string }) {
                   }}
                   trigger={
                     <Button variant="destructive" className="profile-signout" disabled={busy}>
-                      Sign out
+                      {t("site.signOut")}
                     </Button>
                   }
                 />
                 <SignOutConfirmation
                   allBrowsers
                   disabled={busy}
-                  description="End every browser session for your account. Your connected MCP agents stay signed in."
+                  description={t("profile.signOutAllHelp")}
                   onConfirm={async () => {
                     setBusy(true);
                     setError("");
@@ -740,7 +746,7 @@ function Profile({ user, returnTo }: { user: User; returnTo: string }) {
                   }}
                   trigger={
                     <Button variant="outline" disabled={busy}>
-                      Sign out of all browsers
+                      {t("profile.signOutAll")}
                     </Button>
                   }
                 />
@@ -754,15 +760,17 @@ function Profile({ user, returnTo }: { user: User; returnTo: string }) {
 }
 
 function AccountError({ detail, onRetry }: { detail: string; onRetry: () => void }) {
+  const t = useT();
+
   return (
     <AccountFrame>
       <div className="account-problem">
         <span className="account-problem-mark" aria-hidden="true">
           !
         </span>
-        <h1>Could not check your account</h1>
+        <h1>{t("profile.accountError")}</h1>
         <p role="alert">{detail}</p>
-        <Button onClick={onRetry}>Try again</Button>
+        <Button onClick={onRetry}>{t("common.retry")}</Button>
       </div>
     </AccountFrame>
   );

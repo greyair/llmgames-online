@@ -34,13 +34,15 @@ import { MatchDesk } from "@/game-ui/MatchDesk";
 import { GameBoard } from "@/game-ui/GameBoard";
 import { Chrome } from "./Chrome";
 import { gameRoute, getGame } from "./catalog";
+import { gameMessage, useLocale, useT, type GameField } from "@/i18n";
 import { rules } from "./gameRules";
+import { rulesZhCN } from "./gameRules.zh-CN";
 import { HoleyLoader } from "@/components/ui/holey-loader";
 import { LoadingPanel } from "@/components/ui/loading-panel";
 import "./room.css";
 
-const errorText = <T,>(e: T) =>
-  e instanceof Error ? e.message : "Could not connect. Please try again.";
+/** Server messages stay English (they are protocol text); only the fallback is localized. */
+const errorText = <T,>(e: T, fallback: string) => (e instanceof Error ? e.message : fallback);
 
 const choiceSpring = { type: "spring", stiffness: 560, damping: 36 } as const;
 
@@ -142,8 +144,21 @@ export function Room({
     confirm?: boolean;
   };
 }) {
+  const t = useT();
+  const locale = useLocale();
   const game = getGame(gameType)!;
-  const gameRules = knownValue(rules, gameType) ?? [];
+  const gameRules = knownValue(locale === "zh-CN" ? rulesZhCN : rules, gameType) ?? [];
+
+  // Game copy lives in the shared namespace; catalog text is the fallback until a
+  // game ships its own translations.
+  const gameText = (field: GameField, fallback: string) => {
+    const key = gameMessage(gameType, field);
+
+    const text = t(key);
+
+    return text === key ? fallback : text;
+  };
+
   const roomQuery = new URLSearchParams(useBrowserHref().split("?")[1] ?? "");
 
   const roomCode =
@@ -223,14 +238,14 @@ export function Room({
 
             if (active) acceptRoom(result);
           } catch (e) {
-            if (active) setError(errorText(e));
+            if (active) setError(errorText(e, t("room.connectFailed")));
           } finally {
             if (active) setBusy(false);
           }
         }
       })
       .catch((e) => {
-        if (active) setError(errorText(e));
+        if (active) setError(errorText(e, t("room.connectFailed")));
       });
 
     return () => {
@@ -326,7 +341,7 @@ export function Room({
           ? payload.message
           : isString(payload.error)
             ? payload.error
-            : "The server could not accept that action.";
+            : t("room.actionRejected");
 
         if (
           !(
@@ -391,7 +406,7 @@ export function Room({
           : await joinGameRoom({ roomCode: code.trim().toUpperCase() }),
       );
     } catch (e) {
-      setError(errorText(e));
+      setError(errorText(e, t("room.connectFailed")));
     } finally {
       setBusy(false);
     }
@@ -440,7 +455,7 @@ export function Room({
 
     if (!connected || !socket.current?.isConnected) {
       setConnected(false);
-      setError("Reconnecting. Wait for the room before making a move.");
+      setError(t("room.waitReconnect"));
 
       return false;
     }
@@ -486,7 +501,7 @@ export function Room({
       setCodeCopied(false);
       play("copy");
     } catch {
-      setError("Could not copy the invite link.");
+      setError(t("room.copyInviteFailed"));
     }
   }
 
@@ -501,7 +516,7 @@ export function Room({
       setInviteCopied(false);
       play("copy");
     } catch {
-      setError("Could not copy the room code.");
+      setError(t("room.copyCodeFailed"));
     }
   }
 
@@ -519,12 +534,12 @@ export function Room({
           <LoadingPanel
             label={
               authExpired
-                ? "Your session expired"
+                ? t("room.sessionExpired")
                 : !authenticated
-                  ? "Checking your account…"
+                  ? t("room.checkingAccount")
                   : connectionSlow
-                    ? "Still trying to connect…"
-                    : "Connecting to game…"
+                    ? t("room.stillConnecting")
+                    : t("room.connecting")
             }
           >
             {error && (
@@ -534,19 +549,17 @@ export function Room({
             )}
             {room && authExpired && (
               <>
-                <p className="room-loading-note">
-                  Your place in the room is saved. Sign in to return.
-                </p>
+                <p className="room-loading-note">{t("room.placeSaved")}</p>
                 <a className={buttonVariants({})} href={signInHref()}>
-                  Sign in again
+                  {t("room.signInAgain")}
                 </a>
               </>
             )}
             {room && connectionSlow && !authExpired && (
               <>
-                <p className="room-loading-note">This is taking longer than expected.</p>
+                <p className="room-loading-note">{t("room.slowConnection")}</p>
                 <Button variant="secondary" onClick={retryConnection}>
-                  Try again
+                  {t("common.retry")}
                 </Button>
               </>
             )}
@@ -565,8 +578,9 @@ export function Room({
               <div className="room-entry-mark reveal-pop">
                 <GameMark id={gameType} size={72} />
                 <span className="room-entry-meta">
-                  {game.players} players<span aria-hidden="true"> · </span>
-                  {game.category}
+                  {t("common.playerCount", { count: game.players })}
+                  <span aria-hidden="true"> · </span>
+                  {gameText("category", game.category)}
                 </span>
               </div>
               <h1
@@ -578,7 +592,7 @@ export function Room({
                   }
                 }
               >
-                {game.title}
+                {gameText("title", game.title)}
               </h1>
               <p
                 className="room-entry-lead reveal"
@@ -588,7 +602,7 @@ export function Room({
                   }
                 }
               >
-                {game.detail}
+                {gameText("detail", game.detail)}
               </p>
             </header>
             <section
@@ -598,7 +612,7 @@ export function Room({
                   [property: `--${string}`]: string | number | undefined;
                 }
               }
-              aria-label="Game settings"
+              aria-label={t("room.settings")}
             >
               {error && (
                 <p role="alert" className="room-error">
@@ -607,30 +621,30 @@ export function Room({
               )}
               {!demo && !isGameEnabled(gameType) ? (
                 <div role="status" className="room-unavailable">
-                  <p>This game is currently unavailable.</p>
+                  <p>{t("room.unavailable")}</p>
                   <ButtonLink href="/play" variant="secondary">
-                    Browse available games
+                    {t("room.browseGames")}
                   </ButtonLink>
                 </div>
               ) : !authenticated ? (
                 error ? (
                   <p role="status">
-                    <Button onClick={() => location.reload()}>Retry account check</Button>
+                    <Button onClick={() => location.reload()}>{t("room.retryAccount")}</Button>
                   </p>
                 ) : (
-                  <HoleyLoader label="Checking your account…" />
+                  <HoleyLoader label={t("room.checkingAccount")} />
                 )
               ) : room ? (
                 <div className="room-connection">
                   <HoleyLoader
-                    label={connectionSlow ? "Still trying to connect…" : "Connecting to game…"}
+                    label={connectionSlow ? t("room.stillConnecting") : t("room.connecting")}
                   />
                   {connectionSlow && (
                     <>
-                      <p>This is taking longer than expected.</p>
+                      <p>{t("room.slowConnection")}</p>
                       <div className="room-connection-actions">
                         <Button variant="secondary" onClick={retryConnection}>
-                          Try again
+                          {t("common.retry")}
                         </Button>
                       </div>
                     </>
@@ -640,27 +654,27 @@ export function Room({
                 <>
                   <form
                     className="room-create-form"
-                    aria-label="Create a room"
+                    aria-label={t("room.createForm")}
                     onSubmit={(e) => {
                       e.preventDefault();
                       void enter(true);
                     }}
                   >
                     <Choices
-                      legend="Match length"
+                      legend={t("room.matchLength")}
                       name="minutes"
                       values={minuteChoices}
                       value={chosenMinutes}
-                      suffix="m"
+                      suffix={t("room.minuteSuffix")}
                       onChange={setMinutes}
                     />
                     {gameType !== "contexto" && (
                       <Choices
-                        legend="Time per turn"
+                        legend={t("room.timePerTurn")}
                         name="seconds"
                         values={[30, 60, 90, 120, 150]}
                         value={seconds}
-                        suffix="s"
+                        suffix={t("room.secondSuffix")}
                         onChange={setSeconds}
                       />
                     )}
@@ -672,7 +686,7 @@ export function Room({
                         disabled={busy}
                         aria-busy={busy && entryAction === "create"}
                       >
-                        {busy && entryAction === "create" ? "Creating room…" : "Create room"}
+                        {busy && entryAction === "create" ? t("room.creating") : t("room.create")}
                         <Icon name="arrow" size={20} />
                       </Button>
                       <p className="room-opponent-help">
@@ -685,26 +699,26 @@ export function Room({
                           "battleship",
                           "contexto",
                         ].includes(gameType)
-                          ? "Create a room to invite a friend or add Jev, an AI opponent."
-                          : "Create a room and share the invite with your players."}
+                          ? t("room.createHelpOpponent")
+                          : t("room.createHelpTeam")}
                       </p>
                     </div>
                   </form>
                   <form
                     className="room-join-form"
-                    aria-label="Join a game room"
+                    aria-label={t("room.joinForm")}
                     onSubmit={(e) => {
                       e.preventDefault();
                       void enter(false);
                     }}
                   >
-                    <label htmlFor="game-room-code">Have a room code?</label>
+                    <label htmlFor="game-room-code">{t("room.haveCode")}</label>
                     <div className="room-join-controls">
                       <Input
                         id="game-room-code"
                         disabled={busy}
-                        aria-label="Room code"
-                        placeholder="ROOM CODE"
+                        aria-label={t("room.roomCode")}
+                        placeholder={t("room.roomCodePlaceholder")}
                         value={code}
                         onChange={(e) => setCode(e.target.value.toUpperCase())}
                         autoComplete="off"
@@ -718,7 +732,7 @@ export function Room({
                         disabled={busy || !code.trim()}
                         aria-busy={busy && entryAction === "join"}
                       >
-                        {busy && entryAction === "join" ? "Joining…" : "Join"}
+                        {busy && entryAction === "join" ? t("room.joining") : t("room.join")}
                       </Button>
                     </div>
                   </form>
@@ -734,7 +748,7 @@ export function Room({
               }
               aria-labelledby="room-instructions-title"
             >
-              <h2 id="room-instructions-title">How to play</h2>
+              <h2 id="room-instructions-title">{t("room.howToPlay")}</h2>
               <ol role="list">
                 {gameRules.map((rule, index) => (
                   <li key={rule}>
@@ -787,13 +801,13 @@ export function Room({
                   variant={frame === null ? "default" : "secondary"}
                   onClick={() => setFrame(frame === null ? 0 : null)}
                 >
-                  {frame === null ? "Watch replay" : "Back to result"}
+                  {frame === null ? t("room.watchReplay") : t("room.backToResult")}
                 </Button>
                 {frame !== null && (
                   <label>
                     Move {frame + 1} of {replay.frames.length}
                     <input
-                      aria-label="Replay position"
+                      aria-label={t("room.replayPosition")}
                       type="range"
                       min={0}
                       max={replay.frames.length - 1}
@@ -817,17 +831,17 @@ export function Room({
             <div className="room-reconnect">
               {authExpired ? (
                 <>
-                  <span>Your session expired.</span>
+                  <span>{t("room.sessionExpired")}.</span>
                   <a className={buttonVariants({ size: "sm" })} href={signInHref()}>
-                    Sign in again
+                    {t("room.signInAgain")}
                   </a>
                 </>
               ) : (
                 <>
-                  <HoleyLoader compact showLabel label="Reconnecting…" size={22} />
+                  <HoleyLoader compact showLabel label={t("room.reconnecting")} size={22} />
                   {connectionSlow && (
                     <Button size="sm" variant="secondary" onClick={retryConnection}>
-                      Try again
+                      {t("common.retry")}
                     </Button>
                   )}
                 </>
@@ -861,15 +875,15 @@ export function Room({
         }}
       >
         <DialogContent>
-          <DialogTitle>{end ? "End this game?" : "Leave this game?"}</DialogTitle>
+          <DialogTitle>{end ? t("room.endQuestion") : t("room.leaveQuestion")}</DialogTitle>
           <DialogDescription>
             {end
-              ? "This ends the room for every player."
-              : "The match can continue without you. You can return using the room link while it remains active."}
+              ? t("room.endExplanation")
+              : t("room.leaveExplanation")}
           </DialogDescription>
           <DialogFooter>
             <DialogClose className={buttonVariants({ variant: "secondary" })}>
-              Keep playing
+              {t("room.keepPlaying")}
             </DialogClose>
             <Button
               variant="destructive"
@@ -879,7 +893,7 @@ export function Room({
                 } else leave();
               }}
             >
-              {end ? "End game" : "Leave game"}
+              {end ? t("room.endGame") : t("room.leaveGame")}
             </Button>
           </DialogFooter>
         </DialogContent>

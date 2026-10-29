@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import { Icon } from "@/components/ui/icon";
+import { useT } from "@/i18n";
 import type { NavLink } from "./navigation";
 
 type SiteNavProps = {
@@ -41,6 +42,7 @@ export function SiteNav({ links, current, highlight = current, variant }: SiteNa
   const pill = useRef<HTMLSpanElement>(null);
   const placed = useRef<Placed | null>(null);
   const linkSet = links.map((link) => link.id).join(".");
+  const t = useT();
 
   useLayoutEffect(() => {
     const root = nav.current,
@@ -104,20 +106,21 @@ export function SiteNav({ links, current, highlight = current, variant }: SiteNa
   return (
     <nav
       ref={nav}
-      aria-label="Main navigation"
+      aria-label={t("nav.label")}
       className={variant === "bar" ? "site-nav" : "site-dock"}
       data-variant={variant}
     >
       <span ref={pill} className="site-nav-indicator" aria-hidden="true" />
       {links.map((item) => {
-        const label = variant === "dock" ? (item.short ?? item.title) : item.title;
+        const full = t(item.labelKey);
+        const label = variant === "dock" && item.shortKey ? t(item.shortKey) : full;
 
         return (
           <a
             key={item.id}
             href={item.href}
             data-astro-prefetch="hover"
-            aria-label={label === item.title ? undefined : item.title}
+            aria-label={label === full ? undefined : full}
             aria-current={item.id === current ? "page" : undefined}
             data-highlighted={item.id === highlight || undefined}
           >

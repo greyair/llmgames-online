@@ -20,6 +20,7 @@ import { GamePlayerAvatar, JevLogo } from "./GamePlayerAvatar";
 import { playerPrimaryName } from "@/features/shared/playerIdentity";
 import { PlayerName } from "./PlayerName";
 import { AgentWebhookInvites } from "./AgentWebhookInvites";
+import { useT, type Translate } from "@/i18n";
 import "./lobby.css";
 
 type Member = NonNullable<ClientView["players"]>[number];
@@ -36,12 +37,15 @@ type JevAccess = { connected: boolean; trialAvailable: boolean };
 
 const roleZones: Zone[] = ["blue:spymaster", "blue:operative", "red:spymaster", "red:operative"];
 
-const zoneLabel = (zone: Zone) =>
+const zoneLabel = (zone: Zone, t: Translate) =>
   zone === "players"
-    ? "Players"
+    ? t("lobby.players")
     : zone === "spectators"
-      ? "Spectators"
-      : `${zone.startsWith("blue") ? "Blue" : "Red"} ${zone.endsWith("spymaster") ? "spymaster" : "operatives"}`;
+      ? t("lobby.spectators")
+      : t("lobby.role", {
+          team: t(zone.startsWith("blue") ? "lobby.blue" : "lobby.red"),
+          role: t(zone.endsWith("spymaster") ? "lobby.spymaster" : "lobby.operatives").toLowerCase(),
+        });
 
 export function LobbySetup({
   state,
@@ -64,6 +68,7 @@ export function LobbySetup({
   codeCopied: boolean;
   inviteCopied: boolean;
 }) {
+  const t = useT();
   const teams = state.type === "codenames";
 
   const players = state.players ?? [],
@@ -203,8 +208,8 @@ export function LobbySetup({
     if (!canMove(id, zone)) {
       setNotice(
         zone !== "spectators" && currentZone(id) === "spectators" && players.length >= maximum
-          ? "All player seats are taken. Move a player to spectators first."
-          : "That move is not available.",
+          ? t("lobby.full")
+          : t("lobby.unavailable"),
       );
 
       return;
@@ -284,7 +289,7 @@ export function LobbySetup({
         data-selected={selected === member.id}
         data-dragging={drag?.id === member.id}
         disabled={!editable}
-        aria-label={`Move ${playerPrimaryName(member)}`}
+        aria-label={t("lobby.movePlayer", { name: playerPrimaryName(member) })}
         aria-pressed={selected === member.id}
         onPointerDown={(event) => pointerDown(event, member.id)}
         onPointerMove={pointerMove}
@@ -309,8 +314,8 @@ export function LobbySetup({
         </span>
         <PlayerName className="lobby-member-name" player={member} />
         <span className="lobby-tags">
-          {isHost && <span className="lobby-tag">Host</span>}
-          {member.id === me && <span className="lobby-tag lobby-you">You</span>}
+          {isHost && <span className="lobby-tag">{t("lobby.host")}</span>}
+          {member.id === me && <span className="lobby-tag lobby-you">{t("lobby.you")}</span>}
         </span>
         <span className="lobby-grip" aria-hidden="true">
           <Icon name="grip" size={18} />
@@ -342,7 +347,7 @@ export function LobbySetup({
         data-team={id.split(":")[0]}
         data-over={destination}
         data-valid={destination && drag ? canMove(drag.id, id) : undefined}
-        aria-label={zoneLabel(id)}
+        aria-label={zoneLabel(id, t)}
       >
         <header>
           <h3>
@@ -351,7 +356,7 @@ export function LobbySetup({
             ) : (
               <Icon name="players" size={16} />
             )}{" "}
-            {isRole ? (id.endsWith("spymaster") ? "Spymaster" : "Operatives") : zoneLabel(id)}
+            {isRole ? t(id.endsWith("spymaster") ? "lobby.spymaster" : "lobby.operatives") : zoneLabel(id, t)}
           </h3>
           <span>
             {occupants.length}
@@ -365,12 +370,12 @@ export function LobbySetup({
           {Array.from({ length: openSeats }, (_, i) => (
             <span key={`open-${i}`} className="lobby-open-seat" aria-hidden="true">
               <span />
-              Open seat
+              {t("lobby.open")}
             </span>
           ))}
           {!occupants.length && !openSeats && (
             <p className="lobby-empty">
-              {id === "spectators" ? "Drop a player here to watch." : "Drop a player here."}
+              {t(id === "spectators" ? "lobby.dropWatch" : "lobby.drop")}
             </p>
           )}
         </div>
@@ -383,12 +388,12 @@ export function LobbySetup({
             onClick={() => candidate && move(candidate, id)}
           >
             {picked
-              ? "Move here"
+              ? t("lobby.moveHere")
               : isRole && me && currentZone(me) === id
-                ? "Your role"
+                ? t("lobby.yourRole")
                 : isRole
-                  ? "Join role"
-                  : "Take a seat"}
+                  ? t("lobby.joinRole")
+                  : t("lobby.takeSeat")}
           </Button>
         )}
       </section>
@@ -414,12 +419,12 @@ export function LobbySetup({
 
   const reason =
     players.length < minimum
-      ? `${minimum - players.length} more ${minimum - players.length === 1 ? "player" : "players"} needed to start.`
+      ? t(minimum - players.length === 1 ? "lobby.needOne" : "lobby.needMany", { count: minimum - players.length })
       : !completeTeams
-        ? "Each team needs a spymaster and an operative."
+        ? t("lobby.needRoles")
         : unassigned
-          ? "Syncing player roles…"
-          : "Everyone is seated. Ready when you are.";
+          ? t("lobby.syncing")
+          : t("lobby.ready");
 
   const jevCanAdd = Boolean(jevAccess && (jevAccess.connected || jevAccess.trialAvailable));
   const jevAddLabel = jevAccess?.connected ? "Add Jev" : "Try Jev for a game";
@@ -439,20 +444,20 @@ export function LobbySetup({
     >
       <header className="lobby-heading">
         <div>
-          <h2>Set up your table</h2>
+          <h2>{t("lobby.title")}</h2>
         </div>
         <span className="lobby-count" data-full={players.length >= maximum || undefined}>
-          {players.length} / {maximum} players
+          {t("lobby.playerCount", { count: players.length, max: maximum })}
         </span>
       </header>
       <div className="lobby-invite" data-surface="dark">
         <div className="lobby-code-row">
           <div className="lobby-code">
             <span className="lobby-code-label" aria-hidden="true">
-              Room code
+              {t("room.roomCode")}
             </span>
             <strong
-              aria-label={revealed ? `Room code ${state.roomCode}` : "Room code hidden"}
+              aria-label={revealed ? t("lobby.roomCode", { code: state.roomCode ?? "" }) : t("lobby.codeHidden")}
               data-revealed={revealed}
             >
               {revealed ? state.roomCode : "••••••"}
@@ -462,7 +467,7 @@ export function LobbySetup({
             className="lobby-code-toggle"
             size="icon"
             variant="secondary"
-            aria-label={revealed ? "Hide room code" : "Show room code"}
+            aria-label={t(revealed ? "lobby.hideCode" : "lobby.showCode")}
             aria-pressed={revealed}
             onClick={() => setRevealed(!revealed)}
           >
@@ -472,11 +477,11 @@ export function LobbySetup({
         <div className="lobby-invite-actions">
           <Button className="lobby-copy-code" size="sm" variant="secondary" onClick={onCopyCode}>
             {codeCopied ? <Icon name="check" size={16} /> : <Icon name="copy" size={18} />}
-            {codeCopied ? "Code copied" : "Copy code"}
+            {t(codeCopied ? "lobby.codeCopied" : "lobby.copyCode")}
           </Button>
           <Button className="lobby-copy-invite" size="sm" onClick={onCopyInvite}>
             {inviteCopied ? <Icon name="check" size={16} /> : <Icon name="link" size={18} />}
-            {inviteCopied ? "Link copied" : "Copy invite"}
+            {t(inviteCopied ? "lobby.linkCopied" : "lobby.copyInvite")}
           </Button>
         </div>
       </div>
@@ -546,11 +551,11 @@ export function LobbySetup({
           {selected && (
             <>
               <p>
-                {playerPrimaryName(members.find((p) => p.id === selected) ?? { id: selected })}:
-                choose a destination below.
+                {playerPrimaryName(members.find((p) => p.id === selected) ?? { id: selected })}:{" "}
+                {t("lobby.chooseDestination")}
               </p>
               <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>
-                Cancel move
+                {t("lobby.cancelMove")}
               </Button>
             </>
           )}
@@ -563,7 +568,7 @@ export function LobbySetup({
                 onClick={() => request("randomize_codenames_roles")}
               >
                 <Icon name="shuffle" size={18} />
-                Shuffle teams
+                {t("lobby.shuffle")}
               </Button>
               <Button
                 size="sm"
@@ -571,7 +576,7 @@ export function LobbySetup({
                 disabled={!allowed || !Object.keys(assignments).length}
                 onClick={() => request("reset_codenames_roles")}
               >
-                Reset teams
+                {t("lobby.reset")}
               </Button>
             </div>
           )}
@@ -581,7 +586,7 @@ export function LobbySetup({
         <div className="lobby-team-columns">
           {(["blue", "red"] as const).map((team) => (
             <div key={team} className="lobby-team" data-team={team}>
-              <h3>{team === "blue" ? "Blue team" : "Red team"}</h3>
+              <h3>{t(team === "blue" ? "lobby.blueTeam" : "lobby.redTeam")}</h3>
               {zone(`${team}:spymaster`)}
               {zone(`${team}:operative`)}
             </div>
@@ -600,22 +605,22 @@ export function LobbySetup({
         }}
       >
         <summary>
-          <span>Room settings · {spectators.length} spectators</span>
+          <span>{t("lobby.settings", { count: spectators.length })}</span>
           <Icon name="chevronDown" className="lobby-settings-caret" size={18} />
         </summary>
         <div className="lobby-spectators">{zone("spectators")}</div>
         <div className="lobby-timing">
           <span>
-            Match length
-            <strong>{Math.round((state.timerConfig?.gameTotalTime ?? 1800000) / 60000)}m</strong>
+            {t("room.matchLength")}
+            <strong>{Math.round((state.timerConfig?.gameTotalTime ?? 1800000) / 60000)}{t("room.minuteSuffix")}</strong>
           </span>
           <span>
-            Time per turn
-            <strong>{Math.round((state.timerConfig?.turnTime ?? 30000) / 1000)}s</strong>
+            {t("room.timePerTurn")}
+            <strong>{Math.round((state.timerConfig?.turnTime ?? 30000) / 1000)}{t("room.secondSuffix")}</strong>
           </span>
           {state.type === "battleship" && (
             <span>
-              Fleet placement<strong>5m</strong>
+              {t("lobby.fleetPlacement")}<strong>5{t("room.minuteSuffix")}</strong>
             </span>
           )}
         </div>
@@ -627,15 +632,15 @@ export function LobbySetup({
           data-ready={(ready && connected && !waiting && !notice) || undefined}
         >
           {!connected
-            ? "Reconnecting. Seat changes are paused."
+            ? t("lobby.reconnecting")
             : waiting
-              ? "Updating the room…"
+              ? t("lobby.updating")
               : notice || reason}
         </p>
         {host && (
           <footer className="lobby-footer">
             <Button variant="ghost" onClick={onClose}>
-              Close room
+              {t("lobby.close")}
             </Button>
             <Button
               className="lobby-start-button"
@@ -646,7 +651,7 @@ export function LobbySetup({
                 request("start_game");
               }}
             >
-              Start game <Icon name="play" size={16} />
+              {t("lobby.start")} <Icon name="play" size={16} />
             </Button>
           </footer>
         )}

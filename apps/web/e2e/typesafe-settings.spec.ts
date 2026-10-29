@@ -1,5 +1,14 @@
 import { test, expect } from "@playwright/test";
 
+test("Chinese settings retain the billing consent", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("llmgames-locale", "zh-CN"));
+  await page.goto("/design-preview/profile?state=jev-disconnected");
+  const section = page.getByRole("region", { name: "与 Jev 对战" });
+  await expect(section.getByText(/按每次 AI 请求向你的账户收费/)).toBeVisible();
+  await expect(section.getByRole("checkbox")).not.toBeChecked();
+  await expect(section.getByRole("button", { name: "连接 TypeSafe" })).toBeDisabled();
+});
+
 for (const width of [390, 1280])
   test(`TypeSafe settings at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

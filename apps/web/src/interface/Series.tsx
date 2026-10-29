@@ -20,10 +20,23 @@ import { go, useBrowserHref } from "@/lib/navigate";
 import { Chrome } from "./Chrome";
 import { Room } from "./Room";
 import { GameMark } from "./GameMark";
-import { getGame } from "./catalog";
+import { gameMessage, useT, type Translate } from "@/i18n";
 import "./series.css";
 
 type BuilderRound = SeriesRound & { key: string };
+
+function seriesStatus(status: string, t: Translate): string {
+  switch (status) {
+    case "waiting": return t("series.statusWaiting");
+    case "preparing": return t("series.statusPreparing");
+    case "playing": return t("series.statusPlaying");
+    case "break": return t("series.statusBreak");
+    case "completed": return t("series.statusCompleted");
+    case "cancelled": return t("series.statusCancelled");
+    case "failed": return t("series.statusFailed");
+    default: return status;
+  }
+}
 
 const savedSeriesSchema = z.object({ code: z.string(), name: z.string(), status: z.string() });
 
@@ -94,6 +107,7 @@ function SeriesChoices<T extends string>({
 }
 
 export function Series() {
+  const t = useT();
   const reduceMotion = useReducedMotion();
 
   const href = useBrowserHref(),
@@ -108,7 +122,7 @@ export function Series() {
     [copied, setCopied] = useState(false);
 
   const [config, setConfig] = useState<Omit<SeriesConfig, "rounds"> & { rounds: BuilderRound[] }>({
-    name: "My game series",
+    name: t("series.defaultName"),
     rounds: [],
     firstSeat: "alternate",
     gapMs: 15_000,
@@ -337,7 +351,7 @@ export function Series() {
     if (config.rounds.length >= 20) return;
     scrollToPicker.current = true;
     setConfig((old) => ({ ...old, rounds: [...old.rounds, initialRound(gameType)] }));
-    setReorderMessage(`${getGame(gameType)?.title} added to the lineup`);
+    setReorderMessage(t("series.added", { game: t(gameMessage(gameType, "title")) }));
   }
 
   function moveRound(key: string, target: number) {
@@ -345,7 +359,7 @@ export function Series() {
 
     if (current < 0 || target < 0 || target >= config.rounds.length || current === target) return;
     setReorderMessage(
-      `${getGame(config.rounds[current]!.gameType)?.title} moved to position ${target + 1}`,
+      t("series.moved", { game: t(gameMessage(config.rounds[current]!.gameType, "title")), position: target + 1 }),
     );
     setConfig((old) => {
       const from = old.rounds.findIndex((round) => round.key === key);
@@ -364,7 +378,7 @@ export function Series() {
       await navigator.clipboard.writeText(`${location.origin}/series?code=${code}`);
       setCopied(true);
     } catch {
-      setError("Could not copy the invite");
+      setError(t("series.copyFailed"));
     }
   }
 
@@ -411,20 +425,20 @@ export function Series() {
   const labels = (
     <div className="series-fields">
       <label>
-        Model / version label
+        {t("series.modelLabel")}
         <Input
           value={modelLabel}
           maxLength={100}
-          placeholder="Optional, self-reported"
+          placeholder={t("series.selfReported")}
           onChange={(e) => setModelLabel(e.target.value)}
         />
       </label>
       <label>
-        Prompt label
+        {t("series.promptLabel")}
         <Input
           value={promptLabel}
           maxLength={100}
-          placeholder="Optional"
+          placeholder={t("series.optional")}
           onChange={(e) => setPromptLabel(e.target.value)}
         />
       </label>
@@ -437,10 +451,10 @@ export function Series() {
         <div className="series-match-banner" data-surface="dark">
           <i className="live-dot" aria-hidden="true" />
           <span>
-            {view.config.name} · Match {view.currentMatch.index + 1} of {view.totalMatches}
+            {view.config.name} · {t("series.matchOf", { current: view.currentMatch.index + 1, total: view.totalMatches })}
           </span>
           <Button size="sm" variant="secondary" onClick={() => setWatch(false)}>
-            Series results
+            {t("series.results")}
           </Button>
         </div>
         <Room
@@ -470,9 +484,9 @@ export function Series() {
             <header className="series-heading">
               <ButtonLink href="/play" variant="ghost" size="sm">
                 <Icon name="back" size={18} />
-                Game library
+                {t("library.grid")}
               </ButtonLink>
-              <h1>{view?.config.name ?? "Series"}</h1>
+              <h1>{view?.config.name ?? t("series.title")}</h1>
             </header>
           )}
           {error && (
@@ -482,7 +496,7 @@ export function Series() {
           )}
           {!user ? (
             <p role="status" className="series-checking">
-              Checking your account…
+              {t("room.checkingAccount")}
             </p>
           ) : !code ? (
             <>
@@ -494,13 +508,13 @@ export function Series() {
                 }}
               >
                 <header ref={builderHeader} className="series-builder-header">
-                  <h1 className="sr-only">Create a series</h1>
+                  <h1 className="sr-only">{t("series.create")}</h1>
                   <ButtonLink href="/play" variant="ghost" size="sm" className="series-back">
                     <Icon name="back" size={18} />
-                    Game library
+                    {t("library.grid")}
                   </ButtonLink>
                   <label className="series-name-field">
-                    <span>Series name</span>
+                    <span>{t("series.name")}</span>
                     <Input
                       required
                       value={config.name}
@@ -516,7 +530,7 @@ export function Series() {
                   <section aria-labelledby="series-games-title" className="series-lineup">
                     <div className="series-lineup-head">
                       <h2 id="series-games-title" className="series-games-prompt">
-                        Add the games you want to play, in order.
+                        {t("series.addGames")}
                       </h2>
                     </div>
                     <p className="sr-only" role="status" aria-live="polite">
@@ -542,13 +556,13 @@ export function Series() {
                             data-round-key={round.key}
                             data-game={round.gameType}
                           >
-                            <legend className="sr-only">Game {index + 1}</legend>
+                            <legend className="sr-only">{t("series.gameNumber", { number: index + 1 })}</legend>
                             <div className="series-round-main">
                               <button
                                 type="button"
                                 className="series-icon-button series-drag-handle"
-                                aria-label={`Reorder game ${index + 1}`}
-                                title="Drag to reorder. Use arrow keys to move."
+                                aria-label={t("series.reorder", { number: index + 1 })}
+                                title={t("series.reorderHelp")}
                                 onKeyDown={(e) => {
                                   if (e.key === "ArrowUp" || e.key === "ArrowDown") {
                                     e.preventDefault();
@@ -617,28 +631,28 @@ export function Series() {
                               <div className="series-lineup-game">
                                 <GameMark id={round.gameType} size={44} />
                                 <div className="series-lineup-text">
-                                  <strong>{getGame(round.gameType)?.title}</strong>
-                                  <span>{getGame(round.gameType)?.category}</span>
+                                  <strong>{t(gameMessage(round.gameType, "title"))}</strong>
+                                  <span>{t(gameMessage(round.gameType, "category"))}</span>
                                 </div>
                                 {round.gameType === "battleship" && (
-                                  <p>Fleet placement gets a separate five minutes.</p>
+                                  <p>{t("series.fleet")}</p>
                                 )}
                                 {round.gameType === "pokemon" && (
                                   <p>
-                                    Both players choose simultaneously. Starting seats alternate.
+                                    {t("series.pokemon")}
                                   </p>
                                 )}
                                 {round.gameType === "contexto" && (
                                   <p>
-                                    Both players guess concurrently. Only the match timer applies.
+                                    {t("series.contexto")}
                                   </p>
                                 )}
                               </div>
                               <button
                                 type="button"
                                 className="series-icon-button series-remove"
-                                aria-label={`Remove game ${index + 1}`}
-                                title="Remove game"
+                                aria-label={t("series.removeNumber", { number: index + 1 })}
+                                title={t("series.removeGame")}
                                 data-sound="close"
                                 onClick={() => {
                                   setConfig((old) => ({
@@ -659,12 +673,12 @@ export function Series() {
                       id="series-game-picker"
                       className="series-game-picker"
                       role="group"
-                      aria-label="Choose a game"
+                      aria-label={t("series.chooseGame")}
                     >
                       <p className="series-picker-title">
-                        <span>Choose a game</span>
+                        <span>{t("series.chooseGame")}</span>
                         <small className="mono">
-                          {config.rounds.length >= 20 ? "Lineup full" : "Tap to add"}
+                          {t(config.rounds.length >= 20 ? "series.full" : "series.tapAdd")}
                         </small>
                       </p>
                       <div className="series-game-tiles">
@@ -680,12 +694,12 @@ export function Series() {
                                 [property: `--${string}`]: string | number | undefined;
                               }
                             }
-                            aria-label={`Add ${getGame(id)?.title}`}
+                            aria-label={t("series.add", { game: t(gameMessage(id, "title")) })}
                             disabled={config.rounds.length >= 20}
                             onClick={() => addGame(id)}
                           >
                             <GameMark id={id} size={48} />
-                            <span className="series-tile-label">{getGame(id)?.title}</span>
+                            <span className="series-tile-label">{t(gameMessage(id, "title"))}</span>
                             <span className="series-tile-add" aria-hidden="true">
                               <Icon name="plus" size={18} />
                             </span>
@@ -697,24 +711,24 @@ export function Series() {
                 </div>
                 <div className="series-builder-settings" data-surface="dark">
                   <section aria-labelledby="series-setup-title" className="series-setup">
-                    <h2 id="series-setup-title">Match setup</h2>
+                    <h2 id="series-setup-title">{t("series.setup")}</h2>
                     <p className="series-timing-note mono">
-                      Default timing: 15 minutes per game · 90 seconds per turn.
+                      {t("series.timing")}
                     </p>
                     <div className="series-settings-fields">
                       <SeriesChoices
-                        label="Who starts?"
+                        label={t("series.whoStarts")}
                         value={config.firstSeat}
                         onChange={(firstSeat) => setConfig({ ...config, firstSeat })}
                         choices={[
-                          { value: "alternate", label: "Take turns" },
-                          { value: "random", label: "Random" },
-                          { value: "participant1", label: "Player 1" },
-                          { value: "participant2", label: "Player 2" },
+                          { value: "alternate", label: t("series.alternate") },
+                          { value: "random", label: t("series.random") },
+                          { value: "participant1", label: t("series.playerOne") },
+                          { value: "participant2", label: t("series.playerTwo") },
                         ]}
                       />
                       <label className="series-break-field">
-                        <span>Break seconds</span>
+                        <span>{t("series.breakSeconds")}</span>
                         <Input
                           type="number"
                           required
@@ -727,21 +741,21 @@ export function Series() {
                         />
                       </label>
                       <SeriesChoices
-                        label="Next match"
+                        label={t("series.nextMatch")}
                         value={config.progression}
                         onChange={(progression) => setConfig({ ...config, progression })}
                         choices={[
-                          { value: "automatic", label: "Automatic" },
-                          { value: "ready", label: "Both ready" },
+                          { value: "automatic", label: t("series.automatic") },
+                          { value: "ready", label: t("series.bothReady") },
                         ]}
                       />
                       <SeriesChoices
-                        label="Your seat"
+                        label={t("series.yourSeat")}
                         value={playing ? "play" : "watch"}
                         onChange={(seat) => setPlaying(seat === "play")}
                         choices={[
-                          { value: "play", label: "Play" },
-                          { value: "watch", label: "Host & watch" },
+                          { value: "play", label: t("series.play") },
+                          { value: "watch", label: t("series.hostWatch") },
                         ]}
                       />
                     </div>
@@ -754,7 +768,7 @@ export function Series() {
                           aria-expanded={showLabels}
                           onClick={() => setShowLabels(!showLabels)}
                         >
-                          {showLabels ? "Hide model labels" : "Add model labels (optional)"}
+                          {t(showLabels ? "series.hideLabels" : "series.addLabels")}
                         </Button>
                         <AnimatePresence initial={false}>
                           {showLabels && (
@@ -781,7 +795,7 @@ export function Series() {
                         ))}
                       </div>
                       <p>
-                        {matchCount} matches · {maxMinutes} minutes maximum play, plus breaks
+                        {t("series.summary", { matches: matchCount, minutes: maxMinutes })}
                       </p>
                     </div>
                     <Button
@@ -790,14 +804,14 @@ export function Series() {
                       data-sound="start"
                       disabled={busy || !config.rounds.length}
                     >
-                      {busy ? "Creating…" : "Create series"}
+                      {t(busy ? "series.creating" : "series.createButton")}
                     </Button>
                   </div>
                 </div>
               </form>
               {saved.length > 0 && (
                 <section className="series-saved-section">
-                  <h2>Your series</h2>
+                  <h2>{t("series.yourSeries")}</h2>
                   <ul className="series-saved">
                     {saved.map((item) => (
                       <li key={item.code}>
@@ -806,7 +820,7 @@ export function Series() {
                           <small className="mono">{item.code}</small>
                         </a>
                         <span className="series-saved-status" data-status={item.status}>
-                          {item.status}
+                          {seriesStatus(item.status, t)}
                         </span>
                       </li>
                     ))}
@@ -817,12 +831,12 @@ export function Series() {
           ) : !view ? (
             <section className="series-join reveal">
               <div>
-                <h2>Join series {code}</h2>
-                <p>Take one of the two participant seats. Your place carries across every match.</p>
+                <h2>{t("series.joinTitle", { code })}</h2>
+                <p>{t("series.joinHelp")}</p>
                 {labels}
               </div>
               <Button size="lg" data-sound="join" disabled={busy} onClick={() => void act("join")}>
-                {busy ? "Joining…" : "Join series"}
+                {t(busy ? "series.joining" : "series.join")}
               </Button>
             </section>
           ) : (
@@ -843,24 +857,24 @@ export function Series() {
   );
 }
 
-function statusHeadline(view: SeriesView, now: number) {
+function statusHeadline(view: SeriesView, now: number, t: Translate) {
   return view.status === "break"
     ? view.nextAt && view.nextAt > now
-      ? `Next match in ${Math.ceil((view.nextAt - now) / 1000)}s`
+      ? t("series.nextIn", { seconds: Math.ceil((view.nextAt - now) / 1000) })
       : view.config.progression === "ready"
-        ? "Waiting for both participants to be ready"
-        : "Preparing the next match…"
+        ? t("series.waitReady")
+        : t("series.preparingNext")
     : view.status === "waiting"
-      ? "Waiting for participants"
+      ? t("series.waitParticipants")
       : view.status === "preparing"
-        ? "Preparing the match…"
+        ? t("series.preparing")
         : view.status === "completed"
-          ? "Series complete"
+          ? t("series.complete")
           : view.status === "playing"
-            ? `Match ${view.results.length + 1} in progress`
+            ? t("series.inProgress", { number: view.results.length + 1 })
             : view.status === "cancelled"
-              ? "Series cancelled"
-              : "Series stopped";
+              ? t("series.cancelled")
+              : t("series.stopped");
 }
 
 function SeriesDetail({
@@ -882,6 +896,7 @@ function SeriesDetail({
   download: () => void;
   openMatch: () => void;
 }) {
+  const t = useT();
   const live = ["playing", "preparing", "break"].includes(view.status);
   const progress = view.totalMatches ? view.results.length / view.totalMatches : 0;
 
@@ -900,11 +915,11 @@ function SeriesDetail({
         <div className="series-status-main">
           <span className="series-status-chip">
             {live && <i className="live-dot" aria-hidden="true" />}
-            {view.status}
+            {seriesStatus(view.status, t)}
           </span>
-          <p role="status">{statusHeadline(view, now)}</p>
+          <p role="status">{statusHeadline(view, now, t)}</p>
           <span className="series-status-count mono">
-            {view.results.length} / {view.totalMatches} results
+            {t("series.resultCount", { current: view.results.length, total: view.totalMatches })}
           </span>
           <span className="series-progress" aria-hidden="true">
             <i
@@ -926,12 +941,12 @@ function SeriesDetail({
             <>
               <Button variant="secondary" data-sound="copy" onClick={() => void copyInvite()}>
                 <Icon name="copy" size={18} />
-                {copied ? "Invite copied" : "Copy invite"}
+                {t(copied ? "series.inviteCopied" : "lobby.copyInvite")}
               </Button>
-              <span className="series-code mono">Code {view.code}</span>
+              <span className="series-code mono">{t("series.code", { code: view.code })}</span>
               {!view.you && view.participants.length < 2 && (
                 <Button disabled={busy} data-sound="join" onClick={() => void act("join")}>
-                  Take a seat
+                  {t("series.takeSeat")}
                 </Button>
               )}
               {view.isHost && (
@@ -941,7 +956,7 @@ function SeriesDetail({
                   disabled={busy || view.participants.length !== 2}
                   onClick={() => void act("start")}
                 >
-                  Start series
+                  {t("series.start")}
                 </Button>
               )}
             </>
@@ -952,12 +967,12 @@ function SeriesDetail({
               disabled={busy || view.ready.includes(view.you)}
               onClick={() => void act("ready")}
             >
-              {view.ready.includes(view.you) ? "You are ready" : "Ready for next match"}
+              {t(view.ready.includes(view.you) ? "series.ready" : "series.readyNext")}
             </Button>
           )}
           {view.status === "playing" && (
             <Button variant="success" onClick={openMatch}>
-              Open current match
+              {t("series.openMatch")}
             </Button>
           )}
           {view.isHost && !["completed", "failed", "cancelled"].includes(view.status) && (
@@ -967,18 +982,18 @@ function SeriesDetail({
               onClick={() => {
                 if (
                   window.confirm(
-                    "Cancel the series and end its current match? Completed results will be kept.",
+                    t("series.cancelConfirm"),
                   )
                 )
                   void act("cancel");
               }}
             >
-              Cancel series
+              {t("series.cancel")}
             </Button>
           )}
           <Button variant="secondary" onClick={download}>
             <Icon name="download" size={18} />
-            Export results
+            {t("series.export")}
           </Button>
         </div>
       </section>
@@ -990,7 +1005,7 @@ function SeriesDetail({
           }
         }
       >
-        <h2>Participants</h2>
+        <h2>{t("series.participants")}</h2>
         <div className="series-participants">
           {[0, 1].map((index) => {
             const participant = view.participants[index];
@@ -1014,7 +1029,7 @@ function SeriesDetail({
                   </span>
                 )}
                 <div className="series-participant-text">
-                  <h3>{participant?.name ?? "Open seat"}</h3>
+                  <h3>{participant?.name ?? t("series.openSeat")}</h3>
                   {participant && (
                     <p className="series-participant-detail">
                       {[
@@ -1023,7 +1038,7 @@ function SeriesDetail({
                         participant.promptLabel,
                       ]
                         .filter(Boolean)
-                        .join(" · ") || "Human player"}
+                        .join(" · ") || t("series.human")}
                     </p>
                   )}
                 </div>
@@ -1039,7 +1054,7 @@ function SeriesDetail({
             vs
           </span>
         </div>
-        <p className="series-footnote">Model and prompt labels are self-reported.</p>
+        <p className="series-footnote">{t("series.labelsNote")}</p>
       </section>
       <section
         className="series-section reveal"
@@ -1049,7 +1064,7 @@ function SeriesDetail({
           }
         }
       >
-        <h2>Schedule</h2>
+        <h2>{t("series.schedule")}</h2>
         <ol className="series-schedule series-timeline">
           {schedule.map(({ round, start, end }, index) => (
             <li
@@ -1064,11 +1079,10 @@ function SeriesDetail({
             >
               <GameMark id={round.gameType} size={36} />
               <div>
-                <strong>{getGame(round.gameType)?.title}</strong>
+                <strong>{t(gameMessage(round.gameType, "title"))}</strong>
                 <span>
-                  {round.repeats} {round.repeats === 1 ? "match" : "matches"} ·{" "}
-                  {round.gameTotalTime / 60000}m
-                  {round.gameType !== "contexto" ? ` · ${round.turnTime / 1000}s per turn` : ""}
+                  {t(round.repeats === 1 ? "series.scheduleMatch" : "series.scheduleMatches", { count: round.repeats, minutes: round.gameTotalTime / 60000 })}
+                  {round.gameType !== "contexto" ? t("series.perTurn", { seconds: round.turnTime / 1000 }) : ""}
                 </span>
               </div>
             </li>
@@ -1076,11 +1090,11 @@ function SeriesDetail({
         </ol>
         <p className="series-footnote">
           {view.config.firstSeat === "alternate"
-            ? "Starting seats alternate within each game."
+            ? t("series.seatsAlternate")
             : view.config.firstSeat === "random"
-              ? "Starting seats are randomized each match."
-              : `Participant ${view.config.firstSeat === "participant1" ? "1" : "2"} gets the starting seat.`}{" "}
-          {view.config.gapMs / 1000}s between matches.
+              ? t("series.seatsRandom")
+              : t("series.seatsParticipant", { number: view.config.firstSeat === "participant1" ? 1 : 2 })}{" "}
+          {t("series.between", { seconds: view.config.gapMs / 1000 })}
         </p>
       </section>
       <section
@@ -1091,10 +1105,10 @@ function SeriesDetail({
           }
         }
       >
-        <h2>Results by game</h2>
+        <h2>{t("series.resultsByGame")}</h2>
         {!view.results.length ? (
           <p className="series-empty-results">
-            Results appear when a match finishes and its final state is delivered.
+            {t("series.emptyResults")}
           </p>
         ) : (
           seriesStandings(view).map((group) => (
@@ -1102,16 +1116,16 @@ function SeriesDetail({
               <table>
                 <caption>
                   <GameMark id={group.gameType} size={24} />
-                  {getGame(group.gameType)?.title}
+                  {t(gameMessage(group.gameType, "title"))}
                 </caption>
                 <thead>
                   <tr>
-                    <th>Participant</th>
-                    <th>Wins</th>
-                    <th>Draws</th>
-                    <th>Losses</th>
-                    <th>Timeouts</th>
-                    <th>Avg. decision</th>
+                    <th>{t("series.participant")}</th>
+                    <th>{t("series.wins")}</th>
+                    <th>{t("series.draws")}</th>
+                    <th>{t("series.losses")}</th>
+                    <th>{t("series.timeouts")}</th>
+                    <th>{t("series.avgDecision")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1135,8 +1149,7 @@ function SeriesDetail({
           ))
         )}
         <p className="series-footnote">
-          Decision times include network and host delay. Aborted matches are excluded from
-          standings.
+          {t("series.resultsNote")}
         </p>
       </section>
       {view.results.length > 0 && (
@@ -1148,21 +1161,21 @@ function SeriesDetail({
             }
           }
         >
-          <h2>Match log</h2>
+          <h2>{t("series.matchLog")}</h2>
           <ol className="series-schedule series-log">
             {view.results.map((result) => (
               <li key={result.index} data-outcome={result.outcome}>
                 <GameMark id={result.gameType} size={28} />
                 <div>
                   <strong>
-                    {result.index + 1}. {getGame(result.gameType)?.title}
+                    {result.index + 1}. {t(gameMessage(result.gameType, "title"))}
                   </strong>
                   <span>
                     {result.outcome === "aborted"
-                      ? "Aborted"
+                      ? t("series.aborted")
                       : result.winnerId
-                        ? `${view.participants.find((p) => p.id === result.winnerId)?.name} won`
-                        : "Draw"}{" "}
+                        ? t("series.won", { name: view.participants.find((p) => p.id === result.winnerId)?.name ?? "" })
+                        : t("history.draw")}{" "}
                     · {result.reason}
                   </span>
                 </div>

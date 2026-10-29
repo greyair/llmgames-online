@@ -10,6 +10,7 @@ import { play } from "@/lib/sound";
 import { gameCatalog } from "./catalog";
 import { aiSpec, acknowledgement, type GameSpec } from "./aiSpecData";
 import { AiSpecBoard } from "./AiSpecBoard";
+import { gameMessage, useT } from "@/i18n";
 import "./public.css";
 import "./ai-spec.css";
 
@@ -44,17 +45,18 @@ function HighlightedJson({ source }: { source: string }) {
 }
 
 function Code({ title, value }: { title: string; value: unknown }) {
-  const [status, setStatus] = useState("Copy");
+  const t = useT();
+  const [status, setStatus] = useState<"copy" | "copied" | "select">("copy");
   const source = isString(value) ? value : JSON.stringify(value, null, 2);
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(source);
       play("copy");
-      setStatus("Copied");
-      window.setTimeout(() => setStatus("Copy"), 1600);
+      setStatus("copied");
+      window.setTimeout(() => setStatus("copy"), 1600);
     } catch {
-      setStatus("Select to copy");
+      setStatus("select");
     }
   }
 
@@ -66,11 +68,11 @@ function Code({ title, value }: { title: string; value: unknown }) {
           size="sm"
           variant="ghost"
           data-sound="none"
-          data-copied={status === "Copied" || undefined}
+          data-copied={status === "copied" || undefined}
           onClick={() => void copy()}
-          aria-label={`Copy ${title}`}
+          aria-label={t("spec.copyTitle", { title })}
         >
-          {status}
+          {t(status === "copied" ? "spec.copied" : status === "select" ? "spec.selectCopy" : "spec.copy")}
         </Button>
       </div>
       <pre tabIndex={0} aria-label={title}>
@@ -83,6 +85,7 @@ function Code({ title, value }: { title: string; value: unknown }) {
 }
 
 function Exchange({ game, channel }: { game: GameSpec; channel: Channel }) {
+  const t = useT();
   const [phase, setPhase] = useState("battle");
   const [requestIndex, setRequestIndex] = useState(0);
 
@@ -104,24 +107,24 @@ function Exchange({ game, channel }: { game: GameSpec; channel: Channel }) {
       ? { ...game.sendActionExample, ...aiSpec.jev.battleshipPlacement.action }
       : game.sendActionExample;
 
-  const title = gameCatalog.find((entry) => entry.id === game.id)!.title;
+  const title = t(gameMessage(game.id, "title"));
 
   if (channel === "jev" && !example)
     return (
       <div className="panel spec-unavailable">
         <GameMark id={game.id} size={44} />
         <h2>{title}</h2>
-        <p>Hosted Jev is unavailable for Codenames. Select MCP to see how external agents play.</p>
+        <p>{t("spec.unavailable")}</p>
       </div>
     );
 
   return (
     <section
       className="spec-exchange"
-      aria-label={`${title} ${channel === "jev" ? "Jev" : "MCP"} exchange`}
+      aria-label={t("spec.exchange", { game: title, channel: channel === "jev" ? "Jev" : "MCP" })}
     >
       {game.id === "battleship" && (
-        <div className="spec-options segmented" role="group" aria-label="Battleship phase">
+        <div className="spec-options segmented" role="group" aria-label={t("spec.phase")}>
           {["placement", "battle"].map((value) => (
             <Button
               key={value}
@@ -133,14 +136,14 @@ function Exchange({ game, channel }: { game: GameSpec; channel: Channel }) {
                 setRequestIndex(0);
               }}
             >
-              {value === "placement" ? "Fleet placement" : "Battle"}
+              {t(value === "placement" ? "spec.placement" : "spec.battle")}
             </Button>
           ))}
         </div>
       )}
       {channel === "jev" && example && example.requestCount > 1 && (
         <div className="spec-request-options">
-          <div className="spec-options segmented" role="group" aria-label="Contexto request">
+          <div className="spec-options segmented" role="group" aria-label={t("spec.contextoRequest")}>
             {example.requests.map((_, index) => (
               <Button
                 key={index}
@@ -149,7 +152,7 @@ function Exchange({ game, channel }: { game: GameSpec; channel: Channel }) {
                 aria-pressed={requestIndex === index}
                 onClick={() => setRequestIndex(index)}
               >
-                {index === example.requestCount - 1 ? "Final choice" : `Group request ${index + 1}`}
+                {index === example.requestCount - 1 ? t("spec.finalChoice") : t("spec.groupRequest", { number: index + 1 })}
               </Button>
             ))}
           </div>
@@ -165,11 +168,11 @@ function Exchange({ game, channel }: { game: GameSpec; channel: Channel }) {
             <span className="spec-dir" data-dir="send" aria-hidden="true">
               →
             </span>
-            We send {channel === "jev" ? "to Jev" : "via MCP"}
+            {t(channel === "jev" ? "spec.sendJev" : "spec.sendMcp")}
           </h3>
           <Code
             key={`${game.id}-${channel}-${phase}-${requestIndex}-send`}
-            title={channel === "jev" ? "POST body" : "wait_for_turn result"}
+            title={t(channel === "jev" ? "spec.postBody" : "spec.waitResult")}
             value={
               channel === "jev"
                 ? request?.request
@@ -182,50 +185,45 @@ function Exchange({ game, channel }: { game: GameSpec; channel: Channel }) {
             <span className="spec-dir" data-dir="receive" aria-hidden="true">
               ←
             </span>
-            We receive {channel === "jev" ? "from Jev" : "via MCP"}
+            {t(channel === "jev" ? "spec.receiveJev" : "spec.receiveMcp")}
           </h3>
           <Code
             key={`${game.id}-${channel}-${phase}-${requestIndex}-receive`}
-            title={channel === "jev" ? "Response body" : "send_action arguments"}
+            title={t(channel === "jev" ? "spec.responseBody" : "spec.sendArguments")}
             value={channel === "jev" ? request?.response : action}
           />
           {channel === "jev" && example && (
             <details className="spec-detail">
-              <summary>Final mapped game action</summary>
-              <Code title="Mapped intent" value={example.action} />
+              <summary>{t("spec.mappedAction")}</summary>
+              <Code title={t("spec.mappedIntent")} value={example.action} />
             </details>
           )}
         </div>
       </div>
       <p className="spec-caption">
-        Examples from local test rooms.{" "}
-        {shortened && channel === "jev" ? "Repeated candidates and questions are shortened. " : ""}
-        The server validates every action. Hidden opponent information stays outside the agent’s
-        view.
+        {t("spec.examples")}{shortened && channel === "jev" ? t("spec.shortened") : ""}{t("spec.caption")}
       </p>
       {channel === "mcp" && (
         <details className="spec-detail">
-          <summary>Connection and MCP definition</summary>
+          <summary>{t("spec.definition")}</summary>
           <div className="spec-definition">
             <p>
-              Connect to <code>{aiSpec.mcp.endpoint}</code> using OAuth 2.1 and Streamable HTTP.
-              Each task calls agent_claim once, then creates or joins a room with its controllerId.
+              {t("spec.connectBefore")} <code>{aiSpec.mcp.endpoint}</code> {t("spec.connectAfter")}
             </p>
             <p>
-              Call wait_for_turn, choose one action, then send_action. Results are JSON inside MCP
-              content text. Each turn runs through the host LLM; no automated play loops.
+              {t("spec.flow")}
             </p>
-            <Code title="Accepted action result" value={acknowledgement} />
+            <Code title={t("spec.acceptedResult")} value={acknowledgement} />
             <Code
               title="send_action input JSON Schema"
               value={aiSpec.mcp.tools.find((tool) => tool.name === "send_action")!.inputSchema}
             />
             <Code
-              title={`${title} action definitions`}
+              title={t("spec.actionDefinitions", { game: title })}
               value={game.actions.filter((action) => action.games.length === 1)}
             />
             <a className="public-link" href="/ai-spec.json">
-              All tool schemas and game definitions
+              {t("spec.allSchemas")}
             </a>
           </div>
         </details>
@@ -235,6 +233,7 @@ function Exchange({ game, channel }: { game: GameSpec; channel: Channel }) {
 }
 
 export function AiSpec() {
+  const t = useT();
   const [channel, setChannel] = useState<Channel>("jev");
   const [gameId, setGameId] = useState("connect4");
   useEffect(() => {
@@ -261,10 +260,10 @@ export function AiSpec() {
         <header className="page-head spec-head">
           <div className="page-head-row">
             <div className="spec-head-copy">
-              <h1>How AI plays</h1>
+              <h1>{t("spec.title")}</h1>
             </div>
             <ButtonLink href="/ai-spec.json" download="llmgames-ai-spec.json" variant="outline">
-              Download spec <Icon name="download" size={16} />
+              {t("spec.download")} <Icon name="download" size={16} />
             </ButtonLink>
           </div>
         </header>
@@ -274,11 +273,11 @@ export function AiSpec() {
             value === "jev" || value === "mcp" ? setChannel(value) : undefined
           }
         >
-          <TabsList className="spec-channel-switch" aria-label="AI connection">
+          <TabsList className="spec-channel-switch" aria-label={t("spec.connection")}>
             <TabsTrigger value="jev">Jev</TabsTrigger>
             <TabsTrigger value="mcp">MCP</TabsTrigger>
           </TabsList>
-          <div className="spec-game-picker" role="group" aria-label="Choose a game">
+          <div className="spec-game-picker" role="group" aria-label={t("series.chooseGame")}>
             {gameCatalog.map((entry) => (
               <Button
                 key={entry.id}
@@ -288,7 +287,7 @@ export function AiSpec() {
                 onClick={() => setGameId(entry.id)}
               >
                 <GameMark id={entry.id} size={20} />
-                {entry.title}
+                {t(gameMessage(entry.id, "title"))}
               </Button>
             ))}
           </div>
@@ -301,10 +300,10 @@ export function AiSpec() {
         </Tabs>
         <footer className="spec-footer">
           <a href="/connect-ai" className="public-link">
-            Connect your agent
+            {t("spec.connectAgent")}
           </a>
           <a href="/ai-spec.json" className="public-link">
-            Full JSON specification
+            {t("spec.fullJson")}
           </a>
         </footer>
       </article>

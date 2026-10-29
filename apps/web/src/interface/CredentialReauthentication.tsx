@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/services/auth";
 import { ErrorMessage } from "./accountFeedback";
+import { useT } from "@/i18n";
 
 export function CredentialReauthentication() {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,12 +22,12 @@ export function CredentialReauthentication() {
           try {
             await logout("/login?return_to=%2Fprofile");
           } catch {
-            setError("Could not start sign-in. Please try again.");
+            setError(t("profile.openSignInFailed"));
             setBusy(false);
           }
         }}
       >
-        {busy ? "Opening sign-in…" : "Sign in again"}
+        {t(busy ? "profile.openingSignIn" : "room.signInAgain")}
       </Button>
       {error && <ErrorMessage key={error}>{error}</ErrorMessage>}
     </div>

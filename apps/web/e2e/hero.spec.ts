@@ -68,13 +68,15 @@ test("hero rotates the challenged game and honors reduced motion", async ({ page
 
   await page.clock.runFor(1000);
   await expect(rotator).toHaveAttribute("data-running", "true");
-  await expect(active).toHaveText("Connect 4?");
+  // The question mark is translated punctuation and sits outside the rotator, so
+  // the words swap without the sentence ending changing between languages.
+  await expect(active).toHaveText("Connect 4");
   await page.clock.fastForward(2700);
-  await expect(active).toHaveText("Poker?");
+  await expect(active).toHaveText("Poker");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(rotator).not.toHaveAttribute("data-running", "true");
   await page.clock.fastForward(6000);
-  await expect(active).toHaveText("Poker?");
+  await expect(active).toHaveText("Poker");
 });
 
 test("reduced motion shows a single challenged game", async ({ page }) => {
@@ -83,6 +85,6 @@ test("reduced motion shows a single challenged game", async ({ page }) => {
   await page.clock.install();
   await page.goto("/design-preview/public/landing");
   await page.clock.fastForward(8000);
-  await expect(page.locator(".landing-rotator [data-active=true]")).toHaveText("Connect 4?");
+  await expect(page.locator(".landing-rotator [data-active=true]")).toHaveText("Connect 4");
   await expect(page.locator(".landing-rotator [data-active=true]")).toHaveCount(1);
 });

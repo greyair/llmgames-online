@@ -17,6 +17,7 @@ import { getGame } from "./catalog";
 import { ReplayViewer } from "./Archive";
 import { HoleyLoader } from "@/components/ui/holey-loader";
 import { PlayerName } from "@/game-ui/PlayerName";
+import { gameMessage, useT } from "@/i18n";
 
 const date = (value: number) =>
   new Date(value * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -28,6 +29,7 @@ export function HistoryEntry({
   onReplay: () => void;
   onInspect: () => void;
 }) {
+  const t = useT();
   const reduceMotion = useReducedMotion();
 
   const [expanded, setExpanded] = useState(false),
@@ -89,7 +91,7 @@ export function HistoryEntry({
         />
         <div className="history-summary-main">
           <div className="history-title-row">
-            <h2>{getGame(game.gameType)?.title ?? game.gameType}</h2>
+            <h2>{t(gameMessage(game.gameType, "title")) || getGame(game.gameType)?.title || game.gameType}</h2>
             <Badge
               className={
                 result === "Finished" ? "history-result history-result-finished" : "history-result"
@@ -105,7 +107,7 @@ export function HistoryEntry({
                       : "neutral"
               }
             >
-              {result}
+              {t(result === "Win" ? "history.win" : result === "Loss" ? "history.loss" : result === "Draw" ? "history.draw" : "history.finished")}
             </Badge>
           </div>
           <GameAvatarContext.Provider value={game.participants.map((p) => p.ref)}>
@@ -137,11 +139,11 @@ export function HistoryEntry({
         </div>
         <dl className="archive-metadata history-metadata">
           <div>
-            <dt>Ended</dt>
+            <dt>{t("history.ended")}</dt>
             <dd>{date(game.endedAt)}</dd>
           </div>
           <div>
-            <dt>Events</dt>
+            <dt>{t("history.events")}</dt>
             <dd>{game.eventCount}</dd>
           </div>
         </dl>
@@ -162,39 +164,39 @@ export function HistoryEntry({
           >
             <div className="history-expanded-inner">
               {loading ? (
-                <HoleyLoader compact showLabel size={24} label="Loading game log…" />
+                <HoleyLoader compact showLabel size={24} label={t("history.loading")} />
               ) : error ? (
                 <div role="alert" className="history-log-error">
                   <p>{error}</p>
                   <Button size="sm" variant="outline" onClick={() => void load()}>
-                    Retry game log
+                    {t("history.retry")}
                   </Button>
                 </div>
               ) : (
                 detail && (
                   <>
                     <div className="history-detail-meta mono">
-                      <span>Reason: {detail.endReason.replaceAll("_", " ")}</span>
-                      <span>{parsed?.frames.length ?? 0} replay frames</span>
+                      <span>{t("history.reason", { reason: detail.endReason.replaceAll("_", " ") })}</span>
+                      <span>{t("history.frames", { count: parsed?.frames.length ?? 0 })}</span>
                     </div>
                     {parsed ? (
                       <div className="history-replay-actions">
                         {!replay && (
                           <Button size="sm" data-sound="open" onClick={() => setReplay(parsed)}>
-                            Rewatch game <Icon name="play" size={16} />
+                            {t("history.rewatch")} <Icon name="play" size={16} />
                           </Button>
                         )}
                         <DownloadReplayButton loadReplay={async () => parsed} />
                       </div>
                     ) : (
                       <p role="alert" className="history-log-error">
-                        This replay is unavailable or incomplete.
+                        {t("archive.replayUnavailable")}
                       </p>
                     )}
                     {replay && (
                       <ReplayViewer replay={replay} embedded onExit={() => setReplay(null)} />
                     )}
-                    <ol className="history-events" aria-label="Game events">
+                    <ol className="history-events" aria-label={t("history.gameEvents")}>
                       {detail.events.map((event) => (
                         <li key={event.seq}>
                           <div>
@@ -209,7 +211,7 @@ export function HistoryEntry({
                       ))}
                     </ol>
                     {!detail.events.length && (
-                      <p className="history-no-events">No events were retained for this game.</p>
+                      <p className="history-no-events">{t("history.noEvents")}</p>
                     )}
                   </>
                 )

@@ -52,8 +52,9 @@ for (const width of [320, 390, 640, 960, 1024, 1440])
           await command.evaluate((element) => element.scrollWidth <= element.clientWidth),
         ).toBe(true);
         await page.getByRole("button", { name: "Copy command" }).click();
-        expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-          await command.locator("code").innerText(),
+        // Windows clipboard text uses CRLF even when the displayed command uses LF.
+        expect((await page.evaluate(() => navigator.clipboard.readText())).replaceAll("\r\n", "\n")).toBe(
+          (await command.locator("code").innerText()).replaceAll("\r\n", "\n"),
         );
         await expect(page.getByRole("button", { name: "Copy command" })).toBeVisible();
       }

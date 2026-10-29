@@ -34,6 +34,7 @@ import { Chrome } from "./Chrome";
 import { getGame } from "./catalog";
 import { HoleyLoader } from "@/components/ui/holey-loader";
 import { LoadingPanel } from "@/components/ui/loading-panel";
+import { gameMessage, useT } from "@/i18n";
 import "./archive.css";
 
 const message = <T,>(e: T) =>
@@ -80,9 +81,11 @@ const slide = {
 } as const;
 
 function ProfileLink() {
+  const t = useT();
+
   return (
     <ButtonLink href="/profile" variant="outline" size="sm">
-      Profile
+      {t("archive.profile")}
     </ButtonLink>
   );
 }
@@ -124,6 +127,7 @@ export function ReplayViewer({
   onExit: () => void;
   embedded?: boolean;
 }) {
+  const t = useT();
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -143,7 +147,7 @@ export function ReplayViewer({
   const progress = last > 0 ? (index / last) * 100 : 100;
 
   const speeds = (
-    <div className="replay-speeds segmented" role="group" aria-label="Playback speed">
+    <div className="replay-speeds segmented" role="group" aria-label={t("archive.playbackSpeed")}>
       {[0.5, 1, 2].map((value) => (
         <button
           type="button"
@@ -160,14 +164,14 @@ export function ReplayViewer({
   const controls = (
     <div className="replay-controls">
       <div className="replay-caption">
-        <strong>Match replay</strong>
+        <strong>{t("archive.replay")}</strong>
         <span className="replay-label">{current.label}</span>
       </div>
       <div className="replay-transport">
         <Button
           size="icon"
           variant="secondary"
-          aria-label="Previous frame"
+          aria-label={t("archive.previousFrame")}
           disabled={index === 0}
           onClick={() => {
             setPlaying(false);
@@ -186,12 +190,12 @@ export function ReplayViewer({
           }}
         >
           {playing ? <Icon name="pause" size={18} /> : <Icon name="play" size={18} />}
-          <span className="sr-only">{playing ? "Pause replay" : "Play replay"}</span>
+          <span className="sr-only">{t(playing ? "archive.pauseReplay" : "archive.playReplay")}</span>
         </Button>
         <Button
           size="icon"
           variant="secondary"
-          aria-label="Next frame"
+          aria-label={t("archive.nextFrame")}
           disabled={index === last}
           onClick={() => {
             setPlaying(false);
@@ -202,11 +206,11 @@ export function ReplayViewer({
         </Button>
         <label className="replay-scrubber">
           <span className="replay-frame mono">
-            Frame {index + 1} of {replay.frames.length}
+            {t("archive.frame", { current: index + 1, total: replay.frames.length })}
           </span>
           <input
             type="range"
-            aria-label="Replay position"
+            aria-label={t("room.replayPosition")}
             min={0}
             max={last}
             value={index}
@@ -224,7 +228,7 @@ export function ReplayViewer({
         {speeds}
       </div>
       {replay.truncated && (
-        <small className="replay-note">This replay contains a shortened match history.</small>
+        <small className="replay-note">{t("archive.shortReplay")}</small>
       )}
     </div>
   );
@@ -233,7 +237,7 @@ export function ReplayViewer({
     return (
       <motion.section
         className="inline-replay"
-        aria-label="Match replay"
+        aria-label={t("archive.replay")}
         data-surface="dark"
         data-game={replay.gameType}
         initial={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -243,10 +247,10 @@ export function ReplayViewer({
         <div className="inline-replay-top">
           <Badge tone="game">
             <Icon name="play" size={12} />
-            Rewatching game
+            {t("archive.rewatching")}
           </Badge>
           <Button variant="secondary" size="sm" data-sound="close" onClick={onExit}>
-            Close rewatch
+            {t("archive.closeRewatch")}
           </Button>
         </div>
         <div className="inline-replay-board">
@@ -280,7 +284,8 @@ function AgentCard({
   confirmation: ReactNode;
   onRemove: () => void;
 }) {
-  const status = agent.isActive ? "In a game" : agent.hasRoomHistory ? "Available" : "Never seated";
+  const t = useT();
+  const status = t(agent.isActive ? "archive.inGame" : agent.hasRoomHistory ? "archive.available" : "archive.neverSeated");
 
   return (
     <motion.div
@@ -314,7 +319,7 @@ function AgentCard({
               {status}
             </small>
             <small className="agent-last-used">
-              Active{" "}
+              {t("archive.active")}{" "}
               <time dateTime={new Date((agent.lastUsedAt ?? agent.createdAt) * 1000).toISOString()}>
                 {date((agent.lastUsedAt ?? agent.createdAt) * 1000)}
               </time>
@@ -324,10 +329,10 @@ function AgentCard({
               size="sm"
               variant="ghost"
               disabled={agent.isActive || busy || confirming}
-              aria-label={`Remove ${agent.codename}`}
+              aria-label={t("archive.removeName", { name: agent.codename })}
               onClick={onRemove}
             >
-              Remove
+              {t("archive.remove")}
             </Button>
           </div>
           <AnimatePresence initial={false}>
@@ -344,6 +349,8 @@ function AgentCard({
 }
 
 function Agents() {
+  const t = useT();
+
   const [ownerGamertag, setOwnerGamertag] = useState<string | undefined>(
     () => peekCurrentUser()?.gamertag ?? undefined,
   );
@@ -390,11 +397,11 @@ function Agents() {
       if (confirm === "all") {
         const result = await deleteAllAgentIdentities();
         setStatus(
-          `Removed ${result.deletedCount} identities. ${result.preservedActiveCount} active identities kept.`,
+          t("archive.removedAll", { deleted: result.deletedCount, kept: result.preservedActiveCount }),
         );
       } else {
         await deleteAgentIdentity(confirm);
-        setStatus(`${confirm} removed.`);
+        setStatus(t("archive.removedName", { name: confirm }));
       }
 
       play("close");
@@ -413,13 +420,13 @@ function Agents() {
       className="agent-confirm"
       role="group"
       aria-label={
-        confirm === "all" ? "Confirm removal of inactive agents" : `Confirm removal of ${confirm}`
+        confirm === "all" ? t("archive.confirmAll") : t("archive.confirmName", { name: confirm ?? "" })
       }
     >
       <p>
         {confirm === "all"
-          ? "Remove inactive identities? Live identities will be kept."
-          : `Remove ${confirm}? Completed game logs remain available.`}
+          ? t("archive.removeAllQuestion")
+          : t("archive.removeNameQuestion", { name: confirm ?? "" })}
       </p>
       {error && (
         <p key={error} className="archive-error is-shaking" role="alert">
@@ -437,10 +444,10 @@ function Agents() {
             setError("");
           }}
         >
-          Cancel
+          {t("profile.cancel")}
         </Button>
         <Button variant="destructive" size="sm" disabled={busy} onClick={() => void remove()}>
-          {busy ? "Removing…" : "Remove identity"}
+          {t(busy ? "archive.removing" : "archive.removeIdentity")}
         </Button>
       </div>
     </div>
@@ -454,8 +461,8 @@ function Agents() {
         <section className="page-head archive-head">
           <div className="page-head-row">
             <div className="archive-head-text">
-              <h1>Agent log</h1>
-              <p>Manage the persistent MCP identities connected to your account.</p>
+              <h1>{t("archive.agents")}</h1>
+              <p>{t("archive.agentsLead")}</p>
             </div>
             <div className="page-actions">
               <Button
@@ -464,7 +471,7 @@ function Agents() {
                 aria-busy={loading}
                 onClick={() => void load()}
               >
-                {loading && agents.length ? "Refreshing…" : "Refresh"}
+                {t(loading && agents.length ? "archive.refreshing" : "archive.refresh")}
               </Button>
               <Button
                 variant="destructive"
@@ -472,7 +479,7 @@ function Agents() {
                 data-sound="open"
                 onClick={() => setConfirm("all")}
               >
-                Remove inactive agents
+                {t("archive.removeInactive")}
               </Button>
             </div>
           </div>
@@ -481,7 +488,7 @@ function Agents() {
           <div className="archive-error archive-error-banner is-shaking" role="alert">
             {error}
             <Button variant="outline" size="sm" onClick={() => void load()}>
-              Retry
+              {t("archive.retry")}
             </Button>
           </div>
         )}
@@ -494,7 +501,7 @@ function Agents() {
         </AnimatePresence>
         {loading && !loaded ? (
           <div className="archive-loading">
-            <HoleyLoader label="Loading agents…" showLabel />
+            <HoleyLoader label={t("archive.loadingAgents")} showLabel />
           </div>
         ) : (
           <p className="archive-status" role="status">
@@ -503,19 +510,19 @@ function Agents() {
         )}
         {loaded && agents.length === 0 && !error ? (
           <Empty
-            title="Your first agent is one connection away"
-            detail="Connect your AI through MCP. Its identity will appear here after it claims a seat."
+            title={t("archive.emptyAgents")}
+            detail={t("archive.emptyAgentsHelp")}
             href="/setup"
-            label="Set up an agent"
+            label={t("archive.setupAgent")}
           />
         ) : agents.length > 0 ? (
           <>
             <p className="agent-summary">
               <strong className="mono">{agents.length}</strong>{" "}
-              {agents.length === 1 ? "identity" : "identities"}
+              {t(agents.length === 1 ? "archive.identity" : "archive.identities")}
               <span aria-hidden="true">·</span>
               {live > 0 && <i className="live-dot" aria-hidden="true" />}
-              {live} live
+              {t("archive.liveCount", { count: live })}
             </p>
             <div className="agent-list">
               {agents.map((agent, index) => (
@@ -539,6 +546,7 @@ function Agents() {
 }
 
 function GameHistory() {
+  const t = useT();
   const [games, setGames] = useState<AgentGameLogSummary[]>(() => cached("history")?.games ?? []);
   const [cursor, setCursor] = useState<string | null>(() => cached("history")?.cursor ?? null);
   const [loaded, setLoaded] = useState(() => cached("history") !== undefined);
@@ -601,7 +609,7 @@ function GameHistory() {
 
       const parsed = parseRewatch(result.rewatch, game.gameType);
 
-      if (!parsed) throw Error("This replay is unavailable or incomplete.");
+      if (!parsed) throw Error(t("archive.replayUnavailable"));
 
       if (token === generation.current) setReplay(parsed);
     } catch (e) {
@@ -616,7 +624,7 @@ function GameHistory() {
   if (opening)
     return (
       <Chrome active="history" actions={<ProfileLink />}>
-        <LoadingPanel label="Opening replay…">
+        <LoadingPanel label={t("archive.openingReplay")}>
           <Button
             variant="outline"
             onClick={() => {
@@ -624,7 +632,7 @@ function GameHistory() {
               setOpening(false);
             }}
           >
-            Back to history
+            {t("archive.backHistory")}
           </Button>
         </LoadingPanel>
       </Chrome>
@@ -634,6 +642,8 @@ function GameHistory() {
   const filtered = games.filter((game) =>
     (
       getGame(game.gameType)?.title +
+      " " +
+      t(gameMessage(game.gameType, "title")) +
       " " +
       game.participants.map((p) => p.codename ?? p.displayName).join(" ")
     )
@@ -658,11 +668,8 @@ function GameHistory() {
       <section className="page-head archive-head">
         <div className="page-head-row">
           <div className="archive-head-text">
-            <h1>History</h1>
-            <p>
-              Your completed games and saved replays. Open a game to rewatch it or download the
-              video.
-            </p>
+            <h1>{t("archive.history")}</h1>
+            <p>{t("archive.historyLead")}</p>
           </div>
           <div className="page-actions">
             <Button
@@ -671,7 +678,7 @@ function GameHistory() {
               aria-busy={loading}
               onClick={() => void load()}
             >
-              {loading && entries.length ? "Refreshing…" : "Refresh"}
+              {t(loading && entries.length ? "archive.refreshing" : "archive.refresh")}
             </Button>
           </div>
         </div>
@@ -680,8 +687,8 @@ function GameHistory() {
         <label className="archive-search">
           <Icon name="search" size={18} aria-hidden="true" />
           <Input
-            aria-label="Search history"
-            placeholder="Game or agent"
+            aria-label={t("archive.search")}
+            placeholder={t("archive.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -696,25 +703,21 @@ function GameHistory() {
         <div role="alert" className="archive-error archive-error-banner is-shaking">
           {error}
           <Button variant="outline" size="sm" onClick={() => void load()}>
-            Retry
+            {t("archive.retry")}
           </Button>
         </div>
       )}
       {loading && !loaded && (
         <div className="archive-loading">
-          <HoleyLoader label="Loading games…" showLabel />
+          <HoleyLoader label={t("archive.loadingGames")} showLabel />
         </div>
       )}
       {loaded && !error && !entries.length && (
         <Empty
-          title={query ? "No matching games" : "Your next game belongs here"}
-          detail={
-            query
-              ? "Try a different game or agent name."
-              : "Completed games and saved replays appear here."
-          }
+          title={t(query ? "archive.noMatching" : "archive.emptyHistory")}
+          detail={t(query ? "archive.trySearch" : "archive.emptyHistoryHelp")}
           href="/play"
-          label="Find a game"
+          label={t("archive.findGame")}
         />
       )}
       <div className="history-list">
@@ -741,7 +744,7 @@ function GameHistory() {
             aria-busy={loading}
             onClick={() => void load(cursor)}
           >
-            {loading ? "Loading games…" : "Load older games"}
+            {t(loading ? "archive.loadingGames" : "archive.olderGames")}
           </Button>
         </div>
       )}
@@ -751,6 +754,7 @@ function GameHistory() {
 }
 
 export function Archive({ kind }: { kind: "agents" | "history" }) {
+  const t = useT();
   const [ready, setReady] = useState(() => peekCurrentUser()?.gamertag_selected === 1);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -788,13 +792,13 @@ export function Archive({ kind }: { kind: "agents" | "history" }) {
         {error ? (
           <Card className="loading-card archive-problem">
             <CardContent>
-              <h1>Could not open your account</h1>
+              <h1>{t("archive.accountError")}</h1>
               <p role="alert">{error}</p>
-              <Button onClick={() => location.reload()}>Try again</Button>
+              <Button onClick={() => location.reload()}>{t("common.retry")}</Button>
             </CardContent>
           </Card>
         ) : (
-          <LoadingPanel label="Checking your account…" />
+          <LoadingPanel label={t("room.checkingAccount")} />
         )}
       </Chrome>
     );

@@ -29,6 +29,18 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/auth/users/me", (r) => r.fulfill({ json: { user: identity } }));
 });
 
+test("room lobby follows the saved Chinese language", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("llmgames-locale", "zh-CN"));
+  await page.route("**/api/v1/rooms/join", (route) => route.fulfill({ json: link }));
+  await page.routeWebSocket("**/api/v1/ws/games/**", (socket) =>
+    socket.send(JSON.stringify({ type: "connected", payload: { state: waiting, isHost: true } })),
+  );
+  await page.goto("/connect4?roomCode=DEMO12");
+  await expect(page.getByRole("heading", { name: "设置游戏桌" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "复制房间码" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "开始游戏" })).toBeVisible();
+});
+
 test("clocks advance from one snapshot without network ticks or the device wall clock", async ({
   page,
 }) => {

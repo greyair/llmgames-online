@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useLocale, useT } from "@/i18n";
 import { Icon } from "@/components/ui/icon";
 import {
   clamp,
@@ -59,6 +60,18 @@ const rally: [Lane, number][] = [
 ];
 
 const RALLY_STEP = 1500;
+
+const chaptersZh = [
+  ["你的智能体入座。", "它通过 Claude、Cursor 或 Codex 等 MCP 应用连接，并使用你的账户登录，无需粘贴 API 密钥。"],
+  ["然后等待自己的回合。", "房间会保持调用最多 30 秒；如果没有变化，智能体再发起一次请求，无需轮询循环。"],
+  ["你落下一枚棋子。", "浏览器通过 WebSocket 发送行动，只提交请求，不决定结果。"],
+  ["房间检查行动。", "服务器负责游戏规则、随机结果和计时。你的行动合法，棋子落下。"],
+  ["每个席位获得自己的视图。", "房间向你推送新棋盘，并唤醒等待中的智能体。卡牌游戏中，每个席位只能看到自己的手牌。"],
+  ["智能体选择行动。", "模型读取合法行动并选择其中一个，然后通过一次工具调用提交。"],
+  ["每个席位遵守同样的规则。", "智能体的行动和你的行动一样受到检查。随后双方视图更新，智能体再次等待。"],
+  ["你来我往，直到分出胜负。", "每回合都经过同样的流程：提交行动、房间检查、返回更新后的视图。"],
+  ["连成四子，游戏结束。", "房间通知所有席位游戏已结束。浏览器保存完整回放，智能体停止行动。"],
+] as const;
 
 const chapters: Chapter[] = [
   {
@@ -623,6 +636,8 @@ function Packet({
 
 /** How a match moves, told in nine short steps: one server owns the board, seats only send moves. */
 export function WireDiagram() {
+  const locale = useLocale();
+  const t = useT();
   const ref = useRef<HTMLElement>(null);
   const [clock, setClock] = useState({ ch: 0, ms: 0 });
   const [playing, setPlaying] = useState(true);
@@ -692,6 +707,15 @@ export function WireDiagram() {
   };
 
   const chapter = chapters[clock.ch]!;
+
+  const chapterCopy = (index: number) => {
+    const original = chapters[index]!;
+    const translated = locale === "zh-CN" ? chaptersZh[index] : undefined;
+
+    return { title: translated?.[0] ?? original.title, body: translated?.[1] ?? original.body };
+  };
+
+  const currentCopy = chapterCopy(clock.ch);
   const g = starts[clock.ch]! + clock.ms;
   const w = world(g);
 
@@ -703,19 +727,19 @@ export function WireDiagram() {
   const focus = (a: Actor) => chapter.focus.includes(a);
 
   const youStatus =
-    w.winAt !== undefined ? "You win!" : w.turn === "you" ? "Your move" : "Watching";
+    t(w.winAt !== undefined ? "wire.youWin" : w.turn === "you" ? "wire.yourMove" : "wire.watching");
 
   const agentStatus = !w.seated
-    ? "Joining…"
+    ? t("wire.joining")
     : w.wait === "held"
-      ? `Waiting · ${w.waitSeconds.toFixed(1)}s`
+      ? t("wire.waiting", { seconds: w.waitSeconds.toFixed(1) })
       : w.wait === "released"
-        ? "Its turn!"
+        ? t("wire.agentTurn")
         : w.wait === "ended"
-          ? "Game over"
+          ? t("wire.gameOver")
           : w.think || w.turn === "agent"
-            ? "Thinking…"
-            : "Watching";
+            ? t("wire.thinking")
+            : t("wire.watching");
 
   const agentTone =
     w.wait === "held"
@@ -855,32 +879,25 @@ export function WireDiagram() {
     <section ref={ref} className="landing-wire" aria-labelledby="landing-wire-title">
       <header className="landing-section-head">
         <div>
-          <h2 id="landing-wire-title">Under the hood</h2>
-          <p>
-            One server owns every game. You and your agent only send moves, and the server sends
-            each of you your own view of the game.
-          </p>
+          <h2 id="landing-wire-title">{t("wire.title")}</h2>
+          <p>{t("wire.lead")}</p>
         </div>
       </header>
       <div className="wd-panel" data-surface="light">
         <p className="sr-only">
-          You play in a browser over a WebSocket. Your agent connects through an MCP app with your
-          account and no API key. Both only send moves to the room, one server that owns the rules,
-          dice and clock. The room checks each move, applies it and pushes every seat its own
-          updated view. While it is not its turn, the agent holds a wait_for_turn call open for up
-          to 30 seconds and renews it if nothing happens.
+          {t("wire.accessible")}
         </p>
         <svg
           className="wd-stage"
           viewBox={`0 0 ${geo.w} ${geo.h}`}
           role="img"
-          aria-label={`Step ${clock.ch + 1}: ${chapter.title}`}
+          aria-label={t("wire.stepTitle", { current: clock.ch + 1, title: currentCopy.title })}
         >
           <g className="wd-room" data-focus={focus("room") || undefined}>
             <Card box={geo.room} seed={1} boil={boil} />
             <g className="wd-lift">
               <text x={b.x - 12} y={geo.room.y + 46 * fs} fontSize={28 * fs} className="wd-title">
-                The room
+                {t("wire.room")}
               </text>
               <path
                 className="wd-swash"
@@ -897,7 +914,7 @@ export function WireDiagram() {
                 textAnchor="end"
                 className="wd-sub"
               >
-                rules · dice · clock
+                {t("wire.roomDetails")}
               </text>
               {statics}
               {w.landed.map((d) => {
@@ -938,7 +955,7 @@ export function WireDiagram() {
                     />
                   );
                 })()}
-              {chip("you", b.x - 12, "You")}
+              {chip("you", b.x - 12, t("wire.you"))}
               {seatPop > 0 ? (
                 chip("agent", b.x + b.w / 2 + 20, "SwiftAnchor", seatPop)
               ) : (
@@ -969,7 +986,7 @@ export function WireDiagram() {
                     textAnchor="middle"
                     className="wd-title"
                   >
-                    {w.stamp.text}
+                    {locale === "zh-CN" ? (w.stamp.win ? "四子连线！" : "合法 ✓") : w.stamp.text}
                   </text>
                 </g>
               )}
@@ -996,8 +1013,8 @@ export function WireDiagram() {
             fs={fs}
             boil={boil}
             focus={focus("you")}
-            title="You"
-            sub="in your browser"
+            title={t("wire.you")}
+            sub={t("wire.browser")}
             status={youStatus}
             tone={w.winAt !== undefined ? "go" : w.turn === "you" ? "go" : "idle"}
             progress={w.turn === "you" || w.winAt !== undefined ? 1 : 0}
@@ -1009,7 +1026,7 @@ export function WireDiagram() {
             fs={fs}
             boil={boil}
             focus={focus("agent")}
-            title="Your agent"
+            title={t("wire.agent")}
             sub="via MCP · Claude"
             status={agentStatus}
             tone={agentTone}
@@ -1057,36 +1074,36 @@ export function WireDiagram() {
             {chapters.map((c, i) => (
               <div key={i} className="wd-caption" data-ghost aria-hidden="true">
                 <span className="wd-count">
-                  Step {i + 1} of {chapters.length}
+                  {t("wire.step", { current: i + 1, total: chapters.length })}
                 </span>
-                <h3>{c.title}</h3>
-                <p>{c.body}</p>
+                <h3>{chapterCopy(i).title}</h3>
+                <p>{chapterCopy(i).body}</p>
                 {c.code && <code>{c.code}</code>}
               </div>
             ))}
             <div className="wd-caption" key={clock.ch}>
               <span className="wd-count">
-                Step {clock.ch + 1} of {chapters.length}
+                {t("wire.step", { current: clock.ch + 1, total: chapters.length })}
               </span>
-              <h3>{chapter.title}</h3>
-              <p>{chapter.body}</p>
+              <h3>{currentCopy.title}</h3>
+              <p>{currentCopy.body}</p>
               {chapter.code && <code>{chapter.code}</code>}
             </div>
           </div>
           <div className="wd-controls">
             <div className="wd-buttons">
-              <button type="button" onClick={() => go(clock.ch - 1)} aria-label="Previous step">
+              <button type="button" onClick={() => go(clock.ch - 1)} aria-label={t("wire.previous")}>
                 <Icon name="back" size={16} />
               </button>
               <button
                 type="button"
                 onClick={() => setPlaying((p) => !p)}
-                aria-label={playing ? "Pause" : "Play"}
+                aria-label={t(playing ? "wire.pause" : "wire.play")}
                 data-primary
               >
                 {<Icon name={playing ? "pause" : "play"} size={16} />}
               </button>
-              <button type="button" onClick={() => go(clock.ch + 1)} aria-label="Next step">
+              <button type="button" onClick={() => go(clock.ch + 1)} aria-label={t("wire.next")}>
                 <Icon name="arrow" size={16} />
               </button>
             </div>
@@ -1096,7 +1113,7 @@ export function WireDiagram() {
                   <button
                     type="button"
                     onClick={() => go(i)}
-                    aria-label={`Step ${i + 1}: ${c.title}`}
+                    aria-label={t("wire.stepTitle", { current: i + 1, title: chapterCopy(i).title })}
                     aria-current={i === clock.ch ? "step" : undefined}
                     style={
                       {
@@ -1111,10 +1128,10 @@ export function WireDiagram() {
                 </li>
               ))}
             </ol>
-            <ul className="wd-legend" aria-label="Legend">
-              <li data-flow="you">your move</li>
-              <li data-flow="agent">agent’s move</li>
-              <li data-flow="state">view sent back</li>
+            <ul className="wd-legend" aria-label={t("wire.legend")}>
+              <li data-flow="you">{t("wire.yourAction")}</li>
+              <li data-flow="agent">{t("wire.agentAction")}</li>
+              <li data-flow="state">{t("wire.view")}</li>
             </ul>
           </div>
         </div>

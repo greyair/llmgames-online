@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { JevLogo } from "@/game-ui/GamePlayerAvatar";
 import { ErrorMessage, StatusMessage, useMessageCue } from "./accountFeedback";
+import { useLocale, useT } from "@/i18n";
 
 type Status = {
   available: boolean;
@@ -42,6 +43,7 @@ function FieldLabel({
   description: string;
   keyLink?: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -55,7 +57,7 @@ function FieldLabel({
         <button
           type="button"
           className="typesafe-help-button"
-          aria-label={`About ${label}`}
+          aria-label={t("typesafe.about", { label })}
           aria-describedby={`${id}-help`}
           onFocus={() => setOpen(true)}
           onBlur={() => setOpen(false)}
@@ -80,7 +82,7 @@ function FieldLabel({
           target="_blank"
           rel="noopener noreferrer"
         >
-          Get a key
+          {t("typesafe.getKey")}
         </a>
       )}
     </div>
@@ -128,6 +130,8 @@ async function request(
 }
 
 export function TypeSafeSettings() {
+  const t = useT();
+  const locale = useLocale();
   const [status, setStatus] = useState<Status | null>(null);
   const [editing, setEditing] = useState(false);
   const [apiKey, setApiKey] = useState("");
@@ -163,7 +167,7 @@ export function TypeSafeSettings() {
         }
       })
       .catch(() => {
-        if (active) setError("Could not load your TypeSafe connection.");
+        if (active) setError(t("typesafe.loadFailed"));
       });
 
     return () => {
@@ -186,15 +190,15 @@ export function TypeSafeSettings() {
       setEditing(false);
       setMessage(
         remove
-          ? "Disconnected. New requests from existing Jev seats will stop. Requests already sent may still finish."
-          : "Connected. Your key will be used when you next add Jev to a room.",
+          ? t("typesafe.disconnected")
+          : t("typesafe.saved"),
       );
       await refresh();
     } catch (e) {
       setRequiresReauthentication(
         e instanceof CredentialRequestError && e.requiresReauthentication,
       );
-      setError(e instanceof Error ? e.message : "Could not save your connection.");
+      setError(locale === "zh-CN" && e instanceof CredentialRequestError && e.requiresReauthentication ? t("profile.reauthenticationRequired") : e instanceof Error ? e.message : t("typesafe.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -205,18 +209,17 @@ export function TypeSafeSettings() {
       <header>
         <div className="typesafe-title">
           <JevLogo size={40} />
-          <h2 id="typesafe-heading">Play with Jev</h2>
+          <h2 id="typesafe-heading">{t("typesafe.title")}</h2>
         </div>
         <span
           className="typesafe-status"
           data-state={status ? (status.connected ? "connected" : "disconnected") : "checking"}
         >
-          {status ? (status.connected ? "Connected" : "Not connected") : "Checking connection"}
+          {t(status ? (status.connected ? "typesafe.connected" : "typesafe.notConnected") : "typesafe.checking")}
         </span>
       </header>
       <p>
-        Connect your TypeSafe account to keep playing with Jev using your own credits. TypeSafe
-        charges your account for each AI request.
+        {t("typesafe.lead")}
       </p>
       {status?.connected && (
         <div className="typesafe-usage">
@@ -230,9 +233,9 @@ export function TypeSafeSettings() {
               }}
             />
           </div>
-          <span>requests today · resets at midnight UTC</span>
+          <span>{t("typesafe.usage")}</span>
           <small className="mono">
-            Key verified {new Date(status.verifiedAt!).toLocaleDateString()}
+            {t("typesafe.verified", { date: new Date(status.verifiedAt!).toLocaleDateString() })}
           </small>
         </div>
       )}
@@ -244,13 +247,13 @@ export function TypeSafeSettings() {
           variant="outline"
           onClick={() => {
             setError("");
-            void refresh().catch(() => setError("Could not load your TypeSafe connection."));
+            void refresh().catch(() => setError(t("typesafe.loadFailed")));
           }}
         >
-          Try again
+          {t("common.retry")}
         </Button>
       )}
-      {status && !status.available && <p>New connections are temporarily unavailable.</p>}
+      {status && !status.available && <p>{t("typesafe.unavailable")}</p>}
       {status?.available && (!status.connected || editing) && (
         <form
           onSubmit={(e) => {
@@ -260,8 +263,8 @@ export function TypeSafeSettings() {
         >
           <FieldLabel
             id="typesafe-key"
-            label="TypeSafe API key"
-            description="Your key is encrypted when saved and used only by our server."
+            label={t("typesafe.key")}
+            description={t("typesafe.keyHelp")}
             keyLink
           />
           <Input
@@ -277,12 +280,12 @@ export function TypeSafeSettings() {
             required
             disabled={busy}
             aria-describedby="typesafe-key-help"
-            placeholder="Paste your API key"
+            placeholder={t("typesafe.keyPlaceholder")}
           />
           <FieldLabel
             id="typesafe-limit"
-            label="Daily request limit"
-            description="This limits API requests, not dollars or games. One move can use several requests. Provider balance and rate limits still apply."
+            label={t("typesafe.limit")}
+            description={t("typesafe.limitHelp")}
           />
           <Input
             id="typesafe-limit"
@@ -305,14 +308,12 @@ export function TypeSafeSettings() {
               disabled={busy}
             />
             <span>
-              I allow LLM Games to use my key for Jev in rooms I host. Jev's game view is sent to
-              TypeSafe, and usage is billed to my TypeSafe account.
+              {t("typesafe.consent")}
             </span>
           </label>
           {editing && (
             <small>
-              Replacing your key stops new requests from existing Jev seats. Add Jev again in a new
-              lobby to use the replacement.
+              {t("typesafe.replaceHelp")}
             </small>
           )}
           <div className="typesafe-actions">
@@ -320,7 +321,7 @@ export function TypeSafeSettings() {
               type="submit"
               disabled={busy || !consent || !apiKey.trim() || !dailyLimitIsValid}
             >
-              {busy ? "Verifying key…" : editing ? "Replace key" : "Connect TypeSafe"}
+              {t(busy ? "typesafe.verifying" : editing ? "typesafe.replace" : "typesafe.connect")}
             </Button>
             {editing && (
               <Button
@@ -333,7 +334,7 @@ export function TypeSafeSettings() {
                   setConsent(false);
                 }}
               >
-                Cancel
+                {t("profile.cancel")}
               </Button>
             )}
           </div>
@@ -343,11 +344,11 @@ export function TypeSafeSettings() {
         <div className="typesafe-actions">
           {status.available && (
             <Button variant="outline" disabled={busy} onClick={() => setEditing(true)}>
-              Replace key or limit
+              {t("typesafe.replaceLimit")}
             </Button>
           )}
           <Button variant="ghost" disabled={busy} onClick={() => void save(true)}>
-            {busy ? "Disconnecting…" : "Disconnect"}
+            {t(busy ? "typesafe.disconnecting" : "typesafe.disconnect")}
           </Button>
         </div>
       )}

@@ -111,6 +111,28 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test("agent log and history use Chinese when selected", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("llmgames-locale", "zh-CN"));
+  await page.goto("/agent-log");
+  await expect(page.getByRole("heading", { name: "智能体记录" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "移除 BrightRook" })).toBeVisible();
+  await page.goto("/history");
+  await expect(page.getByRole("heading", { name: "对局记录" })).toBeVisible();
+  await expect(page.getByLabel("搜索对局记录")).toBeVisible();
+});
+
+test("Chinese history expands a replay with localized controls", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("llmgames-locale", "zh-CN"));
+  await page.route("**/api/v1/auth/users/me/game-logs/game-one", (route) =>
+    route.fulfill({ json: { version: 1, gameId: game.id, gameType: game.gameType, startedAt: 0, endedAt: 1, endReason: "ended", winner: "a", participants: archiveParticipants(game.participants), events: [], rewatch } }),
+  );
+  await page.goto("/history");
+  await page.locator(".history-summary").first().click();
+  await page.getByRole("button", { name: "回看对局" }).click();
+  await expect(page.getByRole("region", { name: "对局回放" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "下一帧" })).toBeEnabled();
+});
+
 for (const viewport of [
   { width: 1440, height: 900 },
   { width: 390, height: 844 },

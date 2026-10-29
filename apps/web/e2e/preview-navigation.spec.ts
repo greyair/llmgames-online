@@ -14,17 +14,21 @@ test("all internal preview links stay in previews", async ({ page }) => {
   ]) {
     await page.goto(route);
     await expect(page.locator("h1").first()).toBeVisible();
+    // Rewriting runs after each island reports preview-ready, so the settled state
+    // arrives later than first paint and later still on a busy machine.
     await expect
-      .poll(() =>
-        page.locator("a[href]").evaluateAll((links) =>
-          links
-            .map((link) => new URL(link.getAttribute("href")!, location.href))
-            .filter(
-              (url) =>
-                url.origin === location.origin && !url.pathname.startsWith("/design-preview"),
-            )
-            .map((url) => url.pathname),
-        ),
+      .poll(
+        () =>
+          page.locator("a[href]").evaluateAll((links) =>
+            links
+              .map((link) => new URL(link.getAttribute("href")!, location.href))
+              .filter(
+                (url) =>
+                  url.origin === location.origin && !url.pathname.startsWith("/design-preview"),
+              )
+              .map((url) => url.pathname),
+          ),
+        { timeout: 20000 },
       )
       .toEqual([]);
   }
@@ -32,6 +36,9 @@ test("all internal preview links stay in previews", async ({ page }) => {
 
 test("landing, sign-in, profile and legal navigation use seeded routes", async ({ page }) => {
   await page.goto("/design-preview/public/landing");
+  // The preview shell rewrites app hrefs into preview routes only once the island
+  // reports it is preview-ready, so a click before hydration leaves the page.
+  await expect(page.locator("main[data-preview-ready]")).toHaveCount(1);
   await page.getByRole("link", { name: "Challenge an AI", exact: false }).click();
   await expect(page).toHaveURL(/\/design-preview\/library$/);
   await page.getByRole("link", { name: "Sign in", exact: true }).click();

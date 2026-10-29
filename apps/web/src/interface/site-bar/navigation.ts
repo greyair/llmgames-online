@@ -1,21 +1,48 @@
 import type { IconName } from "@/components/ui/icon";
+import type { MessageKey } from "@/i18n";
 
-export type NavLink = { id: string; title: string; href: string; icon: IconName; short?: string };
+export type NavLink = {
+  id: string;
+  /** Translation key for the full label. */
+  labelKey: MessageKey;
+  /** Shorter label used by the mobile dock. */
+  shortKey?: MessageKey;
+  href: string;
+  icon: IconName;
+};
 
 export const memberLinks: readonly NavLink[] = [
-  { id: "play", title: "Play", href: "/play", icon: "controller" },
-  { id: "connect", title: "Connect AI", short: "Connect", href: "/connect-ai", icon: "link" },
-  { id: "agents", title: "Agent log", short: "Agents", href: "/agent-log", icon: "agent" },
-  { id: "history", title: "History", href: "/history", icon: "replay" },
+  { id: "play", labelKey: "nav.play", href: "/play", icon: "controller" },
+  {
+    id: "connect",
+    labelKey: "nav.connect",
+    shortKey: "nav.connectShort",
+    href: "/connect-ai",
+    icon: "link",
+  },
+  {
+    id: "agents",
+    labelKey: "nav.agents",
+    shortKey: "nav.agentsShort",
+    href: "/agent-log",
+    icon: "agent",
+  },
+  { id: "history", labelKey: "nav.history", href: "/history", icon: "replay" },
 ];
 
 export const guestLinks: readonly NavLink[] = [
-  { id: "home", title: "Home", href: "/", icon: "home" },
-  { id: "connect", title: "Connect AI", short: "Connect", href: "/connect-ai", icon: "link" },
+  { id: "home", labelKey: "nav.home", href: "/", icon: "home" },
+  {
+    id: "connect",
+    labelKey: "nav.connect",
+    shortKey: "nav.connectShort",
+    href: "/connect-ai",
+    icon: "link",
+  },
 ];
 
 export const operatorLinks: readonly NavLink[] = [
-  { id: "watch", title: "Watch", href: "/", icon: "watch" },
+  { id: "watch", labelKey: "nav.watch", href: "/", icon: "watch" },
 ];
 
 export function activeFromPath(pathname: string) {

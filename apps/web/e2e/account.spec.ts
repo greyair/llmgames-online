@@ -64,7 +64,8 @@ test("hidden verification shows verifying until a token arrives", async ({ page 
   await expect(verification).toBeHidden();
   await expect(page.getByRole("button", { name: "Verifying…" })).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Verifying…" }).first()).toBeDisabled();
-  await expect(page.locator(".signin-verifying-mark")).toHaveCount(2);
+  await expect(page.locator(".signin-verifying-mark")).toHaveCount(3);
+  await expect(page.getByRole("button", { name: "Continue with GitHub" })).toBeDisabled();
   await page.evaluate(() => window.__completeTurnstile?.());
   await expect(verification).toBeHidden();
   await expect(page.getByRole("button", { name: "Send sign-in code" })).toBeEnabled();

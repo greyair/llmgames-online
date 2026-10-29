@@ -58,6 +58,18 @@ test.describe("series setup and results", () => {
     await page.route("**/api/v1/series", (route) => route.fulfill({ json: { series: [] } }));
   });
 
+  test("Chinese series setup and details", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("llmgames-locale", "zh-CN"));
+    await page.goto("/series");
+    await expect(page.getByRole("heading", { name: "对局设置" })).toBeVisible();
+    await page.getByRole("button", { name: "添加 黑白棋" }).click();
+    await expect(page.getByRole("button", { name: "创建系列赛", exact: true })).toBeEnabled();
+    await page.route("**/api/v1/series/ABC234", (route) => route.fulfill({ json: view }));
+    await page.goto("/series?code=ABC234");
+    await expect(page.getByRole("heading", { name: "参赛者" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "开始系列赛" })).toBeVisible();
+  });
+
   for (const width of [1440, 390, 320])
     test(`accessible builder at ${width}px`, async ({ page }, info) => {
       await page.setViewportSize({ width, height: 900 });

@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { play } from "@/lib/sound";
 import "./mcp-install.css";
 import { McpHostIcon, type McpHostIconId } from "./McpHostIcon";
+import { useT, type MessageKey } from "@/i18n";
 
 import { SITE_URL } from "@/lib/siteMetadata";
 
@@ -74,6 +75,7 @@ const MCP_HOSTS: McpHost[] = [
 ];
 
 export function McpInstallCommand({ compact = false }: { compact?: boolean }) {
+  const t = useT();
   const instanceId = useId();
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
@@ -82,6 +84,12 @@ export function McpInstallCommand({ compact = false }: { compact?: boolean }) {
   const [commandCopied, setCommandCopied] = useState(false);
   const activeHost = MCP_HOSTS.find((host) => host.id === activeHostId) ?? MCP_HOSTS[0]!;
   const isTerminal = activeHost.label === "Terminal command";
+
+  const notes = {
+    codex: "setup.noteCodex", "claude-code": "setup.noteClaude", "gemini-cli": "setup.noteGemini", cursor: "setup.noteCursor", grok: "setup.noteGrok",
+  } satisfies Record<string, MessageKey>;
+
+  const noteKey = Object.entries(notes).find(([id]) => id === activeHost.id)?.[1];
 
   const selectHost = useCallback((hostId: string) => {
     setActiveHostId(hostId);
@@ -112,10 +120,10 @@ export function McpInstallCommand({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className="mcp-connect-flow" data-compact={compact || undefined}>
-      <section className="mcp-prompt-card" aria-label="Connection prompt">
+      <section className="mcp-prompt-card" aria-label={t("setup.prompt")}>
         <div className="mcp-card-head">
-          <span className="mcp-card-title">Connect with a prompt</span>
-          {!compact && <span className="mcp-card-hint">No API key required</span>}
+          <span className="mcp-card-title">{t("setup.promptTitle")}</span>
+          {!compact && <span className="mcp-card-hint">{t("setup.noKey")}</span>}
         </div>
         <div className="mcp-prompt-content">
           <p className="connection-prompt">{CONNECT_PROMPT}</p>
@@ -125,21 +133,21 @@ export function McpInstallCommand({ compact = false }: { compact?: boolean }) {
             onClick={copyPrompt}
             className="mcp-prompt-copy"
             data-sound="none"
-            aria-label={promptCopied ? "Copied" : "Copy prompt"}
+            aria-label={t(promptCopied ? "setup.copied" : "setup.copyPrompt")}
             data-copied={promptCopied || undefined}
           >
             <Icon name={promptCopied ? "check" : "copy"} size={14} />
-            <span>{promptCopied ? "Copied" : "Copy prompt"}</span>
+            <span>{t(promptCopied ? "setup.copied" : "setup.copyPrompt")}</span>
           </Button>
         </div>
       </section>
       <section
-        aria-label="Connect an agent to the llmgames MCP server"
+        aria-label={t("setup.manualLabel")}
         className="mcp-command mcp-manual-card"
       >
         <div className="mcp-card-head mcp-manual-head">
-          <span className="mcp-card-title">Or set up manually</span>
-          <div className="mcp-host-tabs" role="tablist" aria-label="Choose an agent">
+          <span className="mcp-card-title">{t("setup.manual")}</span>
+          <div className="mcp-host-tabs" role="tablist" aria-label={t("setup.chooseAgent")}>
             {MCP_HOSTS.map((host) => {
               const active = activeHost.id === host.id;
 
@@ -191,10 +199,10 @@ export function McpInstallCommand({ compact = false }: { compact?: boolean }) {
         >
           <div className="mcp-host-meta">
             <span className="mcp-host-name">{activeHost.name}</span>
-            <span className="mcp-host-label">{activeHost.label}</span>
+            <span className="mcp-host-label">{isTerminal ? t("setup.terminal") : activeHost.label === "Remote MCP URL" ? t("setup.remoteUrl") : activeHost.label}</span>
           </div>
           <div className="mcp-code" data-surface="dark">
-            <div tabIndex={0} role="region" aria-label="Setup command" className="mcp-code-scroll">
+            <div tabIndex={0} role="region" aria-label={t("setup.command")} className="mcp-code-scroll">
               {isTerminal && (
                 <span className="mcp-code-prompt" aria-hidden="true">
                   $
@@ -213,19 +221,19 @@ export function McpInstallCommand({ compact = false }: { compact?: boolean }) {
               className="mcp-code-copy"
               data-sound="none"
               data-copied={commandCopied || undefined}
-              aria-label={commandCopied ? "Copied" : "Copy command"}
+              aria-label={t(commandCopied ? "setup.copied" : "setup.copyCommand")}
             >
               <Icon name={commandCopied ? "check" : "copy"} size={14} />
             </Button>
           </div>
           {!compact && (
             <p className="mcp-host-note">
-              {activeHost.note
+              {(noteKey ? t(noteKey) : activeHost.note)
                 .split(/(`[^`]+`)/g)
                 .map((part, index) =>
                   part.startsWith("`") ? <code key={index}>{part.slice(1, -1)}</code> : part,
                 )}{" "}
-              No API key required.
+              {t("setup.noKeyFull")}
             </p>
           )}
         </div>

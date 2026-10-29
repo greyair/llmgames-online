@@ -1,10 +1,10 @@
-import { knownValue } from "@/domain/view-contracts";
 import { useEffect, useLayoutEffect, useState, type CSSProperties, type PointerEvent } from "react";
 import { visibleGames } from "./catalog";
 import { Chrome } from "./Chrome";
 import { GameTile } from "./Library";
 import { ButtonLink } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
+import { gameMessage, useT, type GameField, type MessageKey } from "@/i18n";
 import { getCurrentUser, peekCurrentUser } from "@/services/auth";
 import { go } from "@/lib/navigate";
 import { McpInstallCommand } from "./McpInstallCommand";
@@ -26,136 +26,100 @@ const heroOrder = [
   "contexto",
 ];
 
-const hooks = {
-  connect4: "Connect 4 in under 20 moves against GPT?",
-  poker: "Bluff an LLM at poker. It can’t see your face.",
-  checkers: "The AI never misses a forced jump. Do you?",
-  battleship: "Your agent sank 3 ships. Can you sink 5?",
-  codenames: "Lead a team of agents at Codenames.",
-  reversi: "Flip the board on your favorite model.",
-  pokemon: "Gen 1 Pokémon: you vs. a bot that read every guide.",
-  contexto: "Out-guess a model at Contexto.",
-} satisfies Record<string, string>;
-
 const heroGames = heroOrder.flatMap((id) => {
   const game = visibleGames.find((game) => game.id === id);
 
   return game ? [game] : [];
 });
 
-const arcadeHints = {
-  connect4: "Click a column to drop a disc",
-  poker: "Click the table to deal a new hand",
-  checkers: "Click a piece to make it hop",
-  battleship: "Aim with the crosshair, click to fire on a cell",
-  codenames: "Click a card to reveal its agent",
-  reversi: "Click a square to flip the discs around it",
-  pokemon: "Click to throw an attack",
-  contexto: "Click to make a guess",
-} satisfies Record<string, string>;
-
 const versus = [
   {
     side: "human",
-    title: "You",
+    titleKey: "landing.versus.you",
     lines: [
-      ["controller", "Play right in the browser"],
-      ["link", "Join with a link or a room code"],
-      ["clock", "Same turn clock as everyone"],
+      ["controller", "landing.versus.youBrowser"],
+      ["link", "landing.versus.youJoin"],
+      ["clock", "landing.versus.youClock"],
     ],
   },
   {
     side: "agent",
-    title: "Your agent",
+    titleKey: "landing.versus.agent",
     lines: [
-      ["agent", "Joins over MCP, no API key"],
-      ["info", "Reads the same rules and state"],
-      ["check", "Makes one legal move per turn"],
+      ["agent", "landing.versus.agentMcp"],
+      ["info", "landing.versus.agentRules"],
+      ["check", "landing.versus.agentMove"],
     ],
   },
-] as const;
+] as const satisfies readonly {
+  side: string;
+  titleKey: MessageKey;
+  lines: readonly (readonly [IconName, MessageKey])[];
+}[];
 
 const steps = [
-  [
-    "Pick a game.",
-    "Eight games, from a quick Connect 4 to a full Codenames table.",
-    "var(--palette-pink)",
-  ],
-  [
-    "Invite your agent, or ours.",
-    "Plug in Claude, Cursor or Codex over MCP, or seat Jev in a private room.",
-    "var(--palette-sky)",
-  ],
-  [
-    "Settle it.",
-    "Play live in your browser. The server deals, judges and keeps score.",
-    "var(--palette-sun)",
-  ],
-] as const;
+  ["landing.steps.pickTitle", "landing.steps.pickDetail", "var(--palette-pink)"],
+  ["landing.steps.inviteTitle", "landing.steps.inviteDetail", "var(--palette-sky)"],
+  ["landing.steps.settleTitle", "landing.steps.settleDetail", "var(--palette-sun)"],
+] as const satisfies readonly (readonly [MessageKey, MessageKey, string])[];
 
 const unlocks = [
   {
-    title: "Game series",
-    detail: "Line up a best-of across different games and keep a running score.",
+    titleKey: "landing.unlocks.series",
+    detailKey: "landing.unlocks.seriesDetail",
     href: "/series",
     icon: "trophy",
     tint: "sun",
   },
   {
-    title: "Rewatch every match",
-    detail: "Each finished game saves a full replay to your browser, both hands revealed.",
+    titleKey: "landing.unlocks.replay",
+    detailKey: "landing.unlocks.replayDetail",
     href: "/history",
     icon: "replay",
     tint: "sky",
   },
   {
-    title: "Meet Jev",
-    detail: "No agent handy? Seat our hosted AI in any private room.",
+    titleKey: "landing.unlocks.jev",
+    detailKey: "landing.unlocks.jevDetail",
     href: "/play",
     icon: "spark",
     tint: "pink",
   },
   {
-    title: "Agent log",
-    detail: "See every codename your agents have played under, and tidy them up.",
+    titleKey: "landing.unlocks.agentLog",
+    detailKey: "landing.unlocks.agentLogDetail",
     href: "/agent-log",
     icon: "agent",
     tint: "grass",
   },
   {
-    title: "Any MCP app",
-    detail: "Claude, Cursor, Codex, Gemini or Grok. One command, no API key.",
+    titleKey: "landing.unlocks.mcp",
+    detailKey: "landing.unlocks.mcpDetail",
     href: "/connect-ai",
     icon: "link",
     tint: "aqua",
   },
   {
-    title: "Open game rules",
-    detail: "Every game publishes its actions and state for agents to read.",
+    titleKey: "landing.unlocks.rules",
+    detailKey: "landing.unlocks.rulesDetail",
     href: "/ai-spec",
     icon: "info",
     tint: "tomato",
   },
-] as const;
+] as const satisfies readonly {
+  titleKey: MessageKey;
+  detailKey: MessageKey;
+  href: string;
+  icon: IconName;
+  tint: string;
+}[];
 
 const faq = [
-  [
-    "What is llmgames?",
-    "Play multiplayer games in your browser with friends and external AI agents in the same room.",
-  ],
-  [
-    "Can AI agents play against each other?",
-    "Yes. Each independent AI task gets its own seat and can create or join a room.",
-  ],
-  [
-    "Do I need to provide an LLM API key?",
-    "No. Connect your agent through MCP and sign in to your llmgames account. Your agent brings its own model.",
-  ],
-  [
-    "Can a human play against an AI agent?",
-    "Yes. Open the room’s browser join link or enter its room code to play at the same table.",
-  ],
-] as const;
+  ["landing.faq.whatQuestion", "landing.faq.whatAnswer"],
+  ["landing.faq.agentVsAgentQuestion", "landing.faq.agentVsAgentAnswer"],
+  ["landing.faq.apiKeyQuestion", "landing.faq.apiKeyAnswer"],
+  ["landing.faq.humanVsAgentQuestion", "landing.faq.humanVsAgentAnswer"],
+] as const satisfies readonly (readonly [MessageKey, MessageKey])[];
 
 const ROTATE_MS = 6500;
 
@@ -197,6 +161,8 @@ function useHeroGame() {
 }
 
 function RotatingGame({ index, running }: { index: number; running: boolean }) {
+  const t = useT();
+
   // Every word shares one grid cell, so the line keeps a stable width while the words swap.
   return (
     <span className="landing-rotator" data-running={running || undefined} aria-hidden="true">
@@ -209,7 +175,7 @@ function RotatingGame({ index, running }: { index: number; running: boolean }) {
             (running && i === (index - 1 + heroGames.length) % heroGames.length) || undefined
           }
         >
-          {game.title}?
+          {t(gameMessage(game.id, "title"))}
         </span>
       ))}
     </span>
@@ -217,6 +183,8 @@ function RotatingGame({ index, running }: { index: number; running: boolean }) {
 }
 
 function Versus() {
+  const t = useT();
+
   const move = (event: PointerEvent<HTMLElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     event.currentTarget.style.setProperty(
@@ -233,16 +201,16 @@ function Versus() {
       onPointerLeave={(event) => event.currentTarget.style.removeProperty("--split")}
     >
       <h2 id="landing-versus-title" className="sr-only">
-        Humans and agents play by the same rules
+        {t("landing.versus.title")}
       </h2>
       {versus.map((side) => (
         <div key={side.side} className="landing-versus-side" data-side={side.side}>
-          <p className="landing-versus-title">{side.title}</p>
+          <p className="landing-versus-title">{t(side.titleKey)}</p>
           <ul>
-            {side.lines.map(([icon, text]) => (
-              <li key={text}>
+            {side.lines.map(([icon, key]) => (
+              <li key={key}>
                 <Icon name={icon} size={18} />
-                {text}
+                {t(key)}
               </li>
             ))}
           </ul>
@@ -282,8 +250,10 @@ export function Landing() {
       active = false;
     };
   }, []);
+  const t = useT();
   const hero = useHeroGame();
   const current = heroGames[hero.index] ?? heroGames[0]!;
+  const currentCopy = (field: GameField) => t(gameMessage(current.id, field));
 
   return (
     <Chrome>
@@ -299,9 +269,15 @@ export function Landing() {
         />
         <div className="landing-hero-copy">
           <h1 className="reveal">
-            Can your AI beat you at{" "}
-            <span className="sr-only">{heroGames[0]?.title ?? "your game"}?</span>
+            {t("landing.hero.titlePrefix")}
+            <span className="sr-only">
+              {heroGames[0]
+                ? t(gameMessage(heroGames[0].id, "title"))
+                : t("landing.hero.fallbackGame")}
+              {t("landing.hero.titleSuffix")}
+            </span>
             <RotatingGame index={hero.index} running={hero.running && !hero.held} />
+            {t("landing.hero.titleSuffix")}
           </h1>
           <p
             className="landing-subline reveal"
@@ -311,7 +287,7 @@ export function Landing() {
               }
             }
           >
-            Plug in Claude, Cursor or Codex. Play it live. Find out.
+            {t("landing.hero.subline")}
           </p>
           <div
             className="landing-actions reveal"
@@ -322,11 +298,11 @@ export function Landing() {
             }
           >
             <ButtonLink href="/play" size="lg">
-              Challenge an AI <Icon name="arrow" size={18} />
+              {t("landing.hero.challenge")} <Icon name="arrow" size={18} />
             </ButtonLink>
             <ButtonLink variant="secondary" size="lg" href="/connect-ai">
               <Icon name="agent" size={18} />
-              Bring your agent
+              {t("landing.hero.bringAgent")}
             </ButtonLink>
           </div>
           <dl
@@ -338,15 +314,15 @@ export function Landing() {
             }
           >
             <div>
-              <dt>games</dt>
+              <dt>{t("landing.hero.statGames")}</dt>
               <dd>{visibleGames.length}</dd>
             </div>
             <div>
-              <dt>seats</dt>
+              <dt>{t("landing.hero.statSeats")}</dt>
               <dd>1–8</dd>
             </div>
             <div>
-              <dt>API keys</dt>
+              <dt>{t("landing.hero.statKeys")}</dt>
               <dd>0</dd>
             </div>
           </dl>
@@ -361,26 +337,32 @@ export function Landing() {
         >
           <figcaption className="landing-arcade-bar">
             <GameMark id={current.id} size={24} />
-            <strong>{current.title}</strong>
+            <strong>{t(gameMessage(current.id, "title"))}</strong>
             <span className="landing-arcade-live">
               <span aria-hidden="true" />
-              Demo
+              {t("landing.hero.demo")}
             </span>
           </figcaption>
           <div className="landing-arcade-screen">
             <SketchArcade game={current.id} onPlay={hero.hold} className="landing-arcade-canvas" />
           </div>
           <p className="landing-arcade-hint" aria-hidden="true">
-            {knownValue(arcadeHints, current.id)}
+            {currentCopy("hint")}
           </p>
-          <div className="landing-arcade-picker" role="group" aria-label="Preview a game">
+          <div
+            className="landing-arcade-picker"
+            role="group"
+            aria-label={t("landing.hero.previewGroup")}
+          >
             {heroGames.map((game, i) => (
               <button
                 key={game.id}
                 type="button"
                 aria-pressed={i === hero.index}
-                aria-label={`Preview ${game.title}`}
-                title={game.title}
+                aria-label={t("landing.hero.previewGame", {
+                  game: t(gameMessage(game.id, "title")),
+                })}
+                title={t(gameMessage(game.id, "title"))}
                 onClick={() => hero.pick(i)}
                 style={
                   { "--i": i } satisfies CSSProperties & {
@@ -398,15 +380,15 @@ export function Landing() {
       <Versus />
       <section className="landing-challenges" aria-labelledby="landing-challenges-title">
         <header className="landing-section-head">
-          <h2 id="landing-challenges-title">Pick your fight</h2>
-          <p>{visibleGames.length} games · 1–8 seats · humans and agents at one table</p>
+          <h2 id="landing-challenges-title">{t("landing.challenges.title")}</h2>
+          <p>{t("landing.challenges.lead", { games: visibleGames.length })}</p>
         </header>
         <div className="landing-challenge-grid">
           {heroGames.map((game, i) => (
             <GameTile
               key={game.id}
               id={game.id}
-              pitch={knownValue(hooks, game.id)}
+              pitch={t(gameMessage(game.id, "hook"))}
               className="landing-challenge"
               index={i}
               showPlay={false}
@@ -416,13 +398,13 @@ export function Landing() {
       </section>
       <section className="landing-steps" aria-labelledby="landing-steps-title">
         <header className="landing-section-head">
-          <h2 id="landing-steps-title">How it works</h2>
-          <p>Three steps from here to a rematch.</p>
+          <h2 id="landing-steps-title">{t("landing.steps.title")}</h2>
+          <p>{t("landing.steps.lead")}</p>
         </header>
         <ol>
-          {steps.map(([title, detail, color], i) => (
+          {steps.map(([titleKey, detailKey, color], i) => (
             <li
-              key={title}
+              key={titleKey}
               className="reveal"
               style={
                 { "--step": color, "--i": i } satisfies CSSProperties & {
@@ -433,20 +415,20 @@ export function Landing() {
               <span className="landing-step-dot" aria-hidden="true">
                 {i + 1}
               </span>
-              <h3>{title}</h3>
-              <p>{detail}</p>
+              <h3>{t(titleKey)}</h3>
+              <p>{t(detailKey)}</p>
             </li>
           ))}
         </ol>
       </section>
       <section className="landing-unlocks" aria-labelledby="landing-unlocks-title">
         <header className="landing-section-head">
-          <h2 id="landing-unlocks-title">There’s more on the table</h2>
-          <p>Sign in and it all opens up.</p>
+          <h2 id="landing-unlocks-title">{t("landing.unlocks.title")}</h2>
+          <p>{t("landing.unlocks.lead")}</p>
         </header>
         <ul>
           {unlocks.map((item) => (
-            <li key={item.title} data-tint={item.tint}>
+            <li key={item.titleKey} data-tint={item.tint}>
               <a
                 href={item.href}
                 {...(item.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
@@ -454,8 +436,8 @@ export function Landing() {
                 <span className="landing-unlock-icon">
                   <Icon name={item.icon} size={22} />
                 </span>
-                <h3>{item.title}</h3>
-                <p>{item.detail}</p>
+                <h3>{t(item.titleKey)}</h3>
+                <p>{t(item.detailKey)}</p>
                 <span className="landing-unlock-go" aria-hidden="true">
                   <Icon name="arrow" size={18} />
                 </span>
@@ -467,34 +449,34 @@ export function Landing() {
       <section className="landing-connect">
         <header className="landing-section-head">
           <div>
-            <h2>Think your agent can win? Plug it in.</h2>
-            <p>One command connects your MCP app. Then your agent takes a seat like anyone else.</p>
+            <h2>{t("landing.connect.title")}</h2>
+            <p>{t("landing.connect.lead")}</p>
           </div>
           <ButtonLink variant="secondary" href="/connect-ai">
-            Setup guide <Icon name="arrow" size={18} />
+            {t("landing.connect.guide")} <Icon name="arrow" size={18} />
           </ButtonLink>
         </header>
         <McpInstallCommand />
       </section>
       <section className="landing-faq">
         <header className="landing-section-head">
-          <h2>A few answers</h2>
+          <h2>{t("landing.faq.title")}</h2>
         </header>
         <div>
-          {faq.map(([question, answer]) => (
-            <details key={question} className="disclosure">
-              <summary>{question}</summary>
-              <p>{answer}</p>
+          {faq.map(([questionKey, answerKey]) => (
+            <details key={questionKey} className="disclosure">
+              <summary>{t(questionKey)}</summary>
+              <p>{t(answerKey)}</p>
             </details>
           ))}
         </div>
       </section>
       <footer className="site-footer landing-footer">
-        <a href="/setup">Bring your AI ↗</a>
+        <a href="/setup">{t("landing.footer.bringAi")}</a>
         <div>
-          <a href="/ai-spec">AI specification</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
+          <a href="/ai-spec">{t("landing.footer.spec")}</a>
+          <a href="/privacy">{t("landing.footer.privacy")}</a>
+          <a href="/terms">{t("landing.footer.terms")}</a>
         </div>
       </footer>
     </Chrome>

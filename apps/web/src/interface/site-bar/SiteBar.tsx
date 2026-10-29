@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore, type MouseEvent, type ReactNode } from "react";
 import { getCurrentUser, logout, peekCurrentUser, type User } from "@/services/auth";
 import { useBrowserHref } from "@/lib/navigate";
+import { useT } from "@/i18n";
 import { SiteBrand } from "./SiteBrand";
 import { SiteNav } from "./SiteNav";
 import { SiteAccount, SiteTools } from "./SiteAccount";
@@ -81,6 +82,7 @@ export function SiteBar({
 }: SiteBarProps) {
   const browserPath = useBrowserHref().split("?")[0] || "/";
   const pendingPath = usePendingPath();
+  const t = useT();
   // The server has no location; without its request path, SSR marks Home current and hydration keeps that attribute.
   const path = typeof window === "undefined" && serverPath ? serverPath : browserPath;
   const cached = useSyncExternalStore(subscribeSession, peekCurrentUser, () => undefined);
@@ -137,7 +139,7 @@ export function SiteBar({
       );
     } catch (error) {
       setSignOutError(
-        error instanceof Error ? error.message : "Could not sign out. Please try again.",
+        error instanceof Error ? error.message : t("site.signOutFailed"),
       );
       setSigningOut(false);
     }
@@ -152,7 +154,7 @@ export function SiteBar({
   return (
     <div className="site-bar-slot" data-dither-touch="off">
       <a className="site-skip" href="#main" onClick={skipToContent}>
-        Skip to content
+        {t("site.skip")}
       </a>
       <header className="site-bar" data-scrolled={scrolled || undefined}>
         <div className="site-bar-inner">

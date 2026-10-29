@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { useT } from "@/i18n";
 import {
   webhookRequest,
   agentWebhookListSchema,
@@ -7,6 +8,7 @@ import {
 } from "@/services/agentWebhooks";
 
 export function AgentWebhookInvites({ roomCode, allowed }: { roomCode: string; allowed: boolean }) {
+  const t = useT();
   const [status, setStatus] = useState<AgentWebhookList | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -25,7 +27,7 @@ export function AgentWebhookInvites({ roomCode, allowed }: { roomCode: string; a
           }
         })
         .catch(() => {
-          if (active) setError("Could not load your webhooks. Reopen this tab to try again.");
+          if (active) setError(t("webhook.inviteLoadFailed"));
         });
 
     void refresh();
@@ -47,9 +49,9 @@ export function AgentWebhookInvites({ roomCode, allowed }: { roomCode: string; a
     try {
       await webhookRequest(`/${id}/invite`, "POST", { roomCode });
       setSent((previous) => ({ ...previous, [id]: true }));
-      setNotice(`Invite delivered to ${name}. Waiting for the agent to join.`);
+      setNotice(t("webhook.inviteDelivered", { name }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not send invite.");
+      setError(e instanceof Error ? e.message : t("webhook.inviteFailed"));
     } finally {
       sending.current = false;
       setBusy(null);
@@ -57,16 +59,16 @@ export function AgentWebhookInvites({ roomCode, allowed }: { roomCode: string; a
   }
 
   return (
-    <section className="lobby-jev lobby-webhooks" aria-label="Invite your agents">
+    <section className="lobby-jev lobby-webhooks" aria-label={t("webhook.inviteTitle")}>
       <div>
         <strong>
           <span className="lobby-webhooks-dot" aria-hidden="true" />
-          Invite your agents
+          {t("webhook.inviteTitle")}
         </strong>
         <p>
           {status?.webhooks.length
-            ? "Send an invite to a saved webhook. Your agent appears at the table after joining through MCP."
-            : "Save your agent webhooks in Profile, then invite them here."}
+            ? t("webhook.inviteHelp")
+            : t("webhook.inviteEmpty")}
         </p>
       </div>
       <div className="lobby-jev-actions">
@@ -79,10 +81,10 @@ export function AgentWebhookInvites({ roomCode, allowed }: { roomCode: string; a
             onClick={() => void invite(row.id, row.name)}
           >
             {busy === row.id
-              ? `Inviting ${row.name}…`
+              ? t("webhook.inviting", { name: row.name })
               : sent[row.id]
-                ? `Invited ${row.name}`
-                : `Invite ${row.name}`}
+                ? t("webhook.invited", { name: row.name })
+                : t("webhook.invite", { name: row.name })}
           </Button>
         ))}
         <ButtonLink
@@ -92,7 +94,7 @@ export function AgentWebhookInvites({ roomCode, allowed }: { roomCode: string; a
           target="_blank"
           rel="noopener noreferrer"
         >
-          Add webhook
+          {t("setup.addWebhook")}
         </ButtonLink>
       </div>
       {notice && <p role="status">{notice}</p>}

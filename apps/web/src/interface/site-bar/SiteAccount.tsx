@@ -6,10 +6,13 @@ import { Icon } from "@/components/ui/icon";
 import { ThemeToggle } from "@/interface/ThemeToggle";
 import { SoundControl } from "@/interface/Feedback";
 import { SignOutConfirmation } from "@/interface/SignOutConfirmation";
+import { useT } from "@/i18n";
+import { LocaleSwitch } from "./LocaleSwitch";
 
 export function SiteTools() {
   return (
     <div className="site-tools">
+      <LocaleSwitch />
       <SoundControl />
       <ThemeToggle />
     </div>
@@ -33,10 +36,12 @@ export function SiteAccount({
   signingOut,
   onSignOut,
 }: SiteAccountProps) {
+  const t = useT();
+
   if (status === "pending")
     return (
       <span className="site-account-pending">
-        <HoleyLoader compact label="Checking your account" size={20} />
+        <HoleyLoader compact label={t("site.checkingAccount")} size={20} />
       </span>
     );
 
@@ -44,7 +49,7 @@ export function SiteAccount({
     return (
       actions ?? (
         <ButtonLink href="/login" size="sm" className="site-signin">
-          <span>Sign in</span>
+          <span>{t("site.signIn")}</span>
           <Icon name="arrow" size={18} />
         </ButtonLink>
       )
@@ -54,12 +59,12 @@ export function SiteAccount({
     <div className="site-account">
       <a
         href="/profile"
-        aria-label="Profile"
+        aria-label={t("site.profile")}
         aria-current={profileCurrent ? "page" : undefined}
         className="site-profile"
       >
         <PlayerAvatar name={`human:${gamertag || "player"}`} size={24} label="" />
-        <span className="site-profile-label">Profile</span>
+        <span className="site-profile-label">{t("site.profile")}</span>
       </a>
       <SignOutConfirmation
         disabled={signingOut}
@@ -69,8 +74,8 @@ export function SiteAccount({
             variant="ghost"
             size="icon"
             className="site-signout"
-            aria-label={signingOut ? "Signing out…" : "Sign out"}
-            title="Sign out"
+            aria-label={signingOut ? t("site.signingOut") : t("site.signOut")}
+            title={t("site.signOut")}
             disabled={signingOut}
           >
             <Icon name="signout" size={16} />

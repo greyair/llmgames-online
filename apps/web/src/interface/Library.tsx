@@ -9,6 +9,7 @@ import { SketchScene, hasSketchScene } from "./SketchScene";
 import { GameMark } from "./GameMark";
 import { gameRoute, visibleGames, getGame } from "./catalog";
 import { getCurrentUser } from "@/services/auth";
+import { gameMessage, useT, type GameField } from "@/i18n";
 import { go, useBrowserHref } from "@/lib/navigate";
 import "./library.css";
 
@@ -37,7 +38,21 @@ export function GameTile({
   index?: number;
   showPlay?: boolean;
 }) {
+  const t = useT();
   const game = getGame(id);
+
+  // A game that has not shipped its copy yet keeps the catalog text instead of
+  // showing a raw key.
+  const label = (field: GameField, fallback?: string) => {
+    const key = gameMessage(id, field);
+    const text = t(key);
+
+    return text === key ? (fallback ?? text) : text;
+  };
+
+  const title = label("title", game?.title);
+  const category = label("category", game?.category);
+  const detail = label("detail", game?.detail);
 
   return (
     <a
@@ -45,7 +60,7 @@ export function GameTile({
       data-game={id}
       data-surface="dark"
       href={gameRoute(id)}
-      aria-label={`Play ${game?.title}`}
+      aria-label={t("common.playGame", { game: title })}
       style={
         { "--i": index } satisfies CSSProperties & {
           [property: `--${string}`]: string | number | undefined;
@@ -56,16 +71,16 @@ export function GameTile({
         <div className="game-tile-head">
           <GameMark id={id} size={64} />
           <div className="library-caption">
-            <h2>{game?.title}</h2>
+            <h2>{title}</h2>
             <span>
-              {game?.players} players · {game?.category}
+              {t("common.playerCount", { count: game?.players ?? "" })} · {category}
             </span>
           </div>
         </div>
-        <p className="game-tile-pitch">{pitch ?? game?.detail}</p>
+        <p className="game-tile-pitch">{pitch ?? detail}</p>
         {showPlay && (
           <span className={cn(buttonVariants({ size: "lg" }), "game-tile-play")} aria-hidden="true">
-            Play {game?.title}
+            {t("common.playGame", { game: title })}
           </span>
         )}
       </div>
@@ -75,9 +90,9 @@ export function GameTile({
 }
 
 const filters = [
-  ["all", "All games"],
-  ["duel", "1 vs 1"],
-  ["group", "Groups"],
+  ["all", "library.all"],
+  ["duel", "library.duel"],
+  ["group", "library.group"],
 ] as const;
 
 type Filter = (typeof filters)[number][0];
@@ -105,6 +120,7 @@ export function GameGrid({
 }
 
 export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
+  const t = useT();
   const roomQuery = new URLSearchParams(useBrowserHref().split("?")[1] ?? "");
   const queryCode = (roomQuery.get("roomCode") ?? roomQuery.get("room"))?.toUpperCase() ?? "";
 
@@ -121,7 +137,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
       const pasted = (await navigator.clipboard.readText()).trim().toUpperCase();
 
       if (!ROOM_CODE.test(pasted)) {
-        setError("Copy a 6-character room code and try again");
+        setError(t("library.invalidPaste"));
 
         return;
       }
@@ -129,7 +145,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
       setCode(pasted);
       setError("");
     } catch {
-      setError("Clipboard access is unavailable. Paste into the room-code field manually.");
+      setError(t("library.clipboardUnavailable"));
     } finally {
       setPasting(false);
       codeInput.current?.focus();
@@ -142,7 +158,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
 
   const join = async (roomCode = code.trim()) => {
     if (!ROOM_CODE.test(roomCode)) {
-      setError("Enter a valid 6-character room code");
+      setError(t("library.invalidCode"));
 
       return;
     }
@@ -175,7 +191,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
       const room = await joinGameRoom({ roomCode });
       go(`${gameRoute(room.gameType)}?roomCode=${encodeURIComponent(room.roomCode)}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Room not found");
+      setError(e instanceof Error ? e.message : t("library.notFound"));
     } finally {
       setJoining(false);
     }
@@ -194,7 +210,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
     <Chrome>
       <header className="library-head">
         <div className="library-intro">
-          <h1 className="reveal">What are we playing?</h1>
+          <h1 className="reveal">{t("library.title")}</h1>
           <p
             className="reveal"
             style={
@@ -203,7 +219,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
               }
             }
           >
-            Pick a game to open a room, then invite a friend, your agent, or Jev.
+            {t("library.lead")}
           </p>
         </div>
         <form
@@ -213,22 +229,22 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
               [property: `--${string}`]: string | number | undefined;
             }
           }
-          aria-label="Join a game room"
+          aria-label={t("room.joinForm")}
           onSubmit={(event) => {
             event.preventDefault();
             void join();
           }}
         >
           <label className="library-join-label" htmlFor="library-room-code">
-            Have a room code?
+            {t("room.haveCode")}
           </label>
           <div className="library-code-field">
             <Input
               id="library-room-code"
               ref={codeInput}
               className="library-join-input"
-              aria-label="Room code"
-              placeholder="ROOM CODE"
+              aria-label={t("room.roomCode")}
+              placeholder={t("room.roomCodePlaceholder")}
               maxLength={6}
               value={code}
               onChange={(event) => {
@@ -245,8 +261,8 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
               variant="ghost"
               size="icon"
               className="library-code-paste"
-              aria-label="Paste room code"
-              title="Paste room code"
+              aria-label={t("library.paste")}
+              title={t("library.paste")}
               disabled={!ready || pasting || joining}
               onClick={() => void pasteCode()}
             >
@@ -259,7 +275,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
             className="library-join-submit"
             disabled={!ready || joining}
           >
-            {joining ? "Finding…" : "Join room"}
+            {joining ? t("library.finding") : t("library.join")}
             <Icon name="arrow" size={18} />
           </Button>
           {error && (
@@ -270,7 +286,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
         </form>
       </header>
       <div className="library-toolbar">
-        <div className="library-filters" role="group" aria-label="Filter games">
+        <div className="library-filters" role="group" aria-label={t("library.filter")}>
           {filters.map(([id, name]) => (
             <button
               key={id}
@@ -278,7 +294,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
               aria-pressed={filter === id}
               onClick={() => setFilter(id)}
             >
-              {name}
+              {t(name)}
               <span className="tabular">
                 {
                   visibleGames.filter(
@@ -290,11 +306,11 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
           ))}
         </div>
         <ButtonLink href="/series" className="library-series">
-          Create a game series
+          {t("library.series")}
           <Icon name="arrow" size={18} />
         </ButtonLink>
       </div>
-      <GameGrid label="Game library" filter={filter} />
+      <GameGrid label={t("library.grid")} filter={filter} />
     </Chrome>
   );
 }

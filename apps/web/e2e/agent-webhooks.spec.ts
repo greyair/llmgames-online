@@ -2,6 +2,15 @@ import { test, expect } from "@playwright/test";
 import { fixture } from "../src/dev/previewFixtures";
 import { applyPreviewScenario } from "../src/dev/previewScenarios";
 
+test("Chinese webhook settings preserve credential guidance", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("llmgames-locale", "zh-CN"));
+  await page.goto("/design-preview/profile?state=jev-disconnected");
+  const section = page.getByRole("region", { name: "智能体 Webhook" });
+  await section.getByRole("button", { name: "添加 Webhook" }).click();
+  await expect(section.getByLabel("请求头值")).toHaveAttribute("type", "password");
+  await expect(section.getByText(/地址和请求头值会加密保存/)).toBeVisible();
+});
+
 for (const width of [390, 1280]) {
   test(`multiple webhook settings at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });

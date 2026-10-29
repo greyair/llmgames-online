@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlayerAvatar } from "@/components/ui/player-avatar";
 import { ErrorMessage, StatusMessage, useMessageCue } from "./accountFeedback";
+import { useLocale, useT } from "@/i18n";
 import {
   agentWebhookInstructions,
   webhookRequest,
@@ -14,6 +15,8 @@ import {
 } from "@/services/agentWebhooks";
 
 export function AgentWebhookSettings() {
+  const t = useT();
+  const locale = useLocale();
   const [status, setStatus] = useState<AgentWebhookList | null>(null);
   const [editing, setEditing] = useState<AgentWebhook | "new" | null>(null);
   const [name, setName] = useState("");
@@ -39,7 +42,7 @@ export function AgentWebhookSettings() {
         if (active) setStatus(data);
       })
       .catch(() => {
-        if (active) setError("Could not load agent webhooks.");
+        if (active) setError(t("webhook.loadFailed"));
       });
 
     return () => {
@@ -88,13 +91,13 @@ export function AgentWebhookSettings() {
       );
 
       edit(null);
-      setNotice("Webhook saved. Invite this agent from a room you host.");
+      setNotice(t("webhook.saved"));
       await refresh();
     } catch (e) {
       setRequiresReauthentication(
         e instanceof CredentialRequestError && e.requiresReauthentication,
       );
-      setError(e instanceof Error ? e.message : "Could not save webhook.");
+      setError(locale === "zh-CN" && e instanceof CredentialRequestError && e.requiresReauthentication ? t("profile.reauthenticationRequired") : e instanceof Error ? e.message : t("webhook.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -109,13 +112,13 @@ export function AgentWebhookSettings() {
       await webhookRequest(`/${row.id}`, "DELETE");
 
       if (editing !== "new" && editing?.id === row.id) edit(null);
-      setNotice("Webhook removed.");
+      setNotice(t("webhook.removed"));
       await refresh();
     } catch (e) {
       setRequiresReauthentication(
         e instanceof CredentialRequestError && e.requiresReauthentication,
       );
-      setError(e instanceof Error ? e.message : "Could not remove webhook.");
+      setError(locale === "zh-CN" && e instanceof CredentialRequestError && e.requiresReauthentication ? t("profile.reauthenticationRequired") : e instanceof Error ? e.message : t("webhook.removeFailed"));
     } finally {
       setBusy(false);
     }
@@ -130,17 +133,17 @@ export function AgentWebhookSettings() {
       <header className="webhook-heading">
         <div>
           <div className="webhook-title">
-            <h2 id="agent-webhooks-heading">Agent webhooks</h2>
+            <h2 id="agent-webhooks-heading">{t("webhook.title")}</h2>
             {status && (
               <span
                 className="typesafe-status"
                 data-state={status.webhooks.length ? "connected" : undefined}
               >
-                {status.webhooks.length} / 10 saved
+                {t("webhook.savedCount", { count: status.webhooks.length })}
               </span>
             )}
           </div>
-          <p>Save your agents here. Invite them from any lobby you host.</p>
+          <p>{t("webhook.lead")}</p>
         </div>
         {status?.available && !editing && (
           <Button
@@ -149,30 +152,30 @@ export function AgentWebhookSettings() {
             data-sound="open"
             onClick={() => edit("new")}
           >
-            Add webhook
+            {t("setup.addWebhook")}
           </Button>
         )}
       </header>
       {error && <ErrorMessage key={error}>{error}</ErrorMessage>}
       {requiresReauthentication && <CredentialReauthentication />}
       {notice && <StatusMessage key={notice}>{notice}</StatusMessage>}
-      {!status && !error && <p className="webhook-loading">Loading webhooks…</p>}
+      {!status && !error && <p className="webhook-loading">{t("webhook.loading")}</p>}
       {!status && error && (
         <Button
           variant="outline"
           onClick={() => {
             setError("");
-            void refresh().catch(() => setError("Could not load agent webhooks."));
+            void refresh().catch(() => setError(t("webhook.loadFailed")));
           }}
         >
-          Try again
+          {t("common.retry")}
         </Button>
       )}
-      {status && !status.available && <p>Webhook storage is temporarily unavailable.</p>}
+      {status && !status.available && <p>{t("webhook.unavailable")}</p>}
       {status && (
         <div className="webhook-layout">
           {status.webhooks.length > 0 && (
-            <ul className="webhook-list" aria-label="Saved webhooks">
+            <ul className="webhook-list" aria-label={t("webhook.list")}>
               {status.webhooks.map((row, index) => (
                 <li
                   className="webhook-saved"
@@ -195,9 +198,9 @@ export function AgentWebhookSettings() {
                       variant="ghost"
                       disabled={busy || !status.available}
                       onClick={() => edit(row)}
-                      aria-label={`Edit ${row.name}`}
+                      aria-label={t("webhook.editName", { name: row.name })}
                     >
-                      Edit
+                      {t("webhook.edit")}
                     </Button>
                     <Button
                       size="sm"
@@ -205,9 +208,9 @@ export function AgentWebhookSettings() {
                       disabled={busy}
                       data-sound="close"
                       onClick={() => void remove(row)}
-                      aria-label={`Remove ${row.name}`}
+                      aria-label={t("archive.removeName", { name: row.name })}
                     >
-                      Remove
+                      {t("archive.remove")}
                     </Button>
                   </div>
                 </li>
@@ -216,7 +219,7 @@ export function AgentWebhookSettings() {
           )}
           {!editing && status.webhooks.length === 0 && (
             <p className="webhook-empty">
-              No webhooks yet. Add the URL from your agent's automation settings.
+              {t("webhook.empty")}
             </p>
           )}
           {editing && (
@@ -227,10 +230,10 @@ export function AgentWebhookSettings() {
                 void save();
               }}
             >
-              <h3>{editing === "new" ? "New webhook" : "Edit webhook"}</h3>
+              <h3>{t(editing === "new" ? "webhook.new" : "webhook.editTitle")}</h3>
               <div className="webhook-fields">
                 <div className="webhook-field">
-                  <label htmlFor="webhook-name">Agent name</label>
+                  <label htmlFor="webhook-name">{t("webhook.agentName")}</label>
                   <Input
                     id="webhook-name"
                     required
@@ -238,11 +241,11 @@ export function AgentWebhookSettings() {
                     value={name}
                     disabled={busy}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="My agent"
+                    placeholder={t("webhook.agentPlaceholder")}
                   />
                 </div>
                 <div className="webhook-field">
-                  <label htmlFor="webhook-url">Webhook URL</label>
+                  <label htmlFor="webhook-url">{t("webhook.url")}</label>
                   <Input
                     id="webhook-url"
                     type="url"
@@ -254,17 +257,17 @@ export function AgentWebhookSettings() {
                     autoComplete="off"
                     autoCapitalize="none"
                     spellCheck={false}
-                    placeholder={editing === "new" ? "https://…" : "Keep saved URL"}
+                    placeholder={editing === "new" ? "https://…" : t("webhook.keepUrl")}
                     aria-describedby="webhook-url-help"
                   />
                   <small id="webhook-url-help">
                     {editing === "new"
-                      ? "Invites are sent as a JSON POST."
-                      : "Leave blank to keep your saved URL."}
+                      ? t("webhook.postHelp")
+                      : t("webhook.keepUrlHelp")}
                   </small>
                 </div>
                 <div className="webhook-field">
-                  <label htmlFor="webhook-header">Header name</label>
+                  <label htmlFor="webhook-header">{t("webhook.header")}</label>
                   <Input
                     id="webhook-header"
                     required
@@ -278,7 +281,7 @@ export function AgentWebhookSettings() {
                   />
                 </div>
                 <div className="webhook-field">
-                  <label htmlFor="webhook-value">Header value</label>
+                  <label htmlFor="webhook-value">{t("webhook.value")}</label>
                   <Input
                     id="webhook-value"
                     type="password"
@@ -289,13 +292,13 @@ export function AgentWebhookSettings() {
                     autoComplete="new-password"
                     autoCapitalize="none"
                     spellCheck={false}
-                    placeholder={editing === "new" ? "Bearer your-token" : "Keep saved value"}
+                    placeholder={editing === "new" ? "Bearer your-token" : t("webhook.keepValue")}
                     aria-describedby="webhook-value-help"
                   />
                   <small id="webhook-value-help">
                     {editing === "new"
-                      ? "Include Bearer if required. For X-API-Key, use just the token."
-                      : "Enter a new value when changing the URL or header name, or choose no authentication below."}
+                      ? t("webhook.valueHelp")
+                      : t("webhook.valueEditHelp")}
                   </small>
                 </div>
               </div>
@@ -307,7 +310,7 @@ export function AgentWebhookSettings() {
                     disabled={busy}
                     onChange={(e) => setClearAuth(e.target.checked)}
                   />
-                  Send without an authentication header
+                  {t("webhook.noAuth")}
                 </label>
               )}
               <footer className="webhook-editor-footer">
@@ -321,14 +324,14 @@ export function AgentWebhookSettings() {
                       strokeWidth="2.4"
                     />
                   </svg>
-                  Your URL and header value are encrypted.
+                  {t("webhook.encrypted")}
                 </small>
                 <div className="webhook-form-actions">
                   <Button type="button" variant="ghost" disabled={busy} onClick={() => edit(null)}>
-                    Cancel
+                    {t("profile.cancel")}
                   </Button>
                   <Button type="submit" disabled={busy}>
-                    {busy ? "Saving…" : "Save webhook"}
+                    {t(busy ? "onboarding.saving" : "webhook.save")}
                   </Button>
                 </div>
               </footer>
@@ -337,11 +340,10 @@ export function AgentWebhookSettings() {
         </div>
       )}
       <details className="webhook-instructions disclosure">
-        <summary>Instructions for your agent</summary>
+        <summary>{t("webhook.instructions")}</summary>
         <div>
           <p>
-            Connect your agent to LLM Games MCP, then paste these instructions into its webhook
-            automation.
+            {t("webhook.instructionsHelp")}
           </p>
           <pre>{agentWebhookInstructions}</pre>
           <Button
@@ -351,13 +353,13 @@ export function AgentWebhookSettings() {
             onClick={() => {
               void navigator.clipboard
                 .writeText(agentWebhookInstructions)
-                .then(() => setNotice("Agent instructions copied."))
+                .then(() => setNotice(t("webhook.copied")))
                 .catch(() =>
-                  setError("Could not copy. Select the instructions and copy them manually."),
+                  setError(t("webhook.copyFailed")),
                 );
             }}
           >
-            Copy instructions
+            {t("webhook.copyInstructions")}
           </Button>
         </div>
       </details>

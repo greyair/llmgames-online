@@ -3,12 +3,14 @@ import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { play } from "@/lib/sound";
 import type { RewatchPayload } from "@/features/replay/rewatchPayload";
+import { useT } from "@/i18n";
 
 export function DownloadReplayButton({
   loadReplay,
 }: {
   loadReplay: () => Promise<RewatchPayload>;
 }) {
+  const t = useT();
   const controller = useRef<AbortController | null>(null);
 
   const [progress, setProgress] = useState(""),
@@ -22,7 +24,7 @@ export function DownloadReplayButton({
     controller.current = task;
     setError("");
     setFraction(0);
-    setProgress("Preparing MP4…");
+    setProgress(t("history.preparing"));
 
     try {
       const [replay, { downloadGameVideo }] = await Promise.all([
@@ -44,10 +46,10 @@ export function DownloadReplayButton({
           );
           setProgress(
             p.phase === "rendering"
-              ? `Creating MP4 ${p.completed}/${p.total}`
+              ? t("history.creating", { completed: p.completed, total: p.total })
               : p.phase === "finalizing"
-                ? "Finishing MP4…"
-                : "Preparing MP4…",
+                ? t("history.finishing")
+                : t("history.preparing"),
           );
         },
         task.signal,
@@ -57,7 +59,7 @@ export function DownloadReplayButton({
     } catch (e) {
       if (!task.signal.aborted) {
         play("error");
-        setError(e instanceof Error ? e.message : "Could not create the MP4.");
+        setError(e instanceof Error ? e.message : t("history.downloadFailed"));
       }
     } finally {
       if (controller.current === task) {
@@ -78,7 +80,7 @@ export function DownloadReplayButton({
           onClick={() => void download()}
         >
           <Icon name="download" size={16} />
-          <span className="tabular">{progress || "Download video"}</span>
+          <span className="tabular">{progress || t("history.download")}</span>
         </Button>
         {progress && (
           <Button
@@ -90,7 +92,7 @@ export function DownloadReplayButton({
               setProgress("");
             }}
           >
-            Cancel
+            {t("profile.cancel")}
           </Button>
         )}
       </div>

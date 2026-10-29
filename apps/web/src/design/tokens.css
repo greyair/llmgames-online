@@ -157,9 +157,14 @@
 
   /* Type: compact. Body is 14px; nothing essential goes below 12px, so the
     small steps shrink less than the headings. */
-  --font-ui: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-code: "Geist Mono Variable", ui-monospace, monospace;
-  --font-pixel: "Geist Pixel Variable", "Geist Mono Variable", ui-monospace, monospace;
+  /* Han glyphs are not in the Geist families, so the CJK stack trails them: Latin
+    keeps the brand face, Chinese falls through to the platform Han font instead
+    of a generic serif. */
+  --font-cjk: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+    "Source Han Sans SC";
+  --font-ui: "Geist Variable", var(--font-cjk), ui-sans-serif, system-ui, sans-serif;
+  --font-code: "Geist Mono Variable", var(--font-cjk), ui-monospace, monospace;
+  --font-pixel: "Geist Pixel Variable", "Geist Mono Variable", var(--font-cjk), ui-monospace, monospace;
   --type-micro: 0.75rem;
   --type-caption: 0.78125rem;
   --type-small: 0.8125rem;
@@ -178,6 +183,7 @@
   --tracking-pixel: 0.01em;
   --tracking-label: 0.08em;
   --tracking-tight: -0.02em;
+
 
   /* Space: 4px grid with a few 2px steps for borders and insets */
   --space-0: 0;
@@ -254,4 +260,11 @@
   --z-menu: 40;
   --z-dialog: 60;
   --z-toast: 80;
+}
+
+/* Chinese has no pixel grid for the label tracking to sit on; the Latin value
+   reads as gaps between Han glyphs. Sizes and leading stay shared so layouts do
+   not shift between languages. */
+:root[data-locale="zh-CN"] {
+  --tracking-label: 0.04em;
 }

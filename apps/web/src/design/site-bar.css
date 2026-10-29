@@ -286,6 +286,14 @@ a[data-highlighted] > .site-nav-icon {
   align-items: center;
   gap: var(--space-2);
 }
+/* Reads "EN" / "中"; the width is fixed so the bar does not shift on a switch. */
+.locale-switch {
+  min-width: 2.5rem;
+  padding-inline: var(--space-2);
+  font-size: var(--type-caption);
+  letter-spacing: var(--tracking-label);
+  text-transform: none;
+}
 .site-account {
   display: flex;
   align-items: center;
@@ -359,6 +367,13 @@ a[data-highlighted] > .site-nav-icon {
 @media (max-width: 760px) {
   .site-bar {
     padding-inline: var(--space-16);
+  }
+  .site-bar-slot:has(> .site-dock) .site-bar-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--space-4);
+  }
+  .site-bar-slot:has(> .site-dock) .site-controls {
+    grid-column: 2;
   }
   .site-bar-slot:has(> .site-dock) .site-nav {
     display: none;

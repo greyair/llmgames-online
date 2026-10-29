@@ -38,3 +38,12 @@ apps/web/public/pokemon/gen5ani-back/
 
 # Third-party Contexto embeddings are generated locally, not relicensed as MIT.
 apps/workers/src/lib/contextoRanks.json
+
+# Local-only Playwright config for machines without the bundled browser download.
+apps/web/playwright.local.config.ts
+
+# Screenshots and scratch output from manual verification runs.
+artifacts/
+
+# Agent notes for this workspace. Not part of the shipped source.
+.workbuddy/

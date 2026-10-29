@@ -5,6 +5,7 @@ import { Discs } from "@/game-ui/Discs";
 import { Checkers } from "@/game-ui/Checkers";
 import { PlayingCard } from "@/game-ui/Cards";
 import { Sprite, MonsterStatus } from "@/game-ui/pokemon/MonsterView";
+import { useT } from "@/i18n";
 
 import { contextoRankStyle } from "@/game-ui/contextoRankStyle";
 import "@/game-ui/pokemon/pokemon.css";
@@ -34,7 +35,9 @@ const previewStateSchema = z.object({
 
 const readOnly = () => {};
 
-function SeaGrid({ cells, label }: { cells: (string | null)[][]; label: string }) {
+function SeaGrid({ cells, label, target = false }: { cells: (string | null)[][]; label: string; target?: boolean }) {
+  const t = useT();
+
   return (
     <div className="spec-sea">
       <span>{label}</span>
@@ -57,7 +60,7 @@ function SeaGrid({ cells, label }: { cells: (string | null)[][]; label: string }
                 data-hit={cell === "x"}
                 data-miss={cell === "o"}
                 role="img"
-                aria-label={`Row ${r}, column ${c}, ${cell === "x" ? "hit" : cell === "o" ? "miss" : cell === "s" ? "your ship" : cell === "m" ? "your armed mine" : cell === "." ? (label.startsWith("Target") ? "unknown" : "water") : (cell ?? "water")}`}
+                aria-label={t("spec.cell", { row: r, col: c, state: cell === "x" ? t("spec.hit") : cell === "o" ? t("spec.miss") : cell === "s" ? t("spec.ship") : cell === "m" ? t("spec.mine") : cell === "." && target ? t("spec.unknown") : (cell && cell !== "." ? cell : t("spec.water")) })}
               >
                 {cell === "x" ? "×" : cell === "o" ? "·" : cell === "m" ? "M" : ""}
               </span>
@@ -70,6 +73,7 @@ function SeaGrid({ cells, label }: { cells: (string | null)[][]; label: string }
 }
 
 export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) {
+  const t = useT();
   const state = previewStateSchema.parse(value ?? {});
   const numericBoard = state.board?.map((row) => [...row].map(Number));
   const guesses = state.guesses ?? state.yourProgress?.guesses ?? [];
@@ -77,7 +81,7 @@ export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) 
   return (
     <figure
       className="spec-board"
-      aria-label="Example seat view"
+      aria-label={t("spec.exampleView")}
       data-game={gameId}
       data-surface="dark"
     >
@@ -96,9 +100,9 @@ export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) 
       {gameId === "codenames" && (
         <div className="spec-words">
           <span>
-            Clue: {state.clue?.word} · {state.clue?.count}
+            {t("spec.clue", { word: state.clue?.word ?? "", count: state.clue?.count ?? "" })}
           </span>
-          <div className="words-board" aria-label="Codenames board">
+          <div className="words-board" aria-label={t("spec.codenamesBoard")}>
             {state.cards?.map(([index, word, revealed, team]) => (
               <div
                 key={index}
@@ -115,7 +119,7 @@ export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) 
       {gameId === "poker" && (
         <div className="spec-poker">
           <div>
-            <span>Community · Pot {state.pot}</span>
+            <span>{t("spec.communityPot", { pot: state.pot ?? "" })}</span>
             <div className="spec-card-row">
               {state.community?.map((card, index) => (
                 <PlayingCard key={index} card={card} />
@@ -123,7 +127,7 @@ export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) 
             </div>
           </div>
           <div>
-            <span>Your hand</span>
+            <span>{t("spec.yourHand")}</span>
             <div className="spec-card-row">
               {state.seats
                 ?.find((seat) => seat.isYou)
@@ -133,7 +137,7 @@ export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) 
             </div>
           </div>
           <div>
-            <span>Opponent</span>
+            <span>{t("spec.opponent")}</span>
             <div className="spec-card-row">
               {[0, 1].map((index) => (
                 <PlayingCard key={index} card={{ rank: "?", suit: "", hidden: true }} />
@@ -150,7 +154,7 @@ export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) 
             return (
               mon && (
                 <div key={side.seat}>
-                  <span>{side.seat === state.yourSeat ? "Your Pokémon" : "Opponent"}</span>
+                  <span>{t(side.seat === state.yourSeat ? "spec.yourPokemon" : "spec.opponent")}</span>
                   <Sprite mon={mon} />
                   <MonsterStatus mon={mon} />
                 </div>
@@ -168,21 +172,22 @@ export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) 
             }
             label={
               state.phase === "placement"
-                ? "Your fleet · Not placed"
-                : `Your fleet · ${state.munitionPoints ?? 0} energy`
+                ? t("spec.unplacedFleet")
+                : t("spec.fleetEnergy", { energy: state.munitionPoints ?? 0 })
             }
           />
           {state.targetGrid && (
             <SeaGrid
               cells={state.targetGrid.map((row) => [...row])}
-              label="Target · Unrevealed fleet"
+              label={t("spec.targetFleet")}
+              target
             />
           )}
         </div>
       )}
       {gameId === "contexto" && (
         <div className="spec-contexto contexto-stage">
-          <span>Your guesses · Lower rank is closer</span>
+          <span>{t("spec.yourGuesses")}</span>
           <ol className="contexto-own-list">
             {guesses.map((guess) => (
               <li
@@ -195,10 +200,10 @@ export function AiSpecBoard<T>({ gameId, value }: { gameId: string; value: T }) 
               </li>
             ))}
           </ol>
-          {!guesses.length && <p>No guesses yet</p>}
+          {!guesses.length && <p>{t("spec.noGuesses")}</p>}
         </div>
       )}
-      <figcaption>Example seat view · Matches the request below</figcaption>
+      <figcaption>{t("spec.exampleCaption")}</figcaption>
     </figure>
   );
 }

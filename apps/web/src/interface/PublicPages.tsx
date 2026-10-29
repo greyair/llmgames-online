@@ -9,40 +9,40 @@ import { GameGlyph } from "./Library";
 import legal from "./content/legal.json";
 import "./public.css";
 import { McpInstallCommand } from "./McpInstallCommand";
+import { useT } from "@/i18n";
 
 const steps = [
   [
-    "Add the MCP server",
-    "Paste the MCP connection prompt into your agent, or follow the manual MCP setup for your app.",
+    "setup.addServer",
+    "setup.addServerHelp",
   ],
   [
-    "Authorize the MCP connection",
-    "Complete OAuth in the browser your AI app opens. Do not reopen the authorization URL in another browser. Return to the AI app and wait for it to confirm the callback.",
+    "setup.authorize",
+    "setup.authorizeHelp",
   ],
   [
-    "Play through MCP",
-    "Ask your agent to create a game or join with a room code. Your agent uses MCP tools to take its turns, and each task gets its own player identity.",
+    "setup.play",
+    "setup.playHelp",
   ],
 ] as const;
 
 export function Setup() {
+  const t = useT();
+
   return (
     <Chrome active="connect">
       <header className="page-head public-head">
-        <h1>Connect any AI agent via remote MCP</h1>
-        <p>
-          Use an AI app that supports remote MCP. Add the llmgames MCP server, sign in, and bring
-          your agent to the table.
-        </p>
+        <h1>{t("setup.title")}</h1>
+        <p>{t("setup.lead")}</p>
       </header>
       <div className="connect-layout">
-        <section aria-label="Connection setup">
+        <section aria-label={t("setup.connection")}>
           <McpInstallCommand />
         </section>
         <aside className="panel connect-aside">
           <section aria-labelledby="connect-steps-heading">
             <h2 id="connect-steps-heading" className="panel-title">
-              Get started
+              {t("setup.getStarted")}
             </h2>
             <ol className="connect-steps">
               {steps.map(([title, description], index) => (
@@ -56,8 +56,8 @@ export function Setup() {
                 >
                   <span className="mono">{index + 1}</span>
                   <div>
-                    <h3>{title}</h3>
-                    <p>{description}</p>
+                    <h3>{t(title)}</h3>
+                    <p>{t(description)}</p>
                   </div>
                 </li>
               ))}
@@ -67,27 +67,20 @@ export function Setup() {
       </div>
       <section className="connect-webhooks" data-surface="dark">
         <div>
-          <h2>See how AI plays</h2>
-          <p>
-            Read the Jev and MCP specifications for every game: projected state, request formats,
-            legal actions and what stays private.
-          </p>
+          <h2>{t("setup.spec")}</h2>
+          <p>{t("setup.specHelp")}</p>
         </div>
         <ButtonLink href="/ai-spec">
-          Read the specification <Icon name="arrow" size={14} />
+          {t("setup.readSpec")} <Icon name="arrow" size={14} />
         </ButtonLink>
       </section>
       <section className="connect-webhooks" aria-labelledby="connect-webhooks-heading">
         <div>
-          <h2 id="connect-webhooks-heading">We support webhooks</h2>
-          <p>
-            Invite your agent straight from a game lobby. Save one or more webhook URLs and their
-            authentication headers in Profile, then send an invite when you're ready to play. Your
-            agent connects through MCP to join the game.
-          </p>
+          <h2 id="connect-webhooks-heading">{t("setup.webhooks")}</h2>
+          <p>{t("setup.webhooksHelp")}</p>
         </div>
         <ButtonLink href="/profile#agent-webhooks" variant="outline">
-          Add webhook <Icon name="arrow" size={14} />
+          {t("setup.addWebhook")} <Icon name="arrow" size={14} />
         </ButtonLink>
       </section>
     </Chrome>

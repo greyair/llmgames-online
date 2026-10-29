@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/ui/icon";
+import { useT } from "@/i18n";
 import "./signout.css";
 
 export function SignOutConfirmation({
@@ -17,7 +18,7 @@ export function SignOutConfirmation({
   onConfirm,
   disabled = false,
   allBrowsers = false,
-  description = "You'll need to sign in again to play or manage your account.",
+  description,
 }: {
   trigger: ReactElement;
   onConfirm: () => void | Promise<void>;
@@ -25,6 +26,7 @@ export function SignOutConfirmation({
   allBrowsers?: boolean;
   description?: string;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,12 +38,12 @@ export function SignOutConfirmation({
             <Icon name="signout" size={27} />
           </span>
           <div>
-            <DialogTitle>{allBrowsers ? "Sign out of all browsers?" : "Sign out?"}</DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
+            <DialogTitle>{t(allBrowsers ? "profile.signOutAllQuestion" : "profile.signOutQuestion")}</DialogTitle>
+            <DialogDescription>{description ?? t("profile.signOutHelp")}</DialogDescription>
           </div>
         </div>
         <DialogFooter>
-          <DialogClose className={buttonVariants({ variant: "secondary" })}>Cancel</DialogClose>
+          <DialogClose className={buttonVariants({ variant: "secondary" })}>{t("profile.cancel")}</DialogClose>
           <Button
             variant="destructive"
             className="signout-dialog-confirm"
@@ -52,7 +54,7 @@ export function SignOutConfirmation({
             }}
           >
             <Icon name="signout" size={18} />
-            {allBrowsers ? "Sign out of all browsers" : "Sign out"}
+            {t(allBrowsers ? "profile.signOutAll" : "site.signOut")}
           </Button>
         </DialogFooter>
       </DialogContent>

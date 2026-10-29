@@ -11,8 +11,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import type { AgentGameLogDocument } from "@/services/auth";
 import { getGame } from "./catalog";
 import { GameMark } from "./GameMark";
+import { gameMessage, useT } from "@/i18n";
 
 export function GameLog({ game, onClose }: { game: AgentGameLogDocument; onClose: () => void }) {
+  const t = useT();
   const [limit, setLimit] = useState(50);
 
   return (
@@ -26,9 +28,9 @@ export function GameLog({ game, onClose }: { game: AgentGameLogDocument; onClose
         <div className="game-log-head">
           <GameMark id={game.gameType} size={44} />
           <div>
-            <DialogTitle>{getGame(game.gameType)?.title ?? "Game"} event log</DialogTitle>
+            <DialogTitle>{t("history.eventLog", { game: t(gameMessage(game.gameType, "title")) || getGame(game.gameType)?.title || "Game" })}</DialogTitle>
             <DialogDescription>
-              {game.events.length} server-recorded events. Open an event to inspect its details.
+              {t("history.eventHelp", { count: game.events.length })}
             </DialogDescription>
           </div>
         </div>
@@ -46,7 +48,7 @@ export function GameLog({ game, onClose }: { game: AgentGameLogDocument; onClose
                     })}
                   </time>
                 </summary>
-                <pre tabIndex={0} aria-label={`Event ${event.seq} details`}>
+                <pre tabIndex={0} aria-label={t("history.eventDetails", { number: event.seq })}>
                   {JSON.stringify(event.summary ?? { type: event.type }, null, 2)}
                 </pre>
               </details>
@@ -54,15 +56,15 @@ export function GameLog({ game, onClose }: { game: AgentGameLogDocument; onClose
           ))}
         </ol>
         {game.events.length === 0 && (
-          <p className="game-log-empty">No event details were retained for this match.</p>
+          <p className="game-log-empty">{t("history.noDetails")}</p>
         )}
         {limit < game.events.length && (
           <Button variant="outline" size="sm" onClick={() => setLimit((value) => value + 50)}>
-            Show more events
+            {t("history.moreEvents")}
           </Button>
         )}
         <DialogFooter>
-          <DialogClose className={buttonVariants({ variant: "outline" })}>Close log</DialogClose>
+          <DialogClose className={buttonVariants({ variant: "outline" })}>{t("history.closeLog")}</DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>
