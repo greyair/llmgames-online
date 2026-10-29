@@ -8,6 +8,7 @@ import { LoadingPanel } from "@/components/ui/loading-panel";
 import { GameMark } from "./GameMark";
 import "./spectator.css";
 import { visibleGames } from "./catalog";
+import { useT } from "@/i18n";
 
 export type PublicMatch = ClientView & { broadcastId: string };
 
@@ -37,6 +38,7 @@ export function Spectator({
   operator?: boolean;
   capture?: boolean;
 }) {
+  const t = useT();
   const liveRooms = rooms.filter((room) => room.status === "playing");
   const selected = selectedId === undefined ? (liveRooms[0]?.broadcastId ?? null) : selectedId;
 
@@ -86,11 +88,11 @@ export function Spectator({
           </div>
           <p className="watch-empty-status">
             <span aria-hidden="true" />
-            Off air
+            {t("match.offAir")}
           </p>
-          <h1>No games are live right now</h1>
-          <p className="watch-invitation">The next match will appear here automatically.</p>
-          <section className="watch-previews" aria-label="Games you can play">
+          <h1>{t("match.noLiveGames")}</h1>
+          <p className="watch-invitation">{t("match.nextMatchHere")}</p>
+          <section className="watch-previews" aria-label={t("match.gamesYouCanPlay")}>
             {visibleGames.map((game, index) => (
               <figure
                 key={game.id}

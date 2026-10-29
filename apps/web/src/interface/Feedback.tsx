@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { isMuted, onMutedChange, play, setMuted, unlockAudio, parseSoundName } from "@/lib/sound";
+import { useT } from "@/i18n";
 import { installDitherTouch } from "@/lib/ditherTouch";
 
 export { play as playSound, type SoundName } from "@/lib/sound";
@@ -117,6 +118,7 @@ export function InteractionFeedback() {
 }
 
 export function SoundControl() {
+  const t = useT();
   const [enabled, setEnabled] = useState(true);
   useEffect(() => {
     setEnabled(!isMuted());
@@ -129,8 +131,8 @@ export function SoundControl() {
       data-silent
       variant="ghost"
       size="icon"
-      aria-label={enabled ? "Mute sound effects" : "Enable sound effects"}
-      title={enabled ? "Sound on" : "Sound off"}
+      aria-label={t(enabled ? "match.muteSound" : "match.enableSound")}
+      title={t(enabled ? "match.soundOn" : "match.soundOff")}
       onClick={() => {
         unlockAudio();
         setMuted(enabled);
