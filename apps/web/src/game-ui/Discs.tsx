@@ -6,6 +6,7 @@ import { isNumber } from "@llmgames/game-catalog";
 import { useEffect, useRef, type CSSProperties } from "react";
 import type { ClientView } from "@/domain/game-state";
 import { play } from "@/lib/sound";
+import { useT } from "@/i18n";
 import "./discs.css";
 import "./sketch/discs.css";
 
@@ -55,6 +56,7 @@ export function Discs({
   state: ClientView;
   send: (name: string, data: WireValue) => void;
 }) {
+  const t = useT();
   const reversi = state.type === "reversi",
     action = reversi ? "place_disc" : "drop_disc";
 
@@ -220,7 +222,23 @@ export function Discs({
       const isLast = lastMove?.row === r && lastMove?.col === c;
       const isLegal = Boolean(enabled && flips.has(`${r}:${c}`));
       const flipCount = flips.get(`${r}:${c}`);
-      const label = `Row ${r + 1}, column ${c + 1}, ${piece === 0 ? "empty" : reversi ? (piece === 1 ? "black" : "white") : piece === 1 ? "red" : "yellow"}${isLast ? ", last move" : ""}${isLegal && isNumber(flipCount) ? `, legal move, flips ${flipCount}` : ""}`;
+      const content =
+        piece === 0
+          ? t("board.squareEmpty")
+          : t(
+              reversi
+                ? piece === 1
+                  ? "match.colorBlack"
+                  : "match.colorWhite"
+                : piece === 1
+                  ? "match.colorRed"
+                  : "match.colorYellow",
+            );
+      const label = [
+        t("board.cell", { row: r + 1, col: c + 1, content }),
+        isLast ? t("board.lastMove") : "",
+        isLegal && isNumber(flipCount) ? t("board.legalFlips", { count: flipCount }) : "",
+      ].join("");
 
       if (reversi)
         return (
@@ -304,7 +322,7 @@ export function Discs({
             <div
               className="reversi-score"
               role="img"
-              aria-label={`Black ${black} discs, white ${white} discs`}
+              aria-label={t("board.reversiScore", { black, white })}
             >
               <span className="reversi-score-side is-black">
                 <span className="reversi-score-disc piece-1" aria-hidden="true" />
@@ -335,7 +353,7 @@ export function Discs({
               className="discs-board"
               data-can-play={Boolean(enabled)}
               role="group"
-              aria-label="Reversi board"
+              aria-label={t("board.reversiBoard")}
             >
               {cells}
               <span className="reversi-stars" aria-hidden="true" />
@@ -373,7 +391,7 @@ export function Discs({
                 key={col}
                 className="discs-column"
                 data-sound="drop"
-                aria-label={`Drop in column ${col + 1}`}
+                aria-label={t("board.dropInColumn", { col: col + 1 })}
                 disabled={!enabled || board[0]?.[col] !== 0}
                 onClick={() => {
                   ownDrop.current = performance.now();
@@ -392,7 +410,7 @@ export function Discs({
             data-can-play={Boolean(enabled)}
             data-has-win={winning.size > 0}
             role="group"
-            aria-label="Connect 4 board"
+            aria-label={t("board.connect4Board")}
           >
             {cells}
           </div>

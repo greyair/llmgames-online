@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ClientView } from "@/domain/game-state";
 import { play } from "@/lib/sound";
 import "./checkers.css";
+import { useT } from "@/i18n";
 import "./sketch/checkers.css";
 
 function Crown() {
@@ -23,6 +24,7 @@ export function Checkers({
   state: ClientView;
   send: (name: string, data: WireValue) => void;
 }) {
+  const t = useT();
   const [selection, setSelection] = useState<{ row: number; col: number; revision: string } | null>(
     null,
   );
@@ -52,12 +54,12 @@ export function Checkers({
   const hint =
     !readOnly && enabled
       ? forced
-        ? "Keep jumping with the selected piece"
+        ? t("board.keepJumping")
         : selected
-          ? "Choose a marked destination"
+          ? t("board.chooseDestination")
           : captureRequired
-            ? "A jump is available. Choose a piece that can capture."
-            : "Choose a piece to move"
+            ? t("board.jumpAvailable")
+            : t("board.choosePiece")
       : "";
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -188,7 +190,7 @@ export function Checkers({
               ref={boardRef}
               className="checkers-board"
               role="group"
-              aria-label="Checkers board"
+              aria-label={t("board.checkersBoard")}
               data-can-play={Boolean(enabled)}
               data-must-capture={Boolean(enabled && captureRequired && !selected)}
             >
@@ -201,7 +203,14 @@ export function Checkers({
                   const color = piece === 1 || piece === 3 ? "black" : "white";
                   const isLast = lastMove?.row === row && lastMove?.col === col;
                   const isFrom = lastMove?.fromRow === row && lastMove?.fromCol === col;
-                  const label = `Row ${row + 1}, column ${col + 1}, ${piece ? `${color} ${piece > 2 ? "king" : "man"}` : "empty"}${enabled && move ? ", move here" : ""}`;
+                  const colorName = t(color === "black" ? "board.colorBlack" : "board.colorWhite");
+                  const content = piece
+                    ? t(piece > 2 ? "board.king" : "board.man", { color: colorName })
+                    : t("board.squareEmpty");
+                  const label = [
+                    t("board.cell", { row: row + 1, col: col + 1, content }),
+                    enabled && move ? t("board.moveHere") : "",
+                  ].join("");
 
                   return (
                     <button
@@ -250,9 +259,9 @@ export function Checkers({
             </div>
           </div>
           {scored && (
-            <aside className="checkers-tray" aria-label="Captured pieces">
-              <CaptureStack taker="White" color="black" count={12 - blackLeft} />
-              <CaptureStack taker="Black" color="white" count={12 - whiteLeft} />
+            <aside className="checkers-tray" aria-label={t("board.capturedPieces")}>
+              <CaptureStack taker={t("board.sideWhite")} color="black" count={12 - blackLeft} />
+              <CaptureStack taker={t("board.sideBlack")} color="white" count={12 - whiteLeft} />
             </aside>
           )}
         </div>
@@ -273,15 +282,19 @@ function CaptureStack({
   color: "black" | "white";
   count: number;
 }) {
+  const t = useT();
   const taken = Math.max(0, Math.min(12, count));
 
   return (
     <div
       className="checkers-captured"
-      aria-label={`${taker} has captured ${taken} ${color} ${taken === 1 ? "piece" : "pieces"}`}
+      aria-label={t(
+        taken === 1 ? "board.capturedSummaryOne" : "board.capturedSummary",
+        { taker, count: taken, color: t(color === "black" ? "board.colorBlack" : "board.colorWhite") },
+      )}
       role="img"
     >
-      <span className="checkers-captured-label">{taker} took</span>
+      <span className="checkers-captured-label">{t("board.took", { taker })}</span>
       <strong>{taken}</strong>
       <span className="checkers-captured-stack" aria-hidden="true">
         {Array.from({ length: 12 }, (_, index) => (
