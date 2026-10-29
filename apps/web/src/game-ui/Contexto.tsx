@@ -10,6 +10,7 @@ import { PlayerName } from "./PlayerName";
 import { contextoHeat, contextoRankStyle } from "./contextoRankStyle";
 import "./contexto.css";
 import "./sketch/contexto.css";
+import { useT } from "@/i18n";
 
 type OwnGuess = { word: string; submittedWord?: string; rank: number; sequence: number };
 
@@ -63,9 +64,11 @@ function RankRow({
 }
 
 function Secret({ word }: { word: string }) {
+  const t = useT();
+
   return (
     <div className="contexto-secret" style={contextoRankStyle(1)}>
-      <span>The hidden word was</span>
+      <span>{t("board.contexto.hiddenWord")}</span>
       <strong>{word}</strong>
     </div>
   );
@@ -118,6 +121,7 @@ export function Contexto({
   state: ClientView;
   send: (name: string, data: WireValue) => void;
 }) {
+  const t = useT();
   const [word, setWord] = useState("");
   const playerId = state.you?.playerId;
   const progress = state.progress ?? {};
@@ -169,19 +173,19 @@ export function Contexto({
           className="contexto-replay"
           aria-label={
             state.broadcastPublic
-              ? "Public stream guesses"
+              ? t("board.contexto.publicStream")
               : spectating
-                ? "Spectator guess ranks"
-                : "All players' replay guesses"
+                ? t("board.contexto.spectatorRanks")
+                : t("board.contexto.allPlayers")
           }
         >
           {!fullBoard && (
             <header className="contexto-replay-head">
               <div>
-                <span>Replay trail</span>
-                <strong>Every word and rank</strong>
+                <span>{t("board.contexto.replayTrail")}</span>
+                <strong>{t("board.contexto.everyWord")}</strong>
               </div>
-              <span>{state.totalGuesses ?? 0} guesses so far</span>
+              <span>{t("board.contexto.guessesSoFar", { count: state.totalGuesses ?? 0 })}</span>
             </header>
           )}
           {state.status === "ended" && state.secret && <Secret word={state.secret} />}
@@ -267,7 +271,7 @@ export function Contexto({
                       </ol>
                     )
                   ) : (
-                    <p className="contexto-empty">No guesses in this frame</p>
+                    <p className="contexto-empty">{t("board.contexto.noGuessesFrame")}</p>
                   )}
                 </article>
               );
@@ -284,7 +288,7 @@ export function Contexto({
       data-player-count={players.length}
       data-ended={state.status === "ended"}
     >
-      <section className="contexto-own" aria-label="Your guesses">
+      <section className="contexto-own" aria-label={t("board.contexto.yourGuesses")}>
         <header className="contexto-own-head">
           <div className="contexto-meter" data-low={left <= 5 || undefined}>
             <strong aria-label={`${left} ${left === 1 ? "guess" : "guesses"} left`}>
@@ -296,11 +300,11 @@ export function Contexto({
             <GuessMeter left={left} limit={limit} />
           </div>
         </header>
-        <p className="contexto-rank-help">Lower is closer · Rank 1 wins</p>
+        <p className="contexto-rank-help">{t("board.contexto.rankHelp")}</p>
         <form className="contexto-form" onSubmit={submit} data-disabled={!canGuess}>
           <Input
-            aria-label="Guess a word"
-            placeholder="type one word"
+            aria-label={t("board.contexto.guessWord")}
+            placeholder={t("board.contexto.typeOneWord")}
             autoComplete="off"
             autoCapitalize="none"
             spellCheck={false}
@@ -344,7 +348,7 @@ export function Contexto({
                     <b>{lastAttempt.rank?.toLocaleString()}</b>
                   </>
                 ) : lastAttempt.status === "not_in_pool" ? (
-                  <b>not in pool</b>
+                  <b>{t("board.contexto.notInPool")}</b>
                 ) : (
                   <b>{lastAttempt.rank?.toLocaleString()}</b>
                 )}
@@ -364,7 +368,7 @@ export function Contexto({
           </div>
         )}
         {state.status === "ended" && state.secret && <Secret word={state.secret} />}
-        <ol className="contexto-own-list" tabIndex={0} aria-label="Your ranked guess history">
+        <ol className="contexto-own-list" tabIndex={0} aria-label={t("board.contexto.rankedHistory")}>
           {ownGuesses.length ? (
             <AnimatePresence initial={false}>
               {ownGuesses.map((guess) => (
@@ -376,20 +380,20 @@ export function Contexto({
               ))}
             </AnimatePresence>
           ) : (
-            <li className="contexto-empty">Try a broad word. Follow the lower ranks.</li>
+            <li className="contexto-empty">{t("board.contexto.tryBroadWord")}</li>
           )}
         </ol>
       </section>
-      <section className="contexto-rivals" aria-label="Other players' hidden guesses">
+      <section className="contexto-rivals" aria-label={t("board.contexto.rivals")}>
         <header className="contexto-rivals-head">
-          <h2>Rivals</h2>
-          <span>Ranks only. Words stay secret.</span>
+          <h2>{t("board.contexto.rivals")}</h2>
+          <span>{t("board.contexto.ranksOnly")}</span>
         </header>
         <div
           className="contexto-rival-grid"
           data-player-count={opponents.length}
           tabIndex={0}
-          aria-label="Hidden rank standings"
+          aria-label={t("board.contexto.standings")}
         >
           {opponents.length ? (
             opponents.map((player) => {
@@ -418,15 +422,15 @@ export function Contexto({
                       </AnimatePresence>
                     </ol>
                   ) : (
-                    <p className="contexto-empty">No ranked guesses yet</p>
+                    <p className="contexto-empty">{t("board.contexto.noRankedGuesses")}</p>
                   )}
                 </article>
               );
             })
           ) : (
             <div className="contexto-waiting">
-              <strong>You have the room.</strong>
-              <span>Invite up to five more players.</span>
+              <strong>{t("board.contexto.youHaveRoom")}</strong>
+              <span>{t("board.contexto.inviteMore")}</span>
             </div>
           )}
         </div>
