@@ -43,12 +43,17 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
   createInitialState(config: GameRoomConfig, roomCode: string, now: number): TState;
   start(state: TState, context: GameStartContext): void;
   turnActions(state: TState, playerId: string, viewer: GameViewerContext): readonly string[];
+  /** M3.3: widen "whose turn" for simultaneous or role-scoped decisions. */
+  mayActNow?(state: TState, playerId: string): boolean;
   seatIdentity(state: TState, playerId: string, viewer: GameViewerContext): GameSeatIdentity;
   applyAction(state: TState, playerId: string, intent: GameIntent, now: number): GameActionResult;
 
-  onTurnTimeout?(state: TState, playerId: string | null): readonly GameEffect[];
+  onTurnTimeout?(state: TState, playerId: string | null, now: number): readonly GameEffect[];
+  /** M3.3: match-clock result (Reversi scores the board instead of drawing). */
+  onMatchTimeout?(state: TState): void;
   projectState?(state: TState, playerId: string): object;
-  agentFields?(state: TState): WireObject;
+  /** M3.2.1: receives the recipient's own projection, never the raw state. */
+  agentFields?(projection: WireObject): WireObject;
 }
 ```
 
@@ -80,7 +85,9 @@ export type GameEffect =
 | `applyAction` | `handleGameAction` + 私有 `handleDrop` 等 | 校验、拒绝文案、状态转移、结算 |
 | `onTurnTimeout` | `onTurnTimeout`（可选，默认 `nextTurn()`） | 只有自定义策略的游戏实现（Reversi 跳过、Battleship 布阵超时、Poker 弃牌） |
 | `projectState` | `projectStateFor`（可选，默认整份 state 公开） | fog of war 属于规则（Poker/Codenames/Contexto/Pokemon/Battleship 的真实使用场景） |
-| `agentFields` | `buildAgentView` 的 `switch (projected.type)` | 决定态字段是游戏知识，不该写在平台类里 |
+| `agentFields` | `buildAgentView` 的 `switch (projected.type)` | 决定态字段是游戏知识，不该写在平台类里；入参是**收件人投影**，平台键被丢弃 |
+| `mayActNow` | `isYourTurn` 覆写（Battleship `:803`、Codenames `:323`） | 并发布阵/全队猜词需要"不止一个座位可行动"；平台单点消费它 |
+| `onMatchTimeout` | `onGameTimeout` 覆写（Reversi） | 对局时钟到期要按盘面结算，而默认只收尾不留结果 |
 
 `agentFields` 是**唯一**带真实迁移证据的可选能力：8 款游戏中 7 款有专属决定字段，平台的 switch 因此长期存在。`projectState` 同理（5 款游戏有隐藏信息）。`onTurnTimeout` 有 4 款游戏的差异化策略。没有为"将来可能"新增其他钩子。
 
@@ -165,6 +172,14 @@ for (const plugin of PRODUCTION_PLUGINS) {
 - 不新增顶层工具，不新增每游戏 Server。动作仍通过 `list_game_tools` / `get_tool_schema` / `send_action` 发现与提交。
 - `agentFields` 只改变"字段由谁生成"，不改变字段集合：Connect4 的 MCP 状态仍是 `board`/`seats`/`lastMove`，由金样本与 `check:ai-spec` 双重把关。
 - `requestId`、controller/seat 边界、OAuth 流程均未触碰。
+
+## 7.1 M3.3 的能力验证结论
+
+详见 [M3.3-CAPABILITY.md](M3.3-CAPABILITY.md)。一句话结论：
+
+- Connect4 + Reversi 实测需要的钩子已全部就位（Reversi 逼出 `onMatchTimeout` 与座位 `color`）；
+- Battleship 只差"搬运 + 金样本"，无需新钩子（并发靠 `mayActNow`，私有舰队靠 `projectState`）；
+- Codenames 还需要 `validateStart`、座位 `team`/`canSeeKey`、成员角色变更钩子，三者都只服务它一个游戏，留到迁移时再加。
 
 ## 8. 迁移步骤（单游戏）
 

@@ -3,6 +3,7 @@ import type { GameTypeId } from "@llmgames/game-catalog";
 import type { BaseGameState } from "../durable-objects/types";
 import type { GamePlugin } from "./contract";
 import { connect4Plugin } from "./connect4/plugin";
+import { reversiPlugin } from "./reversi/plugin";
 
 /**
  * Static game registry (M3).
@@ -18,7 +19,7 @@ import { connect4Plugin } from "./connect4/plugin";
 type ProductionGamePlugin = GamePlugin<BaseGameState, GameTypeId>;
 
 /** Every game that runs through the shared rule contract. */
-const PRODUCTION_PLUGINS: readonly ProductionGamePlugin[] = [connect4Plugin];
+const PRODUCTION_PLUGINS: readonly ProductionGamePlugin[] = [connect4Plugin, reversiPlugin];
 
 const pluginsById = new Map<string, GamePlugin<BaseGameState, string>>();
 

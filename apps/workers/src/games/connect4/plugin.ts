@@ -160,7 +160,7 @@ export const connect4Plugin: GamePlugin<Connect4GameState, "connect4"> = {
     return { ok: true, effects };
   },
 
-  agentFields(state) {
-    return { board: state.board, seats: state.seats, lastMove: state.lastMove };
+  agentFields(projection) {
+    return { board: projection.board, seats: projection.seats, lastMove: projection.lastMove };
   },
 };

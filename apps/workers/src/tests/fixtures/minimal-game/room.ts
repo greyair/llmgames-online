@@ -111,11 +111,9 @@ export class MinimalGameRoom extends BaseGameRoom<MinimalGameState> {
   protected async onTurnTimeout(playerId: string | null): Promise<void> {
     if (!this.gameState) return;
 
-    this.applyGameEffects(minimalGamePlugin.onTurnTimeout?.(this.gameState, playerId) ?? []);
-
-    if (this.gameState.status !== "playing") return;
-
-    await this.saveState();
-    this.broadcastState();
+    this.applyGameEffects(
+      minimalGamePlugin.onTurnTimeout?.(this.gameState, playerId, Date.now()) ?? [],
+    );
+    await this.settleRuleTimeout();
   }
 }

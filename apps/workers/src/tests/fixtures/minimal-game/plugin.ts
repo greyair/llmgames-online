@@ -170,7 +170,7 @@ export const minimalGamePlugin: GamePlugin<MinimalGameState, "minimal"> = {
     return { ok: true, effects };
   },
 
-  onTurnTimeout(state, playerId) {
+  onTurnTimeout(state, playerId, now) {
     if (state.status !== "playing" || !playerId) return [];
 
     const used = (state.timeouts[playerId] ?? 0) + 1;
@@ -183,7 +183,7 @@ export const minimalGamePlugin: GamePlugin<MinimalGameState, "minimal"> = {
     state.turnState.currentPlayerId = nextPlayerId(state, playerId);
     state.turnState.turnNumber++;
     state.turnState.turnTimeRemaining = state.timerConfig.turnTime;
-    state.turnState.startedAt = Date.now();
+    state.turnState.startedAt = now;
 
     return [];
   },
@@ -192,7 +192,13 @@ export const minimalGamePlugin: GamePlugin<MinimalGameState, "minimal"> = {
     return { ...state, secrets: { [playerId]: state.secrets[playerId] ?? null } };
   },
 
-  agentFields(state) {
-    return { scores: state.scores, target: state.target };
+  // Only the recipient's own projection is available here, so re-exporting it
+  // cannot reveal an opponent's hidden number.
+  agentFields(projection) {
+    return {
+      scores: projection.scores,
+      target: projection.target,
+      secrets: projection.secrets,
+    };
   },
 };

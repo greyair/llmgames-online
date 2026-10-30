@@ -382,6 +382,25 @@ type TurnWaiter = {
   timer: ReturnType<typeof setTimeout>;
 };
 
+/**
+ * MCP fields the platform builds itself.
+ *
+ * A game plugin may add decision data, but identity, roster, clocks, turn state
+ * and the result belong to the platform: letting a plugin replace them would
+ * bypass the projection boundary.
+ */
+const PLATFORM_AGENT_KEYS: ReadonlySet<string> = new Set([
+  "type",
+  "status",
+  "players",
+  "roomMembers",
+  "gameTimeRemaining",
+  "turnState",
+  "winner",
+  "you",
+  "series",
+]);
+
 /** Whitelist of fields consumed by the generic MCP projection compactor. */
 const agentProjectionSourceSchema = z
   .object({
@@ -536,6 +555,14 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
   /** A previous directory extension failed and must be retried on the next save. */
   private directoryExpiryPending = false;
+
+  /**
+   * End reason a rule module reported but has not broadcast yet.
+   *
+   * It stays pending until the finished state is durable, so `game_ended` can
+   * never describe a match whose final move and receipt failed to persist.
+   */
+  private pendingMatchEnd: string | null = null;
 
   /** Used for log prefixes, e.g. "Connect4Room" */
   protected abstract readonly roomLabel: string;
@@ -2106,9 +2133,13 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     if (this.gameState.status === "ended") return false;
 
-    return (
-      this.gameState.status === "playing" && this.gameState.turnState.currentPlayerId === playerId
-    );
+    if (this.gameState.status !== "playing") return false;
+
+    const rules = this.gameRules();
+
+    if (rules?.mayActNow) return rules.mayActNow(this.gameState, playerId);
+
+    return this.gameState.turnState.currentPlayerId === playerId;
   }
 
   private resolveTurnWaiters(): void {
@@ -3149,6 +3180,9 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       playerId: player.id,
     });
     this.resolveTurnWaiters();
+    // The finished state and its receipt are on disk now, so the terminal
+    // projection describes something a restart can still reproduce.
+    this.deliverPendingMatchEnd();
   }
 
   /**
@@ -3339,6 +3373,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    * Rule modules describe what must happen instead of performing platform work
    * themselves: this is the only place a plugin's effects reach the audit log,
    * the clocks and the final `game_ended` delivery.
+   *
+   * `match_ended` deliberately does **not** write storage here. The platform
+   * writes the finished state with its action receipt in one call
+   * (`saveAppliedAction`), and only then broadcasts the end; an early save would
+   * split that atomic pair and let a crash leave an ended match without the
+   * receipt that makes the retry a replay.
    */
   protected applyGameEffects(effects: readonly GameEffect[]): void {
     for (const effect of effects) {
@@ -3350,12 +3390,54 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           this.stopTimers();
           break;
         case "match_ended":
-          void this.saveState().then(() => {
-            this.broadcastProjected("game_ended", { reason: effect.reason });
-          });
+          this.stopTimers();
+          this.pendingMatchEnd = effect.reason;
           break;
       }
     }
+  }
+
+  /** Broadcast a finished match once its state is durable; no-op otherwise. */
+  private deliverPendingMatchEnd(): void {
+    const reason = this.pendingMatchEnd;
+
+    if (reason === null) return;
+
+    this.pendingMatchEnd = null;
+    this.broadcastProjected("game_ended", { reason });
+  }
+
+  /**
+   * Persist a match a rule module finished, then broadcast it once.
+   *
+   * @returns whether a pending end was delivered.
+   */
+  private async flushPendingMatchEnd(): Promise<boolean> {
+    if (this.pendingMatchEnd === null) return false;
+
+    if (this.gameState?.status === "ended") await this.saveState();
+
+    this.deliverPendingMatchEnd();
+
+    return true;
+  }
+
+  /**
+   * Epilogue for a rule module's turn-timeout policy.
+   *
+   * The platform cannot know whether a timeout only passes the turn or decides
+   * the match, so a plugin adapter calls this after `applyGameEffects` and the
+   * state it produced is persisted once, then broadcast.
+   */
+  protected async settleRuleTimeout(): Promise<void> {
+    if (!this.gameState) return;
+
+    if (await this.flushPendingMatchEnd()) return;
+
+    if (this.gameState.status !== "playing") return;
+
+    await this.saveState();
+    this.broadcastState();
   }
 
   /**
@@ -3460,7 +3542,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     const rules = this.gameRules() ?? gamePluginFor(this.gameState.type);
 
     if (rules?.agentFields)
-      return this.definedAgentFields({ ...common, ...rules.agentFields(this.gameState) });
+      return this.definedAgentFields({
+        ...common,
+        ...this.pluginAgentFields(rules, projected),
+      });
 
     switch (projected.type) {
       case "pokemon":
@@ -3485,7 +3570,6 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         });
 
       case "checkers":
-      case "reversi":
         return this.definedAgentFields({
           ...common,
           board: projected.board,
@@ -3550,6 +3634,32 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       default:
         return this.definedAgentFields(common);
     }
+  }
+
+  /**
+   * Merge a rule module's decision fields into the agent view.
+   *
+   * The plugin only receives the recipient's own projection, and platform-owned
+   * keys are dropped, so a plugin cannot reveal hidden state or rewrite identity,
+   * roster, clock or turn fields.
+   */
+  private pluginAgentFields(
+    rules: { agentFields?: (projection: WireObject) => WireObject },
+    projection: WireObject,
+  ): WireObject {
+    const fields = rules.agentFields?.(projection);
+
+    if (!fields) return {};
+
+    const kept: WireObject = {};
+
+    for (const [key, value] of Object.entries(fields)) {
+      if (PLATFORM_AGENT_KEYS.has(key)) continue;
+
+      kept[key] = value;
+    }
+
+    return kept;
   }
 
   private asProjectionPart<T>(value: T): ProjectionPart | null {
@@ -4048,6 +4158,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       this.gameState.turnState.startedAt = now;
       await this.saveState();
     }
+
+    // A timeout may decide the match (a forfeit limit, a scoring rule). Persist
+    // that finished state before the terminal projection, exactly like an action.
+    await this.flushPendingMatchEnd();
 
     const handledAt = Date.now();
     this.lastGameTimerTickAt = handledAt;

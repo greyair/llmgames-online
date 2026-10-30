@@ -21,9 +21,11 @@ board          apps/web/src/game-ui/boardRegistry.ts            one lazy entry
 
 A plugin returns effects (`event`, `stop_timers`, `match_ended`) instead of
 persisting or broadcasting: `BaseGameRoom.applyGameEffects` is the only place
-those reach the audit log, the clocks and the final `game_ended` delivery. Do
-not call `saveState()` from a rule module — M2's idempotent receipt is written
-together with the state in `dispatchAction`, and a second write reopens that gap.
+those reach the audit log, the clocks and the final `game_ended` delivery.
+`match_ended` only marks the match for delivery — the terminal projection is
+broadcast after `dispatchAction` writes the finished state and its receipt in
+one call. Do not call `saveState()` from a rule module: that pairing is what
+makes a retry a replay, and a second write reopens the gap M3.2.1 closed.
 
 Registration is still required in the deployment surface, which the plugin does
 not remove: the class export in `apps/workers/src/index.ts`, the `Env` binding,
