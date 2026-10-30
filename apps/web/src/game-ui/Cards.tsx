@@ -20,6 +20,7 @@ import { PokerPlayback } from "./pokerPlayback";
 import { StandardCardFace } from "./StandardCardFace";
 import { useMatchClock } from "./useMatchClock";
 import { PokerPlaybackSettledContext } from "./pokemon/PokemonPlaybackContext";
+import { useT, type MessageKey, type Translate } from "@/i18n";
 
 export type PlayingCardValue = { rank: string; suit: string; hidden?: boolean };
 
@@ -36,12 +37,9 @@ type Seat = {
 
 const suits = { S: "♠", H: "♥", D: "♦", C: "♣" } satisfies Record<string, string>;
 
-const suitNames = { S: "spades", H: "hearts", D: "diamonds", C: "clubs" } satisfies Record<
-  string,
-  string
->;
 
 export function PlayingCard({ card, style }: { card: PlayingCardValue; style?: CSSProperties }) {
+  const t = useT();
   const hidden = card.hidden || card.rank === "?" || !knownValue(suits, card.suit);
 
   return (
@@ -50,7 +48,22 @@ export function PlayingCard({ card, style }: { card: PlayingCardValue; style?: C
       style={style}
       data-red={!hidden && (card.suit === "H" || card.suit === "D")}
       role="img"
-      aria-label={hidden ? "Hidden card" : `${card.rank} of ${knownValue(suitNames, card.suit)}`}
+      aria-label={
+        hidden
+          ? t("board.poker.hiddenCard")
+          : t("board.poker.cardName", {
+              rank: card.rank,
+              suit: t(
+                card.suit === "S"
+                  ? "board.poker.spades"
+                  : card.suit === "H"
+                    ? "board.poker.hearts"
+                    : card.suit === "D"
+                      ? "board.poker.diamonds"
+                      : "board.poker.clubs",
+              ),
+            })
+      }
     >
       {!hidden && (
         <span className="playing-card-face" aria-hidden="true">
@@ -136,6 +149,8 @@ function TurnBar({ state }: { state: ClientView }) {
 }
 
 function PositionTokens({ seat, state }: { seat: Seat; state: ClientView }) {
+  const t = useT();
+
   const tokens = [
     state.buttonPlayerId === seat.playerId && "Dealer",
     state.smallBlindPlayerId === seat.playerId && "SB",
@@ -150,15 +165,19 @@ function PositionTokens({ seat, state }: { seat: Seat; state: ClientView }) {
         <span
           className="poker-token"
           data-token={token.toLowerCase()}
-          title={
-            token === "Dealer" ? "Dealer button" : token === "SB" ? "Small blind" : "Big blind"
-          }
+          title={t(
+            token === "Dealer"
+              ? "board.poker.dealerButton"
+              : token === "SB"
+                ? "board.poker.smallBlind"
+                : "board.poker.bigBlind",
+          )}
           key={token}
         >
           {token === "Dealer" ? (
             <>
               <span aria-hidden="true">D</span>
-              <span className="sr-only">Dealer</span>
+              <span className="sr-only">{t("board.poker.dealer")}</span>
             </>
           ) : (
             token
@@ -225,14 +244,35 @@ function BetChip({ amount }: { amount: number }) {
   return top ? <span className="poker-chip-top" data-chip={top.chip} aria-hidden="true" /> : null;
 }
 
-function statusTone(status: string) {
-  if (status === "Winner") return "win";
+type SeatStatus =
+  | "winner"
+  | "folded"
+  | "allIn"
+  | "finished"
+  | "yourTurn"
+  | "thinking"
+  | "action"
+  | "inHand";
 
-  if (status === "Your turn" || status === "Thinking…") return "live";
+const SEAT_STATUS_KEYS = {
+  winner: "board.poker.seatWinner",
+  folded: "board.poker.seatFolded",
+  allIn: "board.poker.seatAllIn",
+  finished: "board.poker.seatFinished",
+  yourTurn: "board.poker.seatYourTurn",
+  thinking: "board.poker.seatThinking",
+  action: "board.poker.seatInHand",
+  inHand: "board.poker.seatInHand",
+} as const satisfies Record<SeatStatus, MessageKey>;
 
-  if (status === "Folded") return "muted";
+function statusTone(kind: SeatStatus) {
+  if (kind === "winner") return "win";
 
-  if (status === "All in") return "all-in";
+  if (kind === "yourTurn" || kind === "thinking") return "live";
+
+  if (kind === "folded") return "muted";
+
+  if (kind === "allIn") return "all-in";
 
   return "neutral";
 }
@@ -248,6 +288,8 @@ function PokerSeat({
   slot: string;
   index: number;
 }) {
+  const t = useT();
+
   const active =
     state.status === "playing" &&
     state.turnState?.phase !== "hand_over" &&
@@ -265,21 +307,26 @@ function PokerSeat({
 
   const self = seat.playerId === state.you?.playerId;
 
-  const status = winning
-    ? "Winner"
+  const statusKind: SeatStatus = winning
+    ? "winner"
     : seat.folded
-      ? "Folded"
+      ? "folded"
       : seat.allIn
-        ? "All in"
+        ? "allIn"
         : state.turnState?.phase === "hand_over"
-          ? "Finished"
+          ? "finished"
           : active
             ? self
-              ? "Your turn"
-              : "Thinking…"
+              ? "yourTurn"
+              : "thinking"
             : lastAction
-              ? describeAction(lastAction)
-              : "In hand";
+              ? "action"
+              : "inHand";
+
+  const status =
+    statusKind === "action" && lastAction
+      ? describeAction(lastAction, t)
+      : t(SEAT_STATUS_KEYS[statusKind]);
 
   const player = seatPlayer(seat, state);
   const bet = seat.streetBet ?? 0;
@@ -294,7 +341,7 @@ function PokerSeat({
       data-self={self}
       data-active={active}
       data-agent={isAgentIdentity(player)}
-      aria-label={`${seat.name}${active ? ", to act" : ""}`}
+      aria-label={`${seat.name}${active ? t("board.poker.toAct") : ""}`}
     >
       <div className="poker-hole-cards">
         <div className="card-fan">
@@ -329,7 +376,7 @@ function PokerSeat({
       <div className="poker-hand-info">
         <div className="poker-round-status">
           <PositionTokens seat={seat} state={state} />
-          <span className="poker-seat-status" data-tone={statusTone(status)}>
+          <span className="poker-seat-status" data-tone={statusTone(statusKind)}>
             {status}
           </span>
           <strong
@@ -346,19 +393,21 @@ function PokerSeat({
   );
 }
 
-function describeAction(entry: NonNullable<ClientView["actionLog"]>[number]) {
+function describeAction(entry: NonNullable<ClientView["actionLog"]>[number], t: Translate) {
   const labels = {
-    fold: "Folded",
-    check: "Checked",
-    call: "Called",
-    bet: "Bet",
-    raise: "Raised",
-    all_in: "All in",
-    small_blind: "Small blind",
-    big_blind: "Big blind",
-  } satisfies Record<string, string>;
+    fold: "board.poker.logFold",
+    check: "board.poker.logCheck",
+    call: "board.poker.logCall",
+    bet: "board.poker.logBet",
+    raise: "board.poker.logRaise",
+    all_in: "board.poker.logAllIn",
+    small_blind: "board.poker.logSmallBlind",
+    big_blind: "board.poker.logBigBlind",
+  } satisfies Record<string, MessageKey>;
 
-  return `${knownValue(labels, entry.action) ?? entry.action.replaceAll("_", " ")}${entry.amount !== undefined ? ` ${entry.amount}` : ""}`;
+  const label = knownValue(labels, entry.action);
+
+  return `${label ? t(label) : entry.action.replaceAll("_", " ")}${entry.amount !== undefined ? ` ${entry.amount}` : ""}`;
 }
 
 function PokerHandResult({
@@ -370,10 +419,14 @@ function PokerHandResult({
   seats: Seat[];
   remainingMs: number;
 }) {
+  const t = useT();
   const result = state.lastHandResult;
 
   if (!result?.winners?.length) return null;
-  const name = (id: string) => seats.find((seat) => seat.playerId === id)?.name ?? "Player";
+
+  const name = (id: string) =>
+    seats.find((seat) => seat.playerId === id)?.name ?? t("board.poker.player");
+
   const winnerNames = result.winners.map(name).join(" & ");
 
   const winningHands = result.showdown
@@ -384,7 +437,7 @@ function PokerHandResult({
     ?.map((payout) => `${name(payout.playerId)} +${payout.amount}`)
     .join(" · ");
 
-  const chips = [isNumber(result.pot) ? `Pot ${result.pot}` : null, payouts]
+  const chips = [isNumber(result.pot) ? t("board.poker.potValue", { amount: result.pot }) : null, payouts]
     .filter(Boolean)
     .join(" · ");
 
@@ -395,10 +448,15 @@ function PokerHandResult({
       className="poker-hand-result"
       role="status"
       aria-live="polite"
-      aria-label={`Hand ${state.handNumber ?? ""} result: ${winnerNames} ${result.winners.length > 1 ? "split the pot" : "wins the pot"}`}
+      aria-label={t(
+        result.winners.length > 1 ? "board.poker.handResultSplit" : "board.poker.handResult",
+        { hand: state.handNumber ?? "", winners: winnerNames },
+      )}
     >
       <strong>
-        {winnerNames} {result.winners.length > 1 ? "split the pot" : "wins the pot"}
+        {t(result.winners.length > 1 ? "board.poker.splitPot" : "board.poker.winsPot", {
+          winners: winnerNames,
+        })}
       </strong>
       {winningHands.length ? (
         <div className="poker-result-hands">
@@ -418,16 +476,17 @@ function PokerHandResult({
       ) : (
         <span className="poker-result-note">
           {result.showdown
-            ? "Showdown cards are shown at each seat."
-            : "Everyone else folded. Their cards stay hidden."}
+            ? t("board.poker.showdownShown")
+            : t("board.poker.everyoneFolded")}
         </span>
       )}
       <div className="poker-result-meta">
         <span>{chips}</span>
         {remainingMs > 0 && (
           <span>
-            {state.status === "ended" ? "Match result" : "Next hand"} in{" "}
-            {Math.ceil(remainingMs / 1000)}s
+            {state.status === "ended"
+              ? t("board.poker.matchResultIn", { seconds: Math.ceil(remainingMs / 1000) })
+              : t("board.poker.nextHandIn", { seconds: Math.ceil(remainingMs / 1000) })}
           </span>
         )}
       </div>
@@ -447,13 +506,14 @@ function PokerHandResult({
 }
 
 function PokerPot({ pot }: { pot: number }) {
+  const t = useT();
   const shown = useCountUp(pot);
 
   return (
     <div className="poker-pot" data-empty={pot === 0}>
       <ChipStacks amount={pot} maxColumns={5} maxHeight={7} />
       <span className="poker-pot-readout">
-        <span>Pot</span>
+        <span>{t("board.poker.pot")}</span>
         <strong>{shown}</strong>
       </span>
     </div>
@@ -478,6 +538,7 @@ export function Cards({
   state: ClientView;
   send: (name: string, data: WireValue) => void;
 }) {
+  const t = useT();
   const { state, catchingUp, goLive, resultRemainingMs } = usePokerPlayback(live);
   const onPlaybackSettled = useContext(PokerPlaybackSettledContext);
   useEffect(() => {
@@ -542,12 +603,12 @@ export function Cards({
   const toCall = state.toCall ?? state.you?.toCall ?? 0;
 
   const buttons = {
-    fold: "Fold",
-    check: "Check",
-    call: `Call ${toCall}`,
-    all_in: "All in",
-    next_hand: "Next hand",
-  } satisfies Record<string, string>;
+    fold: "board.poker.buttonFold",
+    check: "board.poker.buttonCheck",
+    call: "board.poker.buttonCall",
+    all_in: "board.poker.buttonAllIn",
+    next_hand: "board.poker.buttonNextHand",
+  } satisfies Record<string, MessageKey>;
 
   const variants = {
     fold: "destructive",
@@ -561,7 +622,10 @@ export function Cards({
 
   const actionControls = actionButtons.length ? (
     <div className="card-actions">
-      {actionButtons.map((name) => (
+      {actionButtons.map((name) => {
+        const label = knownValue(buttons, name);
+
+        return (
         <Button
           key={name}
           data-action={name}
@@ -571,17 +635,22 @@ export function Cards({
           onClick={() => send(name, {})}
         >
           {name === "next_hand" && resultRemainingMs > 0
-            ? `Next hand in ${Math.ceil(resultRemainingMs / 1000)}s`
-            : knownValue(buttons, name)}
+            ? t("board.poker.nextHandIn", { seconds: Math.ceil(resultRemainingMs / 1000) })
+            : label
+              ? t(label, { amount: toCall })
+              : name}
         </Button>
-      ))}
+        );
+      })}
     </div>
   ) : null;
 
   const phaseLabel =
     state.turnState?.phase === "hand_over"
-      ? "Hand finished"
-      : (state.turnState?.phase ?? "Table").replaceAll("_", " ");
+      ? t("match.handFinished")
+      : state.turnState?.phase
+        ? state.turnState.phase.replaceAll("_", " ")
+        : t("board.poker.table");
 
   const lastEntry = state.actionLog?.at(-1);
   const waiting = !legal.some((name) => name in buttons || name === action);
@@ -642,7 +711,7 @@ export function Cards({
                   className="card-slot"
                   role="img"
                   key={`empty-${community.length + i}`}
-                  aria-label="Undealt community card"
+                  aria-label={t("board.poker.undealtCard")}
                 />
               ))}
             </div>
@@ -656,10 +725,10 @@ export function Cards({
                   <span>
                     {seats.find((seat) => seat.playerId === lastEntry.playerId)?.name ?? "Player"}
                   </span>{" "}
-                  · {describeAction(lastEntry)}
+                  · {describeAction(lastEntry, t)}
                 </strong>
                 <details>
-                  <summary>Recent turns</summary>
+                  <summary>{t("board.poker.recentTurns")}</summary>
                   <ol>
                     {state.actionLog.slice(-8).map((entry, i) => (
                       <li key={i}>
@@ -667,14 +736,14 @@ export function Cards({
                           Hand {entry.handNumber} · {entry.street}
                         </small>{" "}
                         {seats.find((seat) => seat.playerId === entry.playerId)?.name ?? "Player"}{" "}
-                        {describeAction(entry)}
+                        {describeAction(entry, t)}
                       </li>
                     ))}
                   </ol>
                 </details>
               </>
             ) : (
-              <span>Waiting for the first move</span>
+              <span>{t("board.poker.waitingFirstMove")}</span>
             )}
           </div>
         </section>
@@ -695,17 +764,17 @@ export function Cards({
           {hero && !state.replayReadOnly && (
             <div className="poker-own-hand">
               <div>
-                <strong>Your stack</strong>
+                <strong>{t("board.poker.yourStack")}</strong>
                 <span>{hero.stack}</span>
               </div>
               <p data-turn={Boolean(state.you?.isYourTurn) && !hero.folded && !hero.allIn}>
                 {hero.folded
-                  ? "You folded"
+                  ? t("board.poker.youFolded")
                   : hero.allIn
                     ? "You’re all in"
                     : state.you?.isYourTurn
                       ? `To call: ${toCall}`
-                      : "Waiting for the next move"}
+                      : t("board.poker.waitingNextMove")}
               </p>
             </div>
           )}
@@ -727,10 +796,10 @@ export function Cards({
           {waiting && (
             <p className="poker-waiting-note">
               {catchingUp
-                ? "Showing the last move…"
+                ? t("board.poker.showingLastMove")
                 : state.status === "ended"
-                  ? "Game finished"
-                  : "Waiting for the next decision"}
+                  ? t("board.poker.gameFinished")
+                  : t("board.poker.waitingDecision")}
             </p>
           )}
         </footer>
