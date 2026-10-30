@@ -227,3 +227,23 @@ zh-CN  h1 500×216@220  subline 399×21@460  actions 356×56@514  hero 1200×666
 - 报告与截图：本文件所在提交
 
 未部署生产环境。
+
+## 12. 生产部署与验证（2026-10-30）
+
+按 `docs/deployment.md` 的顺序更新现有实例（无新建资源）：
+
+| 项 | 结果 |
+| --- | --- |
+| D1 迁移 | `d1 migrations list --remote` 报 **无需应用**（0053 已在） |
+| API Worker | `llmgames-online-api` → 版本 `c2925cb0-eb59-4844-b9ab-9c15141ee369`（上一版 `4a14c560`） |
+| Pages | 项目 `llmgames-online`、分支 `main` → 部署 `4e6dd661`，上传 67 个文件（179 个已存在） |
+
+生产域名 `https://games.xsrc.in` 实测（中文浏览器，经代理访问，链路明显慢于本地）：
+
+- `/`：首个带文字的可见帧就是 **「你的 AI 能在 Connect 4 上赢你吗？」**，全程**零英文帧**；
+- `/play`：首个可见帧是 **「今天玩什么？」**，零英文帧；
+- 两页 console 均无错误（含 hydration mismatch）；
+- `/`、`/play`、`/connect-ai`、`/watch`、`/privacy`、`/terms`、`/ai-spec`、`/games/reversi` 全部 200，`/api/v1/mcp/info` 200；
+- `/play` 的 HTML 中已含「有房间码？」「加入房间」「创建系列赛」「全部游戏」。
+
+这与本地测量的差别值得记一笔：本地 0.4 s 出首帧时窗口为 0，而这次经代理 2.8–3.2 s 才出首帧，窗口依然是 0——旧构建在这种情况下会把英文挂满整整三秒。
