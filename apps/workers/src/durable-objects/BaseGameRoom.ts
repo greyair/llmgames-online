@@ -10,7 +10,6 @@ import { isBoolean, isFunction, isNumber, isObject, isString } from "@llmgames/g
 
 import {
   compactAgentDecisionState,
-  battleshipAgentState,
   gameLifecycle,
   ROOM_INACTIVITY_MS,
   TURN_TIME_MAX_MS,
@@ -3664,9 +3663,6 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           lastHandResult: projected.lastHandResult,
         });
       }
-
-      case "battleship":
-        return { ...common, ...battleshipAgentState(projected) };
 
       default:
         return this.definedAgentFields(common);

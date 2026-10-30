@@ -2,6 +2,7 @@ import type { GameTypeId } from "@llmgames/game-catalog";
 
 import type { BaseGameState } from "../durable-objects/types";
 import type { GamePlugin } from "./contract";
+import { battleshipPlugin } from "./battleship/plugin";
 import { connect4Plugin } from "./connect4/plugin";
 import { checkersPlugin } from "./checkers/plugin";
 import { reversiPlugin } from "./reversi/plugin";
@@ -21,6 +22,7 @@ type ProductionGamePlugin = GamePlugin<BaseGameState, GameTypeId>;
 
 /** Every game that runs through the shared rule contract. */
 const PRODUCTION_PLUGINS: readonly ProductionGamePlugin[] = [
+  battleshipPlugin,
   connect4Plugin,
   checkersPlugin,
   reversiPlugin,

@@ -45,6 +45,8 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
   turnActions(state: TState, playerId: string, viewer: GameViewerContext): readonly string[];
   /** M3.3: widen "whose turn" for simultaneous or role-scoped decisions. */
   mayActNow?(state: TState, playerId: string): boolean;
+  /** M3.5: extra fields merged into the browser `you` block (Battleship's wallet). */
+  youFields?(state: TState, playerId: string, viewer: GameViewerContext): WireObject;
   seatIdentity(state: TState, playerId: string, viewer: GameViewerContext): GameSeatIdentity;
   applyAction(state: TState, playerId: string, intent: GameIntent, now: number): GameActionResult;
 
@@ -91,6 +93,7 @@ export type GameEffect =
 | `agentFields` | `buildAgentView` 的 `switch (projected.type)` | 决定态字段是游戏知识，不该写在平台类里；入参是**收件人投影**，平台键被丢弃 |
 | `mayActNow` | `isYourTurn` 覆写（Battleship `:803`、Codenames `:323`） | 并发布阵/全队猜词需要"不止一个座位可行动"；平台单点消费它 |
 | `onMatchTimeout` | `onGameTimeout` 覆写（Reversi/Checkers） | 对局时钟到期要按盘面结算或判和，而默认只收尾不留结果 |
+| `youFields` | `buildYouContext` 覆写（Battleship 的 `ready`/`munitionPoints`/`weapons`） | 人类视图也需要游戏专属字段，与 `agentFields` 对称；Codenames 的 `team`/`canSeeKey` 可直接复用 |
 | `rewatchView` | `buildRewatchView` 覆写（Checkers 剥离重复计数，Codenames 揭示 key） | 回放是全量揭示，但仍不该写入平台内部簿记 |
 
 `agentFields` 是**唯一**带真实迁移证据的可选能力：8 款游戏中 7 款有专属决定字段，平台的 switch 因此长期存在。`projectState` 同理（5 款游戏有隐藏信息）。`onTurnTimeout` 有 4 款游戏的差异化策略。没有为"将来可能"新增其他钩子。
@@ -181,8 +184,8 @@ for (const plugin of PRODUCTION_PLUGINS) {
 
 详见 [M3.3-CAPABILITY.md](M3.3-CAPABILITY.md)。一句话结论：
 
-- Connect4 + Reversi + Checkers 实测需要的钩子已全部就位（Reversi 逼出 `onMatchTimeout` 与座位 `color`；Checkers 逼出 `rewatchView` 与可省略的 `role`）；
-- Battleship 只差"搬运 + 金样本"，无需新钩子（并发靠 `mayActNow`，私有舰队靠 `projectState`）；
+- Connect4 + Reversi + Checkers + Battleship 实测需要的钩子已全部就位（Reversi 逼出 `onMatchTimeout` 与座位 `color`；Checkers 逼出 `rewatchView` 与可省略的 `role`；Battleship 逼出 `youFields` 与可省略的 `seat`）；
+- Battleship 已于 M3.5 迁移完成，见 §7.3；
 - Codenames 还需要 `validateStart`、座位 `team`/`canSeeKey`、成员角色变更钩子，三者都只服务它一个游戏，留到迁移时再加。
 
 ## 7.2 公开投影只有一个出口（M3.4.1）
@@ -190,6 +193,21 @@ for (const plugin of PRODUCTION_PLUGINS) {
 `BaseGameRoom.projectStateFor` 是浏览器视图、WebSocket 广播和 Agent 视图的共同入口；它的默认实现现在读 `this.gameRules()?.projectState`，所以插件一旦声明投影就自动生效，不需要适配房间再写一行转发。
 
 这条教训来自 Checkers：`projectState` 被声明却没接进调用链，`positionCounts` 通过浏览器视图回到了客户端。规则等价测试看不出来，因为金样本只比对规则字段。防线因此升级为**行为级**的：`pluginProjection.test.ts` 对每款已迁移游戏计算"插件隐藏了哪些键"，并要求这些键在 browser / agent / replay 三种视图里都不出现，同时要求 `board` 仍在（否则"投影把一切删掉"也会通过）。
+
+## 7.3 隐藏信息游戏怎么接（M3.5 Battleship）
+
+Battleship 是第一款**私有信息 + 并发行棋**同时存在的迁移，它没有逼出新机制，而是验证了三处既有能力确实够用：
+
+| 需求 | 用到的钩子 | 结果 |
+| --- | --- | --- |
+| 双方同时布阵 | `mayActNow` | ✅ 平台只在 `isYourTurn` 一处消费，`wait_for_turn` 自动跟着生效 |
+| 私有舰队 / 旁观双盲 | `projectState` | ✅ 三条出口（浏览器 / 广播 / Agent）共用一次声明 |
+| MCP 决定态（ASCII 网格） | `agentFields(projection)` | ✅ 直接复用 catalog 的 `battleshipAgentState`，平台分支删除 |
+| 回放揭盘 | `rewatchView` | ✅ 与实时投影分离，回放才带 `revealedShips` |
+| 布阵超时自动布阵 | `onTurnTimeout` | ✅ 规则只返回事件，落盘/广播交给 `settleRuleTimeout` |
+| 兵种/能量显示 | `youFields` | ⚠️ 新增（本次唯一新增钩子）；`seat` 改为可选，因为 Battleship 的 `you` 从来没有 `seat` 键 |
+
+一处**顺带修好的旧缺陷**：原 `finishAttackTurn` 在终局时执行 `void this.saveState().then(broadcast)`，正是 M3.2.1 在 Connect4 上修掉的"提前落盘"模式。迁移后它改为 `match_ended` 效果，终局状态与幂等回执重新变成同一次写入。
 
 ## 8. 迁移步骤（单游戏）
 

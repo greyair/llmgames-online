@@ -38,6 +38,12 @@ broadcast, agent), so declaring it is enough; do not re-implement
 needed. If you hide a field, `apps/workers/src/tests/platform/pluginProjection.test.ts`
 checks it never appears in any of the three views.
 
+Two hooks describe the viewer: `seatIdentity` returns a seat/role/colour, and
+`youFields` adds game-owned keys to the browser `you` block (Battleship's
+munition wallet). Omit `seat` when the game has none — returning `null` would add
+a key that legacy clients never saw. Battleship is a good reference for a game
+with hidden information and simultaneous decisions: `apps/workers/src/games/battleship`.
+
 Registration is still required in the deployment surface, which the plugin does
 not remove: the class export in `apps/workers/src/index.ts`, the `Env` binding,
 the `roomRouting.ts` case, both wrangler configs, and an appended D1 migration

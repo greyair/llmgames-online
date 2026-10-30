@@ -46,7 +46,14 @@ export interface GameStartContext {
 
 /** Who the viewer is, in this game's terms. */
 export interface GameSeatIdentity {
-  seat: number | null;
+  /**
+   * Numeric seat, or omitted when the game does not expose one.
+   *
+   * Battleship is the first such game: its clients read `role` and the munition
+   * wallet, and adding `seat: null` would change a public `you` shape that never
+   * had the key.
+   */
+  seat?: number | null;
   /**
    * Role label the client reads (`player1`, `black`, …). Omit it when the game
    * projects no role at all — adding a key changes the public `you` shape.
@@ -80,6 +87,15 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
 
   /** Game-specific intents this player may send now, on top of the shared lobby ones. */
   turnActions(state: TState, playerId: string, viewer: GameViewerContext): readonly string[];
+
+  /**
+   * Extra game-owned fields merged into the browser `you` block.
+   *
+   * Mirrors `agentFields` for the human view: Battleship adds its munition
+   * wallet and `ready` flag, and Codenames will add `team`/`canSeeKey`. The
+   * adapter merges it, so platform keys such as `legalActions` keep their value.
+   */
+  youFields?(state: TState, playerId: string, viewer: GameViewerContext): WireObject;
 
   /**
    * Whether this player may decide right now.

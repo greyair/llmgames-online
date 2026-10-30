@@ -2,6 +2,7 @@ import { wireObjectSchema, type WireObject } from "@llmgames/game-catalog";
 import { describe, expect, it } from "vitest";
 
 import { gamePluginFor } from "../../games/registry";
+import { BattleshipRoom } from "../../durable-objects/BattleshipRoom";
 import { CheckersRoom } from "../../durable-objects/CheckersRoom";
 import { Connect4Room } from "../../durable-objects/Connect4Room";
 import { ReversiRoom } from "../../durable-objects/ReversiRoom";
@@ -22,10 +23,16 @@ type RoomCtor = Parameters<typeof createGameRoomFixture>[0];
 
 type Fixture = Awaited<ReturnType<typeof createGameRoomFixture>>;
 
-const MIGRATED: ReadonlyArray<readonly [string, RoomCtor]> = [
-  ["p4", Connect4Room],
-  ["rv", ReversiRoom],
-  ["ck", CheckersRoom],
+/**
+ * Each game names the field a client reads to see its own position: the browser
+ * view keeps the raw board, while the MCP decision state compacts it (Battleship
+ * renders an ASCII grid instead).
+ */
+const MIGRATED: ReadonlyArray<readonly [string, RoomCtor, string, string]> = [
+  ["p4", Connect4Room, "board", "board"],
+  ["rv", ReversiRoom, "board", "board"],
+  ["ck", CheckersRoom, "board", "board"],
+  ["bs", BattleshipRoom, "yourBoard", "ownGrid"],
 ];
 
 /** Keys the plugin keeps inside the server, computed from the plugin itself. */
@@ -49,7 +56,7 @@ function rewatchOf(fixture: Fixture): WireObject {
 }
 
 describe("plugin state projection", () => {
-  for (const [prefix, Room] of MIGRATED) {
+  for (const [prefix, Room, visible, agentVisible] of MIGRATED) {
     it(`keeps ${prefix} hidden fields out of every client view`, async () => {
       const fixture = await createGameRoomFixture(Room, prefix, 2);
       const viewer = fixture.ids[0]!;
@@ -65,10 +72,10 @@ describe("plugin state projection", () => {
         expect(replay).not.toHaveProperty(key);
       }
 
-      // A game with nothing to hide still has to publish the board itself, so a
-      // projection that dropped everything would fail here instead of passing.
-      expect(browser).toHaveProperty("board");
-      expect(agent).toHaveProperty("board");
+      // A projection that dropped everything would otherwise pass: each game
+      // must still publish the field its client renders from.
+      expect(browser).toHaveProperty(visible);
+      expect(agent).toHaveProperty(agentVisible);
     });
   }
 
