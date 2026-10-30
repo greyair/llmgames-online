@@ -4,7 +4,7 @@ import { Chrome } from "./Chrome";
 import { GameTile } from "./Library";
 import { ButtonLink } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { gameMessage, useT, type GameField, type MessageKey } from "@/i18n";
+import { BilingualText, gameMessage, useT, type GameField, type MessageKey } from "@/i18n";
 import { getCurrentUser, peekCurrentUser } from "@/services/auth";
 import { go } from "@/lib/navigate";
 import { McpInstallCommand } from "./McpInstallCommand";
@@ -161,8 +161,6 @@ function useHeroGame() {
 }
 
 function RotatingGame({ index, running }: { index: number; running: boolean }) {
-  const t = useT();
-
   // Every word shares one grid cell, so the line keeps a stable width while the words swap.
   return (
     <span className="landing-rotator" data-running={running || undefined} aria-hidden="true">
@@ -175,7 +173,7 @@ function RotatingGame({ index, running }: { index: number; running: boolean }) {
             (running && i === (index - 1 + heroGames.length) % heroGames.length) || undefined
           }
         >
-          {t(gameMessage(game.id, "title"))}
+          <BilingualText k={gameMessage(game.id, "title")} />
         </span>
       ))}
     </span>
@@ -269,15 +267,17 @@ export function Landing() {
         />
         <div className="landing-hero-copy">
           <h1 className="reveal">
-            {t("landing.hero.titlePrefix")}
+            <BilingualText k="landing.hero.titlePrefix" />
             <span className="sr-only">
-              {heroGames[0]
-                ? t(gameMessage(heroGames[0].id, "title"))
-                : t("landing.hero.fallbackGame")}
-              {t("landing.hero.titleSuffix")}
+              <BilingualText
+                k={[
+                  heroGames[0] ? gameMessage(heroGames[0].id, "title") : "landing.hero.fallbackGame",
+                  "landing.hero.titleSuffix",
+                ]}
+              />
             </span>
             <RotatingGame index={hero.index} running={hero.running && !hero.held} />
-            {t("landing.hero.titleSuffix")}
+            <BilingualText k="landing.hero.titleSuffix" />
           </h1>
           <p
             className="landing-subline reveal"
@@ -287,7 +287,7 @@ export function Landing() {
               }
             }
           >
-            {t("landing.hero.subline")}
+            <BilingualText k="landing.hero.subline" />
           </p>
           <div
             className="landing-actions reveal"
@@ -298,11 +298,11 @@ export function Landing() {
             }
           >
             <ButtonLink href="/play" size="lg">
-              {t("landing.hero.challenge")} <Icon name="arrow" size={18} />
+              <BilingualText k="landing.hero.challenge" /> <Icon name="arrow" size={18} />
             </ButtonLink>
             <ButtonLink variant="secondary" size="lg" href="/connect-ai">
               <Icon name="agent" size={18} />
-              {t("landing.hero.bringAgent")}
+              <BilingualText k="landing.hero.bringAgent" />
             </ButtonLink>
           </div>
           <dl
@@ -314,15 +314,21 @@ export function Landing() {
             }
           >
             <div>
-              <dt>{t("landing.hero.statGames")}</dt>
+              <dt>
+                <BilingualText k="landing.hero.statGames" />
+              </dt>
               <dd>{visibleGames.length}</dd>
             </div>
             <div>
-              <dt>{t("landing.hero.statSeats")}</dt>
+              <dt>
+                <BilingualText k="landing.hero.statSeats" />
+              </dt>
               <dd>1–8</dd>
             </div>
             <div>
-              <dt>{t("landing.hero.statKeys")}</dt>
+              <dt>
+                <BilingualText k="landing.hero.statKeys" />
+              </dt>
               <dd>0</dd>
             </div>
           </dl>

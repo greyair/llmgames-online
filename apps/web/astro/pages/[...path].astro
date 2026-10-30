@@ -18,5 +18,5 @@ export function getStaticPaths() {
 }
 ---
 <BaseLayout {...pageMetadata(path)}>
-{path==='ai-spec'?<AiSpec client:load/>:path==='play'?<Library client:load/>:path==='watch'?<PublicWatch client:load/>:path==='setup'||path==='connect-ai'?<Setup client:load/>:path==='privacy'||path==='terms'?<LegalPage kind={path} client:load/>:path.startsWith('games/')?<GameInfo id={path.slice(6)} client:load/>:accountPage?<App client:only="react" transition:persist="account-app"><main slot="fallback" class="site-content"><LoadingPanel label="Loading…"/></main></App>:<App client:only="react"><main slot="fallback" class="site-content"><LoadingPanel label="Loading…"/></main></App>}
+{path==='ai-spec'?<AiSpec client:load/>:path==='play'?<Library client:load/>:path==='watch'?<PublicWatch client:load/>:path==='setup'||path==='connect-ai'?<Setup client:load/>:path==='privacy'||path==='terms'?<LegalPage kind={path} client:load/>:path.startsWith('games/')?<GameInfo id={path.slice(6)} client:load/>:accountPage?<App client:only="react" transition:persist="account-app"><main slot="fallback" class="site-content"><LoadingPanel labelKey="common.loading"/></main></App>:<App client:only="react"><main slot="fallback" class="site-content"><LoadingPanel labelKey="common.loading"/></main></App>}
 </BaseLayout>

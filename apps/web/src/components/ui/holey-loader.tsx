@@ -1,14 +1,22 @@
 import type { CSSProperties } from "react";
+import { BilingualText, type MessageKey } from "@/i18n";
 
-/** A 3x3 pixel grid that lights in Bayer order. Kept under its original export name for call sites. */
+/**
+ * A 3x3 pixel grid that lights in Bayer order. Kept under its original export name for call sites.
+ *
+ * `labelKey` replaces `label` with copy that ships in both locales, for the
+ * loader baked into the static HTML: it must read correctly before hydration.
+ */
 export function HoleyLoader({
   label,
+  labelKey,
   size = 24,
   compact = false,
   showLabel = false,
   color,
 }: {
-  label: string;
+  label?: string;
+  labelKey?: MessageKey;
   size?: number;
   compact?: boolean;
   showLabel?: boolean;
@@ -17,6 +25,8 @@ export function HoleyLoader({
   const loaderStyle: CSSProperties = { "--loader-size": `${size}px` };
 
   if (color) loaderStyle["--loader-color"] = color;
+
+  const text = labelKey ? <BilingualText k={labelKey} /> : label;
 
   return (
     <div
@@ -36,7 +46,7 @@ export function HoleyLoader({
         <i />
         <i />
       </span>
-      <span className={compact && !showLabel ? "sr-only" : "ui-loader-label"}>{label}</span>
+      <span className={compact && !showLabel ? "sr-only" : "ui-loader-label"}>{text}</span>
     </div>
   );
 }

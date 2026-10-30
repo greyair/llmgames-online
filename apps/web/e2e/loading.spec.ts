@@ -128,7 +128,13 @@ test("account and game routes have a visible fallback before JavaScript", async 
 
   for (const path of ["/login", "/poker"]) {
     await page.goto(path);
-    await expect(page.locator("main .ui-loader-label")).toHaveText("Loading…");
+    // Without JavaScript there is no `data-locale`, so the stylesheet keeps the
+    // English copy and hides the Chinese one instead of hiding the wait itself.
+    const label = page.locator("main .ui-loader-label");
+
+    await expect(label.locator('[data-i18n-text="en"]')).toHaveText("Loading…");
+    await expect(label.locator('[data-i18n-text="zh"]')).toBeHidden();
+    await expect(label).toBeVisible();
   }
 
   await context.close();

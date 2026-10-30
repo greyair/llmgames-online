@@ -1,0 +1,21 @@
+/* Copy that ships in both languages inside the same static HTML.
+   `public/locale-init.js` writes `data-locale` before first paint, so the right
+   language is laid out immediately and a switch only repaints.
+   `display: none` hides the other language from layout and from the
+   accessibility tree at once, so nothing is announced twice.
+   Without JavaScript there is no `data-locale`, and English stays visible. */
+[data-i18n-text] {
+  display: none;
+}
+
+[data-i18n-text="en"] {
+  display: inline;
+}
+
+:root[data-locale="zh-CN"] [data-i18n-text="en"] {
+  display: none;
+}
+
+:root[data-locale="zh-CN"] [data-i18n-text="zh"] {
+  display: inline;
+}

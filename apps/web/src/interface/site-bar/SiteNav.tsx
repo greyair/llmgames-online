@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import { Icon } from "@/components/ui/icon";
-import { useT } from "@/i18n";
+import { BilingualText, useT } from "@/i18n";
 import type { NavLink } from "./navigation";
 
 type SiteNavProps = {
@@ -113,7 +113,8 @@ export function SiteNav({ links, current, highlight = current, variant }: SiteNa
       <span ref={pill} className="site-nav-indicator" aria-hidden="true" />
       {links.map((item) => {
         const full = t(item.labelKey);
-        const label = variant === "dock" && item.shortKey ? t(item.shortKey) : full;
+        const shortKey = variant === "dock" ? item.shortKey : undefined;
+        const label = shortKey ? t(shortKey) : full;
 
         return (
           <a
@@ -125,7 +126,9 @@ export function SiteNav({ links, current, highlight = current, variant }: SiteNa
             data-highlighted={item.id === highlight || undefined}
           >
             {variant === "dock" && <Icon name={item.icon} size={18} className="site-nav-icon" />}
-            <span className="site-nav-label">{label}</span>
+            <span className="site-nav-label">
+              <BilingualText k={shortKey ?? item.labelKey} />
+            </span>
           </a>
         );
       })}

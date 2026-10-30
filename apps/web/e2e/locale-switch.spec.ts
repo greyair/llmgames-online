@@ -5,8 +5,17 @@ const HOME_HEADING = {
   "zh-CN": /^你的 AI 能在/,
 } as const;
 
-async function headingOf(page: Page) {
-  return page.getByRole("heading", { level: 1 }).first();
+/**
+ * Assert the heading the visitor actually reads.
+ *
+ * The landing hero ships both languages in the markup and lets CSS pick one, so
+ * `toHaveText` (which reads `textContent`) would see both. `innerText` reflects
+ * what is rendered, which is what this suite is about.
+ */
+async function expectHeading(page: Page, text: RegExp) {
+  await expect
+    .poll(() => page.locator("h1").first().innerText(), { timeout: 10_000 })
+    .toMatch(text);
 }
 
 /** Choose a language the way the switch does, then wait for the copy to settle. */
@@ -19,7 +28,7 @@ test.describe("language switch", () => {
   test("starts in English because the suite pins it", async ({ page }) => {
     await page.goto("/");
 
-    await expect(await headingOf(page)).toHaveText(HOME_HEADING.en);
+    await expectHeading(page, HOME_HEADING.en);
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.getByTestId("locale-switch")).toHaveText("EN");
   });
@@ -28,7 +37,7 @@ test.describe("language switch", () => {
     await page.goto("/");
     await pickLanguage(page, "zh-CN");
 
-    await expect(await headingOf(page)).toHaveText(HOME_HEADING["zh-CN"]);
+    await expectHeading(page, HOME_HEADING["zh-CN"]);
     // Navigation is a separate React island: this proves the switch crossed it.
     await expect(page.getByRole("navigation", { name: "主导航" }).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "游戏如何运作" })).toBeVisible();
@@ -41,7 +50,7 @@ test.describe("language switch", () => {
     await pickLanguage(page, "zh-CN");
     await page.reload();
 
-    await expect(await headingOf(page)).toHaveText(HOME_HEADING["zh-CN"]);
+    await expectHeading(page, HOME_HEADING["zh-CN"]);
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   });
 
@@ -137,7 +146,7 @@ test.describe("first visit", () => {
       // locale-init.js runs synchronously in <head>, so the document language is
       // already right before React hydrates.
       expect(await page.evaluate(() => document.documentElement.dataset.locale)).toBe("zh-CN");
-      await expect(await headingOf(page)).toHaveText(HOME_HEADING["zh-CN"]);
+      await expectHeading(page, HOME_HEADING["zh-CN"]);
     } finally {
       await context.close();
     }
@@ -156,7 +165,7 @@ test.describe("first visit", () => {
       await page.goto("/");
 
       expect(await page.evaluate(() => document.documentElement.dataset.locale)).toBe("en");
-      await expect(await headingOf(page)).toHaveText(HOME_HEADING.en);
+      await expectHeading(page, HOME_HEADING.en);
     } finally {
       await context.close();
     }
@@ -177,7 +186,7 @@ test.describe("first visit", () => {
     try {
       await page.goto("/");
 
-      await expect(await headingOf(page)).toHaveText(HOME_HEADING["zh-CN"]);
+      await expectHeading(page, HOME_HEADING["zh-CN"]);
     } finally {
       await context.close();
     }
@@ -195,7 +204,7 @@ test.describe("first visit", () => {
     try {
       await page.goto("/");
 
-      await expect(await headingOf(page)).toHaveText(HOME_HEADING.en);
+      await expectHeading(page, HOME_HEADING.en);
     } finally {
       await context.close();
     }
@@ -217,7 +226,7 @@ for (const width of [390, 1440]) {
 
       try {
         await page.goto("/");
-        await expect(await headingOf(page)).toHaveText(HOME_HEADING[locale]);
+        await expectHeading(page, HOME_HEADING[locale]);
         await expect(page.getByTestId("locale-switch")).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
         await page.screenshot({ path: info.outputPath(`home-${locale}-${width}.png`) });

@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import { ThemeToggle } from "@/interface/ThemeToggle";
 import { SoundControl } from "@/interface/Feedback";
 import { SignOutConfirmation } from "@/interface/SignOutConfirmation";
-import { useT } from "@/i18n";
+import { BilingualText, useT } from "@/i18n";
 import { LocaleSwitch } from "./LocaleSwitch";
 
 export function SiteTools() {
@@ -49,7 +49,9 @@ export function SiteAccount({
     return (
       actions ?? (
         <ButtonLink href="/login" size="sm" className="site-signin">
-          <span>{t("site.signIn")}</span>
+          <span>
+            <BilingualText k="site.signIn" />
+          </span>
           <Icon name="arrow" size={18} />
         </ButtonLink>
       )
@@ -64,7 +66,9 @@ export function SiteAccount({
         className="site-profile"
       >
         <PlayerAvatar name={`human:${gamertag || "player"}`} size={24} label="" />
-        <span className="site-profile-label">{t("site.profile")}</span>
+        <span className="site-profile-label">
+          <BilingualText k="site.profile" />
+        </span>
       </a>
       <SignOutConfirmation
         disabled={signingOut}

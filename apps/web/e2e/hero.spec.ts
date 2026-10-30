@@ -64,7 +64,8 @@ test("hero rotates the challenged game and honors reduced motion", async ({ page
   await page.goto("/design-preview/public/landing");
 
   const rotator = page.locator(".landing-rotator"),
-    active = rotator.locator("[data-active=true]");
+    // The rotator carries both languages; assert the one the stylesheet shows.
+    active = rotator.locator('[data-active=true] [data-i18n-text="en"]');
 
   await page.clock.runFor(1000);
   await expect(rotator).toHaveAttribute("data-running", "true");
@@ -85,6 +86,8 @@ test("reduced motion shows a single challenged game", async ({ page }) => {
   await page.clock.install();
   await page.goto("/design-preview/public/landing");
   await page.clock.fastForward(8000);
-  await expect(page.locator(".landing-rotator [data-active=true]")).toHaveText("Connect 4");
+  await expect(
+    page.locator('.landing-rotator [data-active=true] [data-i18n-text="en"]'),
+  ).toHaveText("Connect 4");
   await expect(page.locator(".landing-rotator [data-active=true]")).toHaveCount(1);
 });

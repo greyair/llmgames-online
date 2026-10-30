@@ -9,7 +9,7 @@ import { SketchScene, hasSketchScene } from "./SketchScene";
 import { GameMark } from "./GameMark";
 import { gameRoute, visibleGames, getGame } from "./catalog";
 import { getCurrentUser } from "@/services/auth";
-import { gameMessage, useT, type GameField } from "@/i18n";
+import { BilingualText, gameMessage, useT, type GameField } from "@/i18n";
 import { go, useBrowserHref } from "@/lib/navigate";
 import "./library.css";
 
@@ -210,7 +210,9 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
     <Chrome>
       <header className="library-head">
         <div className="library-intro">
-          <h1 className="reveal">{t("library.title")}</h1>
+          <h1 className="reveal">
+            <BilingualText k="library.title" />
+          </h1>
           <p
             className="reveal"
             style={
@@ -219,7 +221,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
               }
             }
           >
-            {t("library.lead")}
+            <BilingualText k="library.lead" />
           </p>
         </div>
         <form

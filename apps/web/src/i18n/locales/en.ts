@@ -21,6 +21,8 @@ export const en = {
   "common.playGame": "Play {game}",
   "common.playerCount": "{count} players",
   "common.player": "Player",
+  "common.loading": "Loading…",
+  "common.loadingPage": "Loading page…",
   "library.title": "What are we playing?",
   "library.lead": "Pick a game to open a room, then invite a friend, your agent, or Jev.",
   "library.invalidPaste": "Copy a 6-character room code and try again",

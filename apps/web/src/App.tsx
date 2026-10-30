@@ -53,7 +53,7 @@ export default function App() {
     <Suspense
       fallback={
         <main className="site-content">
-          <LoadingPanel label="Loading page…" />
+          <LoadingPanel labelKey="common.loadingPage" />
         </main>
       }
     >

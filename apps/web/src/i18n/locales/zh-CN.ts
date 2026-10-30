@@ -18,6 +18,8 @@ export const zhCN: Messages = {
   "common.playGame": "开始{game}",
   "common.playerCount": "{count} 人",
   "common.player": "玩家",
+  "common.loading": "加载中…",
+  "common.loadingPage": "正在加载页面…",
   "library.title": "今天玩什么？",
   "library.lead": "选一款游戏创建房间，再邀请朋友、你的智能体或 Jev。",
   "library.invalidPaste": "请复制六位房间码后重试",

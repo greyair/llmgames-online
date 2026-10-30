@@ -9,7 +9,7 @@ import { GameGlyph } from "./Library";
 import legal from "./content/legal.json";
 import "./public.css";
 import { McpInstallCommand } from "./McpInstallCommand";
-import { useT } from "@/i18n";
+import { BilingualText, useT } from "@/i18n";
 
 const steps = [
   [
@@ -32,8 +32,12 @@ export function Setup() {
   return (
     <Chrome active="connect">
       <header className="page-head public-head">
-        <h1>{t("setup.title")}</h1>
-        <p>{t("setup.lead")}</p>
+        <h1>
+          <BilingualText k="setup.title" />
+        </h1>
+        <p>
+          <BilingualText k="setup.lead" />
+        </p>
       </header>
       <div className="connect-layout">
         <section aria-label={t("setup.connection")}>
