@@ -27,6 +27,10 @@ export async function createGameRoomFixture<T extends BaseGameState>(
     browser(playerId: string) {
       return this.buildClientView(playerId);
     }
+    /** Full-reveal frame the room would archive for a finished match. */
+    rewatch() {
+      return this.buildRewatchView();
+    }
   }
 
   // SAFETY: Room's concrete constructor contract guarantees its inherited abstract game methods are implemented. The subclass adds only test accessors.

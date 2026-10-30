@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { roomTestEnv } from "../fixtures/room-env";
 import { MemoryRoomRuntime } from "../fixtures/memory-runtime";
@@ -16,11 +16,28 @@ import type { Connect4GameState } from "../../durable-objects/types";
  * receipt write failed, the ended board was already on disk without a receipt:
  * a restart showed a finished match that could never be replayed, and the
  * client's retry was refused instead of acknowledged.
+ *
+ * M3.4.1 — the pending announcement must not outlive the write that carried it.
+ * A rolled-back write restores `playing`, so the marker and the stopped clock
+ * are undone with it; otherwise the next successful move of the same instance
+ * announces the end of a match that is still running.
  */
 
 class SeededConnect4Room extends Connect4Room {
+  /** Terminal announcements this instance actually pushed, in order. */
+  readonly endings: string[] = [];
+
   protected startingPlayerIndex(): number {
     return 0;
+  }
+
+  protected broadcastProjected(
+    type: "game_started" | "game_ended",
+    extra?: { reason?: string },
+  ): void {
+    if (type === "game_ended") this.endings.push(extra?.reason ?? "unknown");
+
+    super.broadcastProjected(type, extra);
   }
 
   snapshot(): Connect4GameState {
@@ -154,5 +171,70 @@ describe("finished match persistence", () => {
     expect(restarted.snapshot().status).toBe("ended");
     expect(restarted.snapshot().winner).toBe("p1");
     expect(restarted.snapshot().board[5]![3]).toBe(1);
+  });
+
+  it("keeps the clock running after a rolled-back result", async () => {
+    const { room, runtime } = harness();
+    const game = room();
+
+    await startedRoom(game);
+    await playSetupMoves(game);
+    runtime.storage.failWriteContaining = "ackedActionRecords";
+
+    expect((await playWinningMove(game, "win-request-1")).status).toBe(500);
+    expect(game.snapshot().status).toBe("playing");
+
+    runtime.storage.failWriteContaining = null;
+
+    const turnsBefore = game.snapshot().turnState.turnNumber;
+    const clock = vi.spyOn(Date, "now");
+    let now = Date.now();
+
+    clock.mockImplementation(() => now);
+
+    try {
+      // The winning move stopped the timers before its write failed. Left
+      // stopped, the next tick re-anchors on `now` and this missed turn silently
+      // never expires; re-armed on the durable write, it expires as usual.
+      now += 40_000;
+      await game.alarm();
+
+      expect(game.snapshot().status).toBe("playing");
+      expect(game.snapshot().turnState.turnNumber).toBeGreaterThan(turnsBefore);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it("does not announce a rolled-back result on a later action", async () => {
+    const { room, runtime } = harness();
+    const game = room();
+
+    await startedRoom(game);
+    await playSetupMoves(game);
+    runtime.storage.failWriteContaining = "ackedActionRecords";
+
+    expect((await playWinningMove(game, "win-request-1")).status).toBe(500);
+    expect(game.endings).toEqual([]);
+
+    runtime.storage.failWriteContaining = null;
+
+    const current = game.snapshot().turnState.currentPlayerId;
+
+    expect(current).toBe("p1");
+
+    // Same instance, and a move that decides nothing: the rolled-back end must
+    // not be delivered here. Before M3.4.1 this broadcast `game_ended` while the
+    // board was still mid-match.
+    const followUp = await post(game, "/agent/action", {
+      playerId: current,
+      actionType: "drop_disc",
+      data: { col: 4 },
+    });
+
+    expect(followUp.status).toBe(200);
+    expect(game.snapshot().status).toBe("playing");
+    expect(game.snapshot().winner).toBeNull();
+    expect(game.endings).toEqual([]);
   });
 });

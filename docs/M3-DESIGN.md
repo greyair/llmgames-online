@@ -51,6 +51,7 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
   onTurnTimeout?(state: TState, playerId: string | null, now: number): readonly GameEffect[];
   /** M3.3: match-clock result (Reversi scores the board instead of drawing). */
   onMatchTimeout?(state: TState): void;
+  /** Declared once, enforced on every outgoing view (see §7.2). */
   projectState?(state: TState, playerId: string): object;
   /** M3.4: replay frames; default is the whole state (full reveal). */
   rewatchView?(state: TState): object;
@@ -86,7 +87,7 @@ export type GameEffect =
 | `seatIdentity` | `buildYouContext` 的 `super` 之后 | 只描述座位语义，不复制身份/渠道元数据 |
 | `applyAction` | `handleGameAction` + 私有 `handleDrop` 等 | 校验、拒绝文案、状态转移、结算 |
 | `onTurnTimeout` | `onTurnTimeout`（可选，默认 `nextTurn()`） | 只有自定义策略的游戏实现（Reversi 跳过、Battleship 布阵超时、Poker 弃牌） |
-| `projectState` | `projectStateFor`（可选，默认整份 state 公开） | fog of war 属于规则（Poker/Codenames/Contexto/Pokemon/Battleship 的真实使用场景） |
+| `projectState` | `projectStateFor`（可选；声明后**自动**接管浏览器、WebSocket 广播与 Agent 三条出口，未声明则整份 state 公开） | fog of war 属于规则（Poker/Codenames/Contexto/Pokemon/Battleship 的真实使用场景） |
 | `agentFields` | `buildAgentView` 的 `switch (projected.type)` | 决定态字段是游戏知识，不该写在平台类里；入参是**收件人投影**，平台键被丢弃 |
 | `mayActNow` | `isYourTurn` 覆写（Battleship `:803`、Codenames `:323`） | 并发布阵/全队猜词需要"不止一个座位可行动"；平台单点消费它 |
 | `onMatchTimeout` | `onGameTimeout` 覆写（Reversi/Checkers） | 对局时钟到期要按盘面结算或判和，而默认只收尾不留结果 |
@@ -183,6 +184,12 @@ for (const plugin of PRODUCTION_PLUGINS) {
 - Connect4 + Reversi + Checkers 实测需要的钩子已全部就位（Reversi 逼出 `onMatchTimeout` 与座位 `color`；Checkers 逼出 `rewatchView` 与可省略的 `role`）；
 - Battleship 只差"搬运 + 金样本"，无需新钩子（并发靠 `mayActNow`，私有舰队靠 `projectState`）；
 - Codenames 还需要 `validateStart`、座位 `team`/`canSeeKey`、成员角色变更钩子，三者都只服务它一个游戏，留到迁移时再加。
+
+## 7.2 公开投影只有一个出口（M3.4.1）
+
+`BaseGameRoom.projectStateFor` 是浏览器视图、WebSocket 广播和 Agent 视图的共同入口；它的默认实现现在读 `this.gameRules()?.projectState`，所以插件一旦声明投影就自动生效，不需要适配房间再写一行转发。
+
+这条教训来自 Checkers：`projectState` 被声明却没接进调用链，`positionCounts` 通过浏览器视图回到了客户端。规则等价测试看不出来，因为金样本只比对规则字段。防线因此升级为**行为级**的：`pluginProjection.test.ts` 对每款已迁移游戏计算"插件隐藏了哪些键"，并要求这些键在 browser / agent / replay 三种视图里都不出现，同时要求 `board` 仍在（否则"投影把一切删掉"也会通过）。
 
 ## 8. 迁移步骤（单游戏）
 

@@ -2970,8 +2970,32 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         logEvent("action_rollback_failed", { actionType });
       }
 
+      // The rule effects that produced a pending end belonged to the write that
+      // just failed, and the rollback undid them, so the announcement goes too.
+      // The match may still be running; inheriting the marker would broadcast a
+      // `game_ended` for a result that never happened.
+      this.pendingMatchEnd = null;
+      this.rearmTimersAfterRollback();
+
       return false;
     }
+  }
+
+  /**
+   * Resume the clock after a rolled-back write.
+   *
+   * A rule module that finishes a match stops the timers before the platform
+   * writes, so a failed write leaves them stopped while the restored state says
+   * `playing`. Re-anchor on the durable write instead of on `now`, which keeps
+   * the durable countdown and the projected clock measuring from the same
+   * instant instead of drifting apart by the outage.
+   */
+  private rearmTimersAfterRollback(): void {
+    if (!this.gameState || this.gameState.status !== "playing") return;
+
+    this.lastGameTimerTickAt = this.gameState.updatedAt;
+    this.lastTurnTimerTickAt = this.gameState.updatedAt;
+    this.timerTurnStartedAt = this.gameState.turnState.startedAt;
   }
 
   private async persistRejection(ack: AckRequest | undefined, message: string): Promise<void> {
@@ -3356,9 +3380,18 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
   /**
    * Project full server state for a specific player (fog of war).
-   * Default: return state as-is. Subclasses override for role-based views.
+   *
+   * A migrated room inherits its game's projection, so a rule module that
+   * declares `projectState` is the single owner of what leaves the server: the
+   * browser view, the WebSocket broadcast and the agent view all read this one
+   * method. A legacy room keeps its own override; a game with nothing to hide
+   * declares no hook and the state passes through unchanged.
    */
-  protected projectStateFor(_playerId: string, state: TState): object {
+  protected projectStateFor(playerId: string, state: TState): object {
+    const rules = this.gameRules();
+
+    if (rules?.projectState) return rules.projectState(state, playerId);
+
     return state;
   }
 
@@ -3408,6 +3441,17 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     const reason = this.pendingMatchEnd;
 
     if (reason === null) return;
+
+    if (this.gameState?.status !== "ended") {
+      // The end belonged to a write that never landed, or a rule module asked
+      // for an announcement without finishing the match. Either way there is no
+      // result to announce, and keeping the marker would leak it into the next
+      // successful action.
+      logEvent("match_end_dropped", { reason, roomType: this.gameState?.type });
+      this.pendingMatchEnd = null;
+
+      return;
+    }
 
     this.pendingMatchEnd = null;
     this.broadcastProjected("game_ended", { reason });

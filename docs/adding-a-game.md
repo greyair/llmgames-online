@@ -27,10 +27,16 @@ broadcast after `dispatchAction` writes the finished state and its receipt in
 one call. Do not call `saveState()` from a rule module: that pairing is what
 makes a retry a replay, and a second write reopens the gap M3.2.1 closed.
 
-Overrides are optional: `projectState` narrows the live projection, `rewatchView`
-narrows the replay frame (its default is full reveal of the state), `agentFields`
-adds MCP decision fields — and it only ever receives the recipient's own
-projection, so a rule module cannot widen what a player may see.
+Overrides are optional: `projectState` narrows the live projection,
+`rewatchView` narrows the replay frame (its default is full reveal of the state),
+`agentFields` adds MCP decision fields — and it only ever receives the
+recipient's own projection, so a rule module cannot widen what a player may see.
+
+`projectState` is applied by the base class to all three outgoing views (browser,
+broadcast, agent), so declaring it is enough; do not re-implement
+`projectStateFor` in an adapter, and do not assume a room-level override is
+needed. If you hide a field, `apps/workers/src/tests/platform/pluginProjection.test.ts`
+checks it never appears in any of the three views.
 
 Registration is still required in the deployment surface, which the plugin does
 not remove: the class export in `apps/workers/src/index.ts`, the `Env` binding,
