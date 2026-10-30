@@ -118,6 +118,6 @@ export class ReversiRoom extends BaseGameRoom<ReversiGameState> {
   protected onGameTimeout(): void {
     if (!this.gameState) return;
 
-    reversiPlugin.onMatchTimeout?.(this.gameState);
+    reversiPlugin.onMatchTimeout?.(this.gameState, Date.now());
   }
 }

@@ -1,5 +1,6 @@
 import type { GameTypeId, WireObject, WireValue } from "@llmgames/game-catalog";
 import type { BaseGameState, GameRoomConfig } from "../durable-objects/types";
+import type { StartGameProblem } from "../durable-objects/actionErrors";
 
 /**
  * Game interface for M3.
@@ -85,6 +86,22 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
   /** Assign seats, deal or reset the board and set the first turn. */
   start(state: TState, context: GameStartContext): void;
 
+  /**
+   * Extra check before the lobby may start the match.
+   *
+   * Codenames refuses to start unless every seat holds a role and both teams are
+   * balanced; the platform reports the message and code unchanged.
+   */
+  validateStart?(state: TState): StartGameProblem | null;
+
+  /**
+   * A seat was promoted to player or moved to spectator.
+   *
+   * Codenames drops the role of a player who starts watching, so a stale team
+   * assignment cannot keep the key visible.
+   */
+  onMemberRoleChanged?(state: TState, playerId: string, role: "player" | "spectator"): void;
+
   /** Game-specific intents this player may send now, on top of the shared lobby ones. */
   turnActions(state: TState, playerId: string, viewer: GameViewerContext): readonly string[];
 
@@ -121,7 +138,7 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
    * Match-clock expiry. Omitted means "no game-specific result", which leaves
    * the platform's own time-up handling in charge.
    */
-  onMatchTimeout?(state: TState): void;
+  onMatchTimeout?(state: TState, now: number): void;
 
   /** Recipient-safe view of the state. Omitted means the whole state is public. */
   projectState?(state: TState, playerId: string): object;

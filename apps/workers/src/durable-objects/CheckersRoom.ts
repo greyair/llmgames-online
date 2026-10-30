@@ -121,6 +121,6 @@ export class CheckersRoom extends BaseGameRoom<CheckersGameState> {
   protected onGameTimeout(): void {
     if (!this.gameState) return;
 
-    checkersPlugin.onMatchTimeout?.(this.gameState);
+    checkersPlugin.onMatchTimeout?.(this.gameState, Date.now());
   }
 }

@@ -3618,21 +3618,6 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           secret: projected.secret,
         });
 
-      case "codenames":
-        return this.definedAgentFields({
-          ...common,
-          board: projected.board,
-          assignments: projected.assignments,
-          startingTeam: projected.startingTeam,
-          activeTeam: projected.activeTeam,
-          clue: projected.clue,
-          guessesRemaining: projected.guessesRemaining,
-          guessesMade: projected.guessesMade,
-          remaining: projected.remaining,
-          winnerTeam: projected.winnerTeam,
-          lastReveal: projected.lastReveal,
-        });
-
       case "poker": {
         const handNumber = projected.handNumber;
 
@@ -3845,8 +3830,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   }
 
   /** Optional game-specific cleanup when a room member changes player/spectator role. */
-  protected onRoomMemberRoleChanged(_playerId: string, _role: "player" | "spectator"): void {
-    // Override in role-based games when seat changes invalidate assignments.
+  protected onRoomMemberRoleChanged(playerId: string, role: "player" | "spectator"): void {
+    const rules = this.gameRules();
+
+    if (this.gameState && rules?.onMemberRoleChanged)
+      rules.onMemberRoleChanged(this.gameState, playerId, role);
   }
 
   // ─── Game lifecycle ────────────────────────────────────────────
@@ -3881,7 +3869,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
   /** Optional game-specific lobby validation performed before state enters play. */
   protected validateStartGame(): StartGameProblem | null {
-    return null;
+    const rules = this.gameRules();
+
+    if (!this.gameState || !rules?.validateStart) return null;
+
+    return rules.validateStart(this.gameState);
   }
 
   /**

@@ -44,6 +44,13 @@ munition wallet). Omit `seat` when the game has none — returning `null` would 
 a key that legacy clients never saw. Battleship is a good reference for a game
 with hidden information and simultaneous decisions: `apps/workers/src/games/battleship`.
 
+Role-based games add two more: `validateStart` refuses an invalid lobby before
+the match begins (report a `StartGameProblem`), and `onMemberRoleChanged` clears
+whatever a seat held when it moves to the spectator list. Codenames is the
+reference: `apps/workers/src/games/codenames`. Its lobby role assignment stays in
+the room, because choosing a team can promote a spectator into a player seat —
+that is platform work, not a rule.
+
 Registration is still required in the deployment surface, which the plugin does
 not remove: the class export in `apps/workers/src/index.ts`, the `Env` binding,
 the `roomRouting.ts` case, both wrangler configs, and an appended D1 migration

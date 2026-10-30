@@ -2,6 +2,7 @@ import { roomTestEnv } from "../fixtures/room-env";
 import { MemoryRoomRuntime } from "../fixtures/memory-runtime";
 
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { CodenamesGameRoom } from "../../durable-objects/CodenamesGameRoom";
 import { ContextoRoom } from "../../durable-objects/ContextoRoom";
 import type { CodenamesGameState, ContextoGameState } from "../../durable-objects/types";
@@ -18,8 +19,16 @@ describe("private state projections", () => {
       return this.createDefaultState({ hostId: "host", hostName: "Host" }, "ABC234");
     }
 
+    /** Same projection a client receives, typed for the assertions below. */
     project(playerId: string, state: CodenamesGameState) {
-      return this.projectStateFor(playerId, state);
+      return z
+        .object({
+          board: z
+            .array(z.object({ affiliation: z.string().nullable() }).passthrough())
+            .readonly(),
+        })
+        .passthrough()
+        .parse(this.projectStateFor(playerId, state));
     }
   }
 

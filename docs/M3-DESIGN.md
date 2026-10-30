@@ -47,6 +47,10 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
   mayActNow?(state: TState, playerId: string): boolean;
   /** M3.5: extra fields merged into the browser `you` block (Battleship's wallet). */
   youFields?(state: TState, playerId: string, viewer: GameViewerContext): WireObject;
+  /** M3.6: refuse to start an invalid lobby (Codenames role balance). */
+  validateStart?(state: TState): StartGameProblem | null;
+  /** M3.6: a seat changed between player and spectator. */
+  onMemberRoleChanged?(state: TState, playerId: string, role: "player" | "spectator"): void;
   seatIdentity(state: TState, playerId: string, viewer: GameViewerContext): GameSeatIdentity;
   applyAction(state: TState, playerId: string, intent: GameIntent, now: number): GameActionResult;
 
@@ -93,7 +97,9 @@ export type GameEffect =
 | `agentFields` | `buildAgentView` 的 `switch (projected.type)` | 决定态字段是游戏知识，不该写在平台类里；入参是**收件人投影**，平台键被丢弃 |
 | `mayActNow` | `isYourTurn` 覆写（Battleship `:803`、Codenames `:323`） | 并发布阵/全队猜词需要"不止一个座位可行动"；平台单点消费它 |
 | `onMatchTimeout` | `onGameTimeout` 覆写（Reversi/Checkers） | 对局时钟到期要按盘面结算或判和，而默认只收尾不留结果 |
-| `youFields` | `buildYouContext` 覆写（Battleship 的 `ready`/`munitionPoints`/`weapons`） | 人类视图也需要游戏专属字段，与 `agentFields` 对称；Codenames 的 `team`/`canSeeKey` 可直接复用 |
+| `youFields` | `buildYouContext` 覆写（Battleship 的 `ready`/`munitionPoints`/`weapons`） | 人类视图也需要游戏专属字段，与 `agentFields` 对称；Codenames 的 `team`/`canSeeKey` 直接复用 |
+| `validateStart` | `validateStartGame` 覆写（Codenames） | 开局前要拒绝角色不全/两队不平衡的大厅 |
+| `onMemberRoleChanged` | `onRoomMemberRoleChanged` 覆写（Codenames） | 玩家转旁观必须清掉角色，否则残留 `assignments` 仍能拿到钥匙 |
 | `rewatchView` | `buildRewatchView` 覆写（Checkers 剥离重复计数，Codenames 揭示 key） | 回放是全量揭示，但仍不该写入平台内部簿记 |
 
 `agentFields` 是**唯一**带真实迁移证据的可选能力：8 款游戏中 7 款有专属决定字段，平台的 switch 因此长期存在。`projectState` 同理（5 款游戏有隐藏信息）。`onTurnTimeout` 有 4 款游戏的差异化策略。没有为"将来可能"新增其他钩子。
@@ -184,9 +190,9 @@ for (const plugin of PRODUCTION_PLUGINS) {
 
 详见 [M3.3-CAPABILITY.md](M3.3-CAPABILITY.md)。一句话结论：
 
-- Connect4 + Reversi + Checkers + Battleship 实测需要的钩子已全部就位（Reversi 逼出 `onMatchTimeout` 与座位 `color`；Checkers 逼出 `rewatchView` 与可省略的 `role`；Battleship 逼出 `youFields` 与可省略的 `seat`）；
+- Connect4 + Reversi + Checkers + Battleship + Codenames 实测需要的钩子已全部就位（Reversi 逼出 `onMatchTimeout` 与座位 `color`；Checkers 逼出 `rewatchView` 与可省略的 `role`；Battleship 逼出 `youFields` 与可省略的 `seat`；Codenames 逼出 `validateStart` 与 `onMemberRoleChanged`）；
 - Battleship 已于 M3.5 迁移完成，见 §7.3；
-- Codenames 还需要 `validateStart`、座位 `team`/`canSeeKey`、成员角色变更钩子，三者都只服务它一个游戏，留到迁移时再加。
+- Codenames 已于 M3.6 迁移完成，见 §7.4。
 
 ## 7.2 公开投影只有一个出口（M3.4.1）
 
@@ -208,6 +214,21 @@ Battleship 是第一款**私有信息 + 并发行棋**同时存在的迁移，�
 | 兵种/能量显示 | `youFields` | ⚠️ 新增（本次唯一新增钩子）；`seat` 改为可选，因为 Battleship 的 `you` 从来没有 `seat` 键 |
 
 一处**顺带修好的旧缺陷**：原 `finishAttackTurn` 在终局时执行 `void this.saveState().then(broadcast)`，正是 M3.2.1 在 Connect4 上修掉的"提前落盘"模式。迁移后它改为 `match_ended` 效果，终局状态与幂等回执重新变成同一次写入。
+
+## 7.4 角色型游戏怎么接（M3.6 Codenames）
+
+Codenames 把"角色"变成一等公民：两个队长看钥匙，同队 operative 共享一次决策，大厅必须先配平才能开局。接入点如下：
+
+| 需求 | 用到的钩子 | 结果 |
+| --- | --- | --- |
+| 两名队长可看钥匙，其余人不可 | `projectState` | ✅ 三条出口共用一次声明（浏览器/广播/Agent） |
+| 整队 operative 同时可猜 | `mayActNow` | ✅ 不需要"当前玩家"这一个人 |
+| `you` 里的队伍与钥匙可见性 | `youFields` | ✅ M3.5 新增的钩子直接复用 |
+| 大厅配平才能开局 | `validateStart` | ⚠️ 新增 |
+| 转旁观清角色 | `onMemberRoleChanged` | ⚠️ 新增 |
+| 回合/整局超时 | `onTurnTimeout` / `onMatchTimeout` | ✅ 后者补了 `now` 参数 |
+
+**不放进插件的东西**：大厅的选队/重置/随机化。它们是**席位变更**（可把旁观者提升为玩家），按 §3.2 属于平台层；插件只管对局规则。下一款角色型游戏如果也这么做，90 行大厅代码应抽成平台通用动作，而不是复制。
 
 ## 8. 迁移步骤（单游戏）
 
