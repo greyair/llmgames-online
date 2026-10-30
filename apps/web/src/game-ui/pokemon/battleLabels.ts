@@ -1,54 +1,76 @@
-export const statLabel = (stat: string) =>
-  ({
-    atk: "Attack",
-    def: "Defense",
-    spa: "Special",
-    spd: "Special",
-    spc: "Special",
-    spe: "Speed",
-    accuracy: "Accuracy",
-    evasion: "Evasion",
-  })[stat] ?? stat;
+import { knownValue } from "@/domain/view-contracts";
+import type { MessageKey, Translate } from "@/i18n";
 
-export const statusLabel = (status: string) =>
-  ({
-    par: "Paralyzed",
-    brn: "Burned",
-    psn: "Poisoned",
-    tox: "Badly poisoned",
-    slp: "Asleep",
-    frz: "Frozen",
-    fnt: "Fainted",
-  })[status] ?? status;
+const statKeys = {
+  atk: "board.pokemon.statAttack",
+  def: "board.pokemon.statDefense",
+  spa: "board.pokemon.statSpecial",
+  spd: "board.pokemon.statSpecial",
+  spc: "board.pokemon.statSpecial",
+  spe: "board.pokemon.statSpeed",
+  accuracy: "board.pokemon.statAccuracy",
+  evasion: "board.pokemon.statEvasion",
+} satisfies Record<string, MessageKey>;
 
-export const effectLabel = (effect: string) =>
-  ({
-    substitute: "Substitute",
-    confusion: "Confused",
-    reflect: "Reflect",
-    lightscreen: "Light Screen",
-    leechseed: "Leech Seed",
-    focusenergy: "Focus Energy",
-    mist: "Mist",
-    bide: "Bide",
-    rage: "Rage",
-    disable: "Disable",
-  })[
-    effect
-      .replace(/^move: /, "")
-      .toLowerCase()
-      .replaceAll(" ", "")
-  ] ?? effect.replace(/^move: /, "");
+export const statLabel = (stat: string, t: Translate) => {
+  const key = knownValue(statKeys, stat);
 
-export const effectDescription = {
-  substitute: "A substitute is taking hits for this Pokémon.",
-  confusion: "May hurt itself instead of using its move.",
-  reflect: "Raises Defense against physical attacks.",
-  lightscreen: "Raises Special when taking special attacks.",
-  leechseed: "Loses HP at the end of the turn to the opposing Pokémon.",
-  focusenergy: "Gen 1 quirk: lowers critical-hit chance instead of raising it.",
-  mist: "Protects against stat drops from status moves.",
-  bide: "Storing damage to return to the opponent.",
-  rage: "Attack can rise when this Pokémon takes a hit.",
-  disable: "One move is temporarily unavailable.",
-} satisfies Record<string, string>;
+  return key ? t(key) : stat;
+};
+
+const statusKeys = {
+  par: "board.pokemon.statusParalyzed",
+  brn: "board.pokemon.statusBurned",
+  psn: "board.pokemon.statusPoisoned",
+  tox: "board.pokemon.statusBadlyPoisoned",
+  slp: "board.pokemon.statusAsleep",
+  frz: "board.pokemon.statusFrozen",
+  fnt: "board.pokemon.statusFainted",
+} satisfies Record<string, MessageKey>;
+
+export const statusLabel = (status: string, t: Translate) => {
+  const key = knownValue(statusKeys, status);
+
+  return key ? t(key) : status;
+};
+
+const effectKeys = {
+  substitute: "board.pokemon.effectSubstitute",
+  confusion: "board.pokemon.effectConfusion",
+  reflect: "board.pokemon.effectReflect",
+  lightscreen: "board.pokemon.effectLightScreen",
+  leechseed: "board.pokemon.effectLeechSeed",
+  focusenergy: "board.pokemon.effectFocusEnergy",
+  mist: "board.pokemon.effectMist",
+  bide: "board.pokemon.effectBide",
+  rage: "board.pokemon.effectRage",
+  disable: "board.pokemon.effectDisable",
+} satisfies Record<string, MessageKey>;
+
+const normalizeEffect = (effect: string) =>
+  effect.replace(/^move: /, "").toLowerCase().replaceAll(" ", "");
+
+export const effectLabel = (effect: string, t: Translate) => {
+  const key = knownValue(effectKeys, normalizeEffect(effect));
+
+  return key ? t(key) : effect.replace(/^move: /, "");
+};
+
+const effectNoteKeys = {
+  substitute: "board.pokemon.effectSubstituteNote",
+  confusion: "board.pokemon.effectConfusionNote",
+  reflect: "board.pokemon.effectReflectNote",
+  lightscreen: "board.pokemon.effectLightScreenNote",
+  leechseed: "board.pokemon.effectLeechSeedNote",
+  focusenergy: "board.pokemon.effectFocusEnergyNote",
+  mist: "board.pokemon.effectMistNote",
+  bide: "board.pokemon.effectBideNote",
+  rage: "board.pokemon.effectRageNote",
+  disable: "board.pokemon.effectDisableNote",
+} satisfies Record<string, MessageKey>;
+
+export const effectNote = (effect: string, t: Translate): string | null => {
+  const key = knownValue(effectNoteKeys, normalizeEffect(effect));
+
+  return key ? t(key) : null;
+};

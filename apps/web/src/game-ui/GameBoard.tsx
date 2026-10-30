@@ -38,8 +38,10 @@ export function GameBoard({
   state: ClientView;
   send?: (name: string, data: WireValue) => void;
 }) {
+  const t = useT();
+
   return (
-    <Suspense fallback={<LoadingPanel label="Loading board…" />}>
+    <Suspense fallback={<LoadingPanel label={t("match.loadingBoard")} />}>
       <Board state={state} send={send} />
     </Suspense>
   );

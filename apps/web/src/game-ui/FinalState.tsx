@@ -172,7 +172,9 @@ function FinalWords({ state }: { state: ClientView }) {
                     <li
                       className="result-guess-placeholder"
                       key={`placeholder-${index}`}
-                      aria-label={guess ? "Word hidden" : "No guess recorded"}
+                      aria-label={
+                        guess ? t("board.contexto.wordHidden") : t("board.contexto.noGuessRecorded")
+                      }
                     >
                       <span aria-hidden="true" />
                       <span aria-hidden="true" />
@@ -200,8 +202,8 @@ function FinalCodenames({ state }: { state: ClientView }) {
         <h2>{t("match.finalKey")}</h2>
         <p>
           {board.every((card) => card.affiliation)
-            ? "The complete key is visible. Guessed cards are marked."
-            : "Guessed cards are marked. Hidden affiliations remain concealed."}
+            ? t("board.codenames.finalKeyVisible")
+            : t("board.codenames.finalKeyHidden")}
         </p>
       </header>
       <div className="result-word-grid" role="group" aria-label={t("match.finalCodenamesBoard")}>
@@ -250,7 +252,7 @@ function FinalPoker({
           return (
             <article className="result-poker-standing" key={seat.playerId}>
               {renderPlayer?.(seat.playerId) ?? (
-                <h3>{playerName(state, seat.playerId, "Player")}</h3>
+                <h3>{playerName(state, seat.playerId, t("common.player"))}</h3>
               )}
             </article>
           );

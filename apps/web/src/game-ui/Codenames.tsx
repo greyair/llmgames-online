@@ -330,7 +330,7 @@ export function Codenames({
                 >
                   {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "unlimited"].map((value) => (
                     <option value={value} key={value}>
-                      {value === "unlimited" ? "∞ unlimited" : value}
+                      {value === "unlimited" ? t("board.codenames.unlimitedOption") : value}
                     </option>
                   ))}
                 </select>
@@ -341,7 +341,7 @@ export function Codenames({
                 data-sound="clue"
                 disabled={!word.trim() || /\s/.test(word.trim())}
               >
-                Give clue
+                {t("board.codenames.giveClue")}
               </Button>
             </form>
           ) : (
@@ -396,7 +396,7 @@ export function Codenames({
                   className="words-end-turn"
                   onClick={() => send("end_turn", {})}
                 >
-                  End turn
+                  {t("board.codenames.endTurn")}
                 </Button>
               )}
             </div>

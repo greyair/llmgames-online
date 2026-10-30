@@ -4,6 +4,7 @@ import type { WireValue } from "@llmgames/game-catalog";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { ClientView } from "@/domain/game-state";
 import { playGameSound, type GameSound } from "@/interface/Feedback";
+import { useT } from "@/i18n";
 
 type Point = { row: number; col: number };
 
@@ -128,7 +129,7 @@ export function useBattleshipEffects(state: ClientView) {
       add(
         shot.sunkShipId ? "sunk" : shot.hit ? "hit" : "miss",
         board,
-        { ...shot, shipName: name?.shortName ?? name?.name ?? "Ship" },
+        { ...shot, shipName: name?.shortName ?? name?.name },
         index * 65,
       );
     });
@@ -338,6 +339,7 @@ function EffectArt({ effect }: { effect: Effect }) {
 }
 
 export function BattleshipEffects({ effects, board }: { effects: Effect[]; board: string }) {
+  const t = useT();
   const mine = effects.filter((effect) => effect.board === board);
 
   return (
@@ -347,7 +349,9 @@ export function BattleshipEffects({ effects, board }: { effects: Effect[]; board
         .slice(-1)
         .map((effect) => (
           <div key={`label-${effect.id}`} className="ship-sunk-announcement">
-            {effect.shipName} sunk
+            {t("board.ships.sunkLabel", {
+              ship: effect.shipName ?? t("board.ships.defaultShipName"),
+            })}
           </div>
         ))}
       {mine

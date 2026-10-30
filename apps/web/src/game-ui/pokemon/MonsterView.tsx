@@ -36,6 +36,8 @@ export function Sprite({
   back?: boolean;
   animated?: boolean;
 }) {
+  const t = useT();
+
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
     prefersReducedMotion,
@@ -50,7 +52,12 @@ export function Sprite({
   const moving = animated && !reducedMotion && !mon.fainted;
 
   return mon.hidden || !name ? (
-    <svg className="poke-unknown" role="img" aria-label="Unrevealed Pokémon" viewBox="0 0 32 32">
+    <svg
+      className="poke-unknown"
+      role="img"
+      aria-label={t("board.pokemon.unrevealedPokemon")}
+      viewBox="0 0 32 32"
+    >
       <circle className="poke-unknown-shell" cx="16" cy="16" r="12.5" />
       <path className="poke-unknown-top" d="M3.5 16a12.5 12.5 0 0 1 25 0z" />
       <path className="poke-unknown-band" d="M3.5 16h25" />
@@ -146,9 +153,9 @@ export function MonsterStatus({
           </span>
         ) : (
           status && (
-            <span className="poke-status-sticker" data-status={code} title={statusLabel(status)}>
+            <span className="poke-status-sticker" data-status={code} title={statusLabel(status, t)}>
               <span aria-hidden="true">{statusSticker(code)}</span>
-              <span className="sr-only">{statusLabel(status)}</span>
+              <span className="sr-only">{statusLabel(status, t)}</span>
             </span>
           )
         )}
@@ -176,14 +183,14 @@ export function MonsterStatus({
         <div className="poke-status-tags">
           {mon.effects?.map((effect) => (
             <span key={effect} data-effect="true">
-              {effectLabel(effect)}
+              {effectLabel(effect, t)}
             </span>
           ))}
           {Object.entries(mon.boosts ?? {})
             .filter(([, value]) => value !== 0)
             .map(([stat, value]) => (
               <span key={stat} data-negative={value! < 0}>
-                {statLabel(stat)} {value! > 0 ? "+" : ""}
+                {statLabel(stat, t)} {value! > 0 ? "+" : ""}
                 {value}
               </span>
             ))}
@@ -197,10 +204,10 @@ export function MonsterStatus({
         >
           {(
             [
-              ["atk", "Atk"],
-              ["def", "Def"],
-              ["spa", "Special"],
-              ["spe", "Speed"],
+              ["atk", t("board.pokemon.statShortAtk")],
+              ["def", t("board.pokemon.statShortDef")],
+              ["spa", t("board.pokemon.statShortSpecial")],
+              ["spe", t("board.pokemon.statShortSpeed")],
             ] as const
           ).map(
             ([key, label]) =>

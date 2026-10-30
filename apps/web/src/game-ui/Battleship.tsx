@@ -721,7 +721,7 @@ export function Battleship({
           other.has(coordinate(cell)),
       )
     ) {
-      setNotice("That placement overlaps a ship or goes off the grid.");
+      setNotice(t("board.ships.placementInvalid"));
 
       return;
     }
@@ -1319,7 +1319,7 @@ export function Battleship({
                                     aria-label={t("board.ships.rotate", {
                                       ship: spec.shortName ?? spec.name,
                                     })}
-                                    title="Rotate 90°"
+                                    title={t("board.ships.rotateNinety")}
                                     data-sound="flip"
                                     disabled={!can("place_fleet")}
                                     onClick={() => rotateShip(ship)}
@@ -1346,7 +1346,7 @@ export function Battleship({
                       }
                       onClick={() => send("place_fleet", { ships: draft })}
                     >
-                      Ready
+                      {t("board.ships.ready")}
                     </Button>
                   )}
                 </div>
@@ -1444,26 +1444,43 @@ export function Battleship({
                 {announcement && <p className="ship-log-announcement">{announcement}</p>}
                 {shotLog.length ? (
                   <ol>
-                    {[...shotLog].reverse().map((shot) => (
-                      <li
-                        key={shot.sequence}
-                        data-outcome={shot.sunkShipId ? "sunk" : shot.hit ? "hit" : "miss"}
-                      >
-                        <span className="ship-log-player" data-player={playerTone(shot.byPlayerId)}>
-                          {state.players?.find((player) => player.id === shot.byPlayerId)?.name ??
-                            "A player"}
-                        </span>
-                        {shot.weapon === "mine"
-                          ? "'s mine"
+                    {[...shotLog].reverse().map((shot) => {
+                      const player =
+                        state.players?.find((entry) => entry.id === shot.byPlayerId)?.name ??
+                        t("board.ships.somePlayer");
+
+                      const weapon =
+                        shot.weapon === "mine"
+                          ? t("board.ships.logMineSuffix")
                           : shot.weapon === "bomb"
-                            ? "'s bomb"
+                            ? t("board.ships.logBombSuffix")
                             : shot.weapon === "torpedo"
-                              ? "'s torpedo"
-                              : ""}{" "}
-                        {shot.sunkShipId ? "sank a ship" : shot.hit ? "hit a ship" : "missed"} at{" "}
-                        <strong>{cellName(shot.row, shot.col)}</strong>.
-                      </li>
-                    ))}
+                              ? t("board.ships.logTorpedoSuffix")
+                              : "";
+
+                      const result = shot.sunkShipId
+                        ? t("board.ships.logSank")
+                        : shot.hit
+                          ? t("board.ships.logHit")
+                          : t("board.ships.logMissed");
+
+                      return (
+                        <li
+                          key={shot.sequence}
+                          data-outcome={shot.sunkShipId ? "sunk" : shot.hit ? "hit" : "miss"}
+                        >
+                          <span
+                            className="ship-log-player"
+                            data-player={playerTone(shot.byPlayerId)}
+                          >
+                            {player}
+                          </span>
+                          {t("board.ships.logRest", { weapon, result })}
+                          <strong>{cellName(shot.row, shot.col)}</strong>
+                          {t("board.ships.logEnd")}
+                        </li>
+                      );
+                    })}
                   </ol>
                 ) : (
                   !announcement && <p className="ship-log-empty">{t("board.ships.noShots")}</p>

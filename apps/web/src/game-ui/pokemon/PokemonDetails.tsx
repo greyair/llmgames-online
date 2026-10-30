@@ -1,10 +1,9 @@
-import { knownValue } from "@/domain/view-contracts";
 import type { ReactNode } from "react";
 import type { Monster } from "@/features/pokemon/playback";
 import { Sprite, HealthBar } from "./MonsterView";
 import { TypeBadge } from "./TypeBadge";
 import { BattleInspect } from "./BattleInspect";
-import { effectLabel, effectDescription, statusLabel, statLabel } from "./battleLabels";
+import { effectLabel, effectNote, statusLabel, statLabel } from "./battleLabels";
 import { useT } from "@/i18n";
 
 export function PokemonDetails({
@@ -52,7 +51,7 @@ export function PokemonDetails({
                   : t(own ? "board.pokemon.hpValue" : "board.pokemon.publicHpValue", {
                       condition: mon.condition?.split(" ")[0] ?? t("board.pokemon.unknown"),
                     })}{" "}
-                {statusLabel(mon.condition?.split(" ")[1] ?? "")}
+                {statusLabel(mon.condition?.split(" ")[1] ?? "", t)}
               </p>
               {mon.active && <small>{t("board.pokemon.currentlyBattling")}</small>}
             </div>
@@ -63,7 +62,7 @@ export function PokemonDetails({
               <dl className="poke-detail-stats">
                 {(["atk", "def", "spa", "spe"] as const).map((stat) => (
                   <div key={stat}>
-                    <dt>{statLabel(stat)}</dt>
+                    <dt>{statLabel(stat, t)}</dt>
                     <dd>{mon.stats?.[stat] ?? "?"}</dd>
                   </div>
                 ))}
@@ -79,15 +78,15 @@ export function PokemonDetails({
                   .filter(([, value]) => value)
                   .map(([stat, value]) => (
                     <span key={stat}>
-                      {statLabel(stat)} {value! > 0 ? "+" : ""}
+                      {statLabel(stat, t)} {value! > 0 ? "+" : ""}
                       {t("board.pokemon.stages", { value })}
                     </span>
                   ))}
               </div>
               {mon.effects?.map((effect) => (
                 <p key={effect}>
-                  <strong>{effectLabel(effect)}</strong> ·{" "}
-                  {knownValue(effectDescription, effect) ?? t("board.pokemon.activeEffect")}
+                  <strong>{effectLabel(effect, t)}</strong> ·{" "}
+                  {effectNote(effect, t) ?? t("board.pokemon.activeEffect")}
                 </p>
               ))}
             </section>
@@ -127,7 +126,7 @@ export function PokemonDetails({
       {children ?? (
         <button
           className="poke-roster-slot poke-inspect-roster"
-          aria-label={`Inspect ${name}`}
+          aria-label={t("board.pokemon.inspectName", { name })}
           data-active={mon.active}
           data-fainted={mon.fainted}
         >

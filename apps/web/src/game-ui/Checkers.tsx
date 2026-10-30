@@ -232,7 +232,7 @@ export function Checkers({
                       data-capture={Boolean(enabled && move?.capture)}
                       data-last-move={isLast}
                       data-last-from={isFrom}
-                      aria-label={`${label}${isLast ? ", last move" : ""}`}
+                      aria-label={`${label}${isLast ? t("board.checkers.lastMove") : ""}`}
                       aria-pressed={Boolean(enabled && active)}
                       disabled={!enabled || (!source && !move)}
                       data-sound={move ? "none" : undefined}

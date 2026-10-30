@@ -10,7 +10,7 @@ import { PlayerName } from "./PlayerName";
 import { contextoHeat, contextoRankStyle } from "./contextoRankStyle";
 import "./contexto.css";
 import "./sketch/contexto.css";
-import { useT } from "@/i18n";
+import { useT, type Translate } from "@/i18n";
 
 type OwnGuess = { word: string; submittedWord?: string; rank: number; sequence: number };
 
@@ -25,6 +25,22 @@ type GuessAttempt = {
 
 function isOwnGuess(guess: OwnGuess | MaskedGuess): guess is OwnGuess {
   return "word" in guess;
+}
+
+// The wire contract makes the alias and rank optional, so the spoken label falls
+// back to whichever parts the server actually sent instead of reading out blanks.
+function lastGuessLabel(attempt: GuessAttempt, t: Translate): string {
+  const { submittedWord: word, status, canonicalWord, rank } = attempt;
+
+  if (status === "not_in_pool") return t("board.contexto.lastGuessNotInPool", { word });
+
+  if (status === "aliased" && canonicalWord && rank !== undefined) {
+    return t("board.contexto.lastGuessAliased", { word, canonical: canonicalWord, rank });
+  }
+
+  if (rank !== undefined) return t("board.contexto.lastGuessRank", { word, rank });
+
+  return word;
 }
 
 const ROW_SPRING = { type: "spring", stiffness: 520, damping: 38, mass: 0.8 } as const;
@@ -228,8 +244,8 @@ export function Contexto({
                       {fullBoard
                         ? `${entry?.guessCount ?? 0}/${limit}`
                         : entry?.bestRank
-                          ? `Best ${entry.bestRank.toLocaleString()}`
-                          : "No guesses yet"}
+                          ? t("board.contexto.best", { rank: entry.bestRank.toLocaleString() })
+                          : t("board.contexto.noGuesses")}
                     </span>
                   </header>
                   {visible.length ? (
@@ -322,7 +338,7 @@ export function Contexto({
         {(lastAttempt || lastGuess) && (
           <div className="contexto-last">
             <span className="contexto-last-label" aria-hidden="true">
-              Last guess
+              {t("board.contexto.lastGuessLabel")}
             </span>
             {lastAttempt ? (
               <div
@@ -331,19 +347,13 @@ export function Contexto({
                 data-status={lastAttempt.status}
                 style={lastAttempt.rank ? contextoRankStyle(lastAttempt.rank) : undefined}
                 role={lastAttempt.status === "not_in_pool" ? "status" : undefined}
-                aria-label={
-                  lastAttempt.status === "not_in_pool"
-                    ? `Last guess ${lastAttempt.submittedWord}, not in pool`
-                    : lastAttempt.status === "aliased"
-                      ? `Last guess ${lastAttempt.submittedWord}, counted as ${lastAttempt.canonicalWord}, rank ${lastAttempt.rank}`
-                      : `Last guess ${lastAttempt.submittedWord}, rank ${lastAttempt.rank}`
-                }
+                aria-label={lastGuessLabel(lastAttempt, t)}
               >
                 <strong>{lastAttempt.submittedWord}</strong>
-                {lastAttempt.status === "aliased" ? (
+                {lastAttempt.status === "aliased" && lastAttempt.canonicalWord ? (
                   <>
                     <small>
-                      counted as <b>{lastAttempt.canonicalWord}</b>
+                      {t("board.contexto.countedAs", { word: lastAttempt.canonicalWord })}
                     </small>
                     <b>{lastAttempt.rank?.toLocaleString()}</b>
                   </>
@@ -358,7 +368,10 @@ export function Contexto({
                 <div
                   className="contexto-last-guess"
                   style={contextoRankStyle(lastGuess.rank)}
-                  aria-label={`Last guess ${lastGuess.word}, rank ${lastGuess.rank}`}
+                  aria-label={t("board.contexto.lastGuessRank", {
+                    word: lastGuess.word,
+                    rank: lastGuess.rank,
+                  })}
                 >
                   <strong>{lastGuess.word}</strong>
                   <b>{lastGuess.rank.toLocaleString()}</b>
@@ -414,7 +427,11 @@ export function Contexto({
                     </span>
                   </div>
                   {rivalBest ? (
-                    <ol aria-label={`${player.name ?? player.codename ?? "Player"} best ranks`}>
+                    <ol
+                      aria-label={t("board.contexto.bestRanks", {
+                        player: player.name ?? player.codename ?? t("common.player"),
+                      })}
+                    >
                       <AnimatePresence initial={false}>
                         {entry!.guesses.map((guess) => (
                           <RankRow key={`r${guess.rank}`} guess={guess} masked />

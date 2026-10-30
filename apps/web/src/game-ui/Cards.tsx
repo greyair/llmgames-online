@@ -382,7 +382,7 @@ function PokerSeat({
           <strong
             className="poker-seat-bet"
             data-empty={bet === 0}
-            aria-label={`In this round: ${bet}`}
+            aria-label={t("board.poker.inRound", { bet })}
           >
             <BetChip amount={bet} />
             <span>{bet}</span>
@@ -672,12 +672,15 @@ export function Cards({
         <Badge tone="neutral">{phaseLabel}</Badge>
         <span className="poker-heading-meta">
           {state.handNumber
-            ? `Hand ${state.handNumber}`
-            : `Blinds ${state.blinds?.sb ?? 5} / ${state.bigBlind ?? 10}`}
+            ? t("board.cards.hand", { number: state.handNumber })
+            : t("board.cards.blinds", {
+                sb: state.blinds?.sb ?? 5,
+                bb: state.bigBlind ?? 10,
+              })}
         </span>
         {catchingUp && resultRemainingMs === 0 && (
           <Button variant="secondary" size="sm" onClick={goLive}>
-            Back to live
+            {t("board.cards.backToLive")}
           </Button>
         )}
       </header>
@@ -688,7 +691,7 @@ export function Cards({
             <span className="poker-felt-line" />
           </span>
         </div>
-        <section className="cards-center" aria-label="Community cards">
+        <section className="cards-center" aria-label={t("board.cards.communityCards")}>
           <PokerPot pot={state.pot ?? 0} />
           <div className="poker-board">
             <div className="card-fan">
@@ -723,7 +726,8 @@ export function Cards({
               <>
                 <strong>
                   <span>
-                    {seats.find((seat) => seat.playerId === lastEntry.playerId)?.name ?? "Player"}
+                    {seats.find((seat) => seat.playerId === lastEntry.playerId)?.name ??
+                      t("board.poker.player")}
                   </span>{" "}
                   · {describeAction(lastEntry, t)}
                 </strong>
@@ -735,7 +739,8 @@ export function Cards({
                         <small>
                           Hand {entry.handNumber} · {entry.street}
                         </small>{" "}
-                        {seats.find((seat) => seat.playerId === entry.playerId)?.name ?? "Player"}{" "}
+                        {seats.find((seat) => seat.playerId === entry.playerId)?.name ??
+                          t("board.poker.player")}{" "}
                         {describeAction(entry, t)}
                       </li>
                     ))}
@@ -747,7 +752,7 @@ export function Cards({
             )}
           </div>
         </section>
-        <section className="card-seats" aria-label="Table seats" tabIndex={0}>
+        <section className="card-seats" aria-label={t("board.cards.tableSeats")} tabIndex={0}>
           {seats.map((seat, index) => (
             <PokerSeat
               key={seat.playerId}
@@ -771,9 +776,9 @@ export function Cards({
                 {hero.folded
                   ? t("board.poker.youFolded")
                   : hero.allIn
-                    ? "You’re all in"
+                    ? t("board.poker.youAllIn")
                     : state.you?.isYourTurn
-                      ? `To call: ${toCall}`
+                      ? t("board.poker.toCall", { amount: toCall })
                       : t("board.poker.waitingNextMove")}
               </p>
             </div>

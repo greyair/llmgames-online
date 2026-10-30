@@ -11,6 +11,7 @@ import "./sketch/pokemon.css";
 import { usePokemonPlayback } from "./pokemon/useBattlePlayback";
 import { playerPrimaryName, playerIdentityDetail } from "@/features/shared/playerIdentity";
 import { PokemonPlaybackSettledContext } from "./pokemon/PokemonPlaybackContext";
+import { useT } from "@/i18n";
 
 export function Pokemon({
   state,
@@ -19,6 +20,7 @@ export function Pokemon({
   state: ClientView;
   send: (name: string, data: WireValue) => void;
 }) {
+  const t = useT();
   const sides = state.sides ?? [];
   const ownSeat = state.yourSeat ?? state.battleSeats?.[state.you?.playerId ?? ""] ?? "p1";
   const onPlaybackSettled = useContext(PokemonPlaybackSettledContext) ?? undefined;
@@ -72,12 +74,14 @@ export function Pokemon({
 
   const names = Object.fromEntries(
     sides.map((side, index) => {
+      const fallback = t("board.pokemon.trainerNumber", { number: index + 1 });
+
       const player = state.players?.find(
         (player) => state.battleSeats?.[player.id] === side.seat,
       ) ??
-        state.players?.[index] ?? { id: side.seat, name: `Trainer ${index + 1}` };
+        state.players?.[index] ?? { id: side.seat, name: fallback };
 
-      return [side.seat, playerPrimaryName(player, `Trainer ${index + 1}`)];
+      return [side.seat, playerPrimaryName(player, fallback)];
     }),
   );
 
@@ -114,15 +118,18 @@ export function Pokemon({
   const moveAnnouncement =
     playback.cue?.label ||
     (latestMove
-      ? `${latestMove[2]?.replace(/^p[12][a-z]?: /, "")} used ${latestMove[3]}`
-      : "Waiting for the first move");
+      ? t("board.pokemon.moveAnnouncement", {
+          name: latestMove[2]?.replace(/^p[12][a-z]?: /, "") ?? "",
+          move: latestMove[3] ?? "",
+        })
+      : t("board.pokemon.waitingFirstMove"));
 
   const message =
     state.status === "ended"
-      ? "Battle finished."
+      ? t("board.pokemon.battleFinished")
       : state.you?.isSpectator || state.replayReadOnly
-        ? "Watching the battle."
-        : "Choice submitted. Waiting for the other trainer.";
+        ? t("board.pokemon.watchingBattle")
+        : t("board.pokemon.choiceSubmitted");
 
   const controlsMessage = playback.busy ? playback.cue?.label || moveAnnouncement : message;
 

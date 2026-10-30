@@ -1,72 +1,112 @@
 import { knownValue } from "@/domain/view-contracts";
 import { effectLabel, statLabel, statusLabel } from "./battleLabels";
 import { useEffect, useRef } from "react";
-import { useT } from "@/i18n";
+import { useT, type MessageKey, type Translate } from "@/i18n";
 
 const mon = (value = "") => value.replace(/^p[12][a-z]?: /, "");
 
+const cantKeys = {
+  par: "board.pokemon.cantParalyzed",
+  slp: "board.pokemon.cantAsleep",
+  frz: "board.pokemon.cantFrozen",
+  recharge: "board.pokemon.cantRecharge",
+  flinch: "board.pokemon.cantFlinch",
+  nopp: "board.pokemon.cantNoPp",
+  trapped: "board.pokemon.cantTrapped",
+} satisfies Record<string, MessageKey>;
+
 /** Render public protocol as text; never render protocol HTML or private requests. */
-export function logLine(line: string): string | null {
+export function logLine(line: string, t: Translate): string | null {
   const [, kind, a, b, c] = line.split("|");
+  const name = mon(a);
 
   switch (kind) {
     case "turn":
-      return `Turn ${a}`;
+      return t("board.pokemon.logTurn", { turn: a ?? "" });
     case "move":
-      return `${mon(a)} used ${b}.`;
+      return t("board.pokemon.logMove", { name, move: b ?? "" });
     case "switch":
     case "drag":
-      return `${mon(a)} entered the battle.`;
+      return t("board.pokemon.logEnter", { name });
     case "faint":
-      return `${mon(a)} fainted.`;
+      return t("board.pokemon.logFaint", { name });
     case "-damage":
-      return `${mon(a)} has ${b?.split(" ")[0]} HP left.`;
+      return t("board.pokemon.logDamage", { name, hp: b?.split(" ")[0] ?? "" });
     case "-heal":
-      return `${mon(a)} recovered HP.`;
+      return t("board.pokemon.logHeal", { name });
     case "-status":
-      return `${mon(a)} is ${statusLabel(b ?? "").toLowerCase()}.`;
+      return t("board.pokemon.logStatus", {
+        name,
+        status: statusLabel(b ?? "", t).toLowerCase(),
+      });
     case "-curestatus":
-      return `${mon(a)} recovered from its status condition.`;
+      return t("board.pokemon.logCureStatus", { name });
     case "-boost":
-      return `${mon(a)} gained ${c} ${statLabel(b ?? "")}.`;
+      return t("board.pokemon.logBoost", {
+        name,
+        count: c ?? "",
+        stat: statLabel(b ?? "", t),
+      });
     case "-unboost":
-      return `${mon(a)} lost ${c} ${statLabel(b ?? "")}.`;
+      return t("board.pokemon.logUnboost", {
+        name,
+        count: c ?? "",
+        stat: statLabel(b ?? "", t),
+      });
     case "-supereffective":
-      return "It was super effective!";
+      return t("board.pokemon.logSuperEffective");
     case "-resisted":
-      return "It was not very effective.";
+      return t("board.pokemon.logResisted");
     case "-crit":
-      return "A critical hit!";
+      return t("board.pokemon.logCritical");
     case "-miss":
-      return `${mon(a)} missed.`;
+      return t("board.pokemon.logMiss", { name });
     case "-immune":
-      return `${mon(a)} was unaffected.`;
+      return t("board.pokemon.logImmune", { name });
     case "-fail":
-      return "The move failed.";
-    case "cant":
-      return `${mon(a)} could not move: ${knownValue({ par: "fully paralyzed", slp: "asleep", frz: "frozen", recharge: "must recharge", flinch: "flinched", nopp: "no PP left", trapped: "partially trapped" }, b ?? "") ?? effectLabel(b ?? "unable to act")}.`;
+      return t("board.pokemon.logFail");
+    case "cant": {
+      const key = knownValue(cantKeys, b ?? "");
+      const reason = key ? t(key) : effectLabel(b ?? "", t) || t("board.pokemon.cantFallback");
+
+      return t("board.pokemon.logCant", { name, reason });
+    }
+
     case "-start":
-      return `${mon(a)}: ${effectLabel(b ?? "effect")} started.`;
+      return t("board.pokemon.logEffectStart", {
+        name,
+        effect: effectLabel(b || t("board.pokemon.effectFallback"), t),
+      });
     case "-end":
-      return `${mon(a)}: ${effectLabel(b ?? "effect")} ended.`;
+      return t("board.pokemon.logEffectEnd", {
+        name,
+        effect: effectLabel(b || t("board.pokemon.effectFallback"), t),
+      });
     case "-activate":
-      return `${mon(a)}: ${effectLabel(b ?? "effect")}.`;
+      return t("board.pokemon.logEffectActive", {
+        name,
+        effect: effectLabel(b || t("board.pokemon.effectFallback"), t),
+      });
     case "-mustrecharge":
-      return `${mon(a)} must recharge.`;
+      return t("board.pokemon.logRecharge", { name });
     case "-hitcount":
-      return `Hit ${b} times.`;
+      return t("board.pokemon.logHitCount", { count: b ?? "" });
     case "-setboost":
-      return `${mon(a)}: ${statLabel(b ?? "")} is now ${c} stages.`;
+      return t("board.pokemon.logSetBoost", {
+        name,
+        stat: statLabel(b ?? "", t),
+        count: c ?? "",
+      });
     case "-clearallboost":
-      return "All stat changes were reset.";
+      return t("board.pokemon.logClearAllBoosts");
     case "-clearboost":
-      return `${mon(a)}'s stat changes were reset.`;
+      return t("board.pokemon.logClearBoost", { name });
     case "-cureteam":
-      return `${mon(a)}'s team recovered from status conditions.`;
+      return t("board.pokemon.logCureTeam", { name });
     case "win":
-      return `${a} won the battle.`;
+      return t("board.pokemon.logWin", { name: a ?? "" });
     case "tie":
-      return "The battle ended in a draw.";
+      return t("board.pokemon.logTie");
     case "message":
       return a ?? null;
     default:
@@ -86,11 +126,11 @@ export function BattleLog({ lines, offset = 0 }: { lines: string[]; offset?: num
 
   const entries = lines
     .map((line, index) => {
-      const text = logLine(line),
+      const text = logLine(line, t),
         ident = line.split("|")[2] ?? "",
         name = mon(ident);
 
-      const named = /^p[12][a-z]?: /.test(ident) && Boolean(name) && text?.startsWith(name + " ");
+      const named = /^p[12][a-z]?: /.test(ident) && Boolean(name) && text?.startsWith(name);
 
       return {
         id: offset + index,

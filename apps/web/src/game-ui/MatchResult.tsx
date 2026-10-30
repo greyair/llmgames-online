@@ -276,13 +276,20 @@ export function MatchResult({
           <PlayerName
             className="result-player-name"
             player={player}
-            extra={winner ? "Won" : undefined}
+            extra={winner ? t("match.won") : undefined}
           />
           <span className="result-player-status">
-            {winner ? "Winner" : state.winner === "draw" ? "Draw" : "Finished"}
+            {winner
+              ? t("match.winner")
+              : state.winner === "draw"
+                ? t("match.draw")
+                : t("match.finished")}
           </span>
           {isNumber(chips) && (
-            <small className="result-player-chips" aria-label={`${chips.toLocaleString()} chips`}>
+            <small
+              className="result-player-chips"
+              aria-label={t("match.chipsAria", { amount: chips.toLocaleString() })}
+            >
               {chips.toLocaleString()}
             </small>
           )}

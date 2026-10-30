@@ -7,6 +7,7 @@ import {
   type PlayerIdentity,
 } from "@/features/shared/playerIdentity";
 import "./player-name.css";
+import { useT } from "@/i18n";
 
 export const JevStatusContext = createContext<{
   playerId: string;
@@ -24,17 +25,18 @@ export function PlayerName({
   extra?: string;
   className?: string;
 }) {
+  const t = useT();
   const detail = playerIdentityDetail(player);
   const jev = useContext(JevStatusContext);
   const status = jev && player.id === jev.playerId ? jev.status : null;
 
   const note =
     status === "retrying"
-      ? "Reconnecting…"
+      ? t("match.jevReconnecting")
       : status === "limit_reached"
-        ? "Play limit reached. Turn timer still applies."
+        ? t("match.jevLimitReached")
         : status === "unavailable"
-          ? "Couldn’t choose a move. Turn timer still applies."
+          ? t("match.jevNoMove")
           : null;
 
   return (

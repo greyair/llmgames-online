@@ -1,5 +1,6 @@
 import { DoodleShip } from "./DoodleShip";
 import "./sunken-ships.css";
+import { useT } from "@/i18n";
 
 export type ShipFootprint = {
   id: string;
@@ -28,15 +29,17 @@ export function FleetStatus({
   remaining?: number;
   column?: boolean;
 }) {
+  const t = useT();
   const lost = new Set(sunk.map((ship) => ship.id));
   const afloat = remaining ?? fleet.length - lost.size;
 
   return (
     <div className="sea-fleet-summary" data-column={column}>
       <span className="sea-fleet-count">
-        <strong>{afloat}</strong> afloat · <strong>{lost.size}</strong> sunk
+        <strong>{afloat}</strong> {t("board.ships.afloat")} · <strong>{lost.size}</strong>{" "}
+        {t("board.ships.sunk")}
       </span>
-      <div className="sea-fleet-status" aria-label="Fleet status">
+      <div className="sea-fleet-status" aria-label={t("board.ships.fleetStatus")}>
         {fleet.map((ship) => {
           const name = ship.shortName ?? ship.name ?? ship.id,
             status = lost.has(ship.id) ? "sunk" : "afloat";

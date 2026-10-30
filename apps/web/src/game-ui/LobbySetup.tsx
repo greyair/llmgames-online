@@ -427,7 +427,11 @@ export function LobbySetup({
           : t("lobby.ready");
 
   const jevCanAdd = Boolean(jevAccess && (jevAccess.connected || jevAccess.trialAvailable));
-  const jevAddLabel = jevAccess?.connected ? "Add Jev" : "Try Jev for a game";
+
+  const jevAddLabel = jevAccess?.connected
+    ? t("board.lobby.jevAdd")
+    : t("board.lobby.jevTry");
+
   const dragMember = drag ? (members.find((p) => p.id === drag.id) ?? { id: drag.id }) : undefined;
 
   return (
@@ -489,18 +493,18 @@ export function LobbySetup({
         <div className="lobby-jev">
           <div>
             <strong>
-              <JevLogo size={22} /> Play with Jev
+              <JevLogo size={22} /> {t("board.lobby.playWithJev")}
             </strong>
             <p>
               {state.jev.playerId
-                ? "Jev is at your table. One Jev player per room."
+                ? t("board.lobby.jevSeated")
                 : !jevAccess
-                  ? "Checking Jev access…"
+                  ? t("board.lobby.jevChecking")
                   : jevAccess.connected
-                    ? "Jev will use your connected TypeSafe account."
+                    ? t("board.lobby.jevConnected")
                     : jevAccess.trialAvailable
-                      ? "Try one game free. If you connect TypeSafe, Jev uses your account instead."
-                      : "Your free Jev game has been used. Connect TypeSafe to keep playing."}
+                      ? t("board.lobby.jevTrial")
+                      : t("board.lobby.jevExhausted")}
             </p>
           </div>
           <div className="lobby-jev-actions">
@@ -508,11 +512,11 @@ export function LobbySetup({
               <Button
                 size="sm"
                 variant="secondary"
-                aria-label="Remove Jev"
+                aria-label={t("board.lobby.removeJev")}
                 disabled={!allowed}
                 onClick={() => request("remove_jev")}
               >
-                Remove Jev
+                {t("board.lobby.removeJev")}
               </Button>
             ) : jevCanAdd ? (
               <Button
@@ -531,9 +535,9 @@ export function LobbySetup({
                 href="/profile#jev-settings"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Connect your account, opens Profile in a new tab"
+                aria-label={t("board.lobby.connectAccountAria")}
               >
-                Connect your account <Icon name="arrowUpRight" size={18} />
+                {t("board.lobby.connectAccount")} <Icon name="arrowUpRight" size={18} />
               </ButtonLink>
             )}
           </div>
