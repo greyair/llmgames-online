@@ -11,6 +11,7 @@ import { play } from "@/lib/sound";
 import { PlayerName } from "./PlayerName";
 import "./codenames.css";
 import "./sketch/codenames.css";
+import { useT } from "@/i18n";
 
 /** Turns rows of '#' (fill) and '+' (shade) into crisp SVG pixel paths. */
 function pixelPaths(rows: string[]) {
@@ -78,6 +79,8 @@ export function Codenames({
   state: ClientView;
   send: (name: string, data: WireValue) => void;
 }) {
+  const t = useT();
+
   const [word, setWord] = useState(""),
     [count, setCount] = useState("2");
 
@@ -159,14 +162,14 @@ export function Codenames({
 
   const teamPanel = (team: "blue" | "red") => {
     const count = remaining?.[team];
-    const name = team === "blue" ? "Blue" : "Red";
+    const name = t(team === "blue" ? "lobby.blue" : "lobby.red");
     const active = state.status === "playing" && state.activeTeam === team;
     const winner = state.status === "ended" && state.winnerTeam === team;
 
     return (
       <aside
         className={`word-team word-team-${team}`}
-        aria-label={`${team} team`}
+        aria-label={t("board.codenames.teamLabel", { team: name })}
         data-team={team}
         data-expanded={rosters[team]}
         data-active={active}
@@ -176,10 +179,14 @@ export function Codenames({
           <span
             className="word-team-score"
             data-team={team}
-            aria-label={isNumber(count) ? `${count} agents left` : "Agents left unknown"}
+            aria-label={
+              isNumber(count)
+                ? t("board.codenames.agentsLeft", { count })
+                : t("board.codenames.agentsUnknown")
+            }
           >
             <b key={count}>{count ?? "—"}</b>
-            <small aria-hidden="true">left</small>
+            <small aria-hidden="true">{t("board.codenames.left")}</small>
           </span>
           <button
             type="button"
@@ -194,14 +201,14 @@ export function Codenames({
             </span>
             <span className="word-team-status">
               {winner
-                ? "Winners"
+                ? t("board.codenames.winners")
                 : active
                   ? state.turnState?.phase === "clue"
-                    ? "Giving a clue"
-                    : "Guessing"
-                  : "Waiting"}
+                    ? t("board.codenames.givingClue")
+                    : t("board.codenames.guessing")
+                  : t("match.waiting")}
             </span>
-            <span className="word-team-left">{count ?? "—"} left</span>
+            <span className="word-team-left">{count ?? "—"} {t("board.codenames.left")}</span>
             <i className="word-roster-chevron" aria-hidden="true">
               {rosters[team] ? "−" : "+"}
             </i>
@@ -211,7 +218,7 @@ export function Codenames({
           className="word-team-card"
           id={`word-roster-${team}`}
           tabIndex={0}
-          aria-label={`${name} team roster`}
+          aria-label={t("board.codenames.roster", { team: name })}
         >
           {(["spymaster", "operative"] as const).map((role) => {
             const acting = active && (state.turnState?.phase === "clue") === (role === "spymaster");
@@ -224,17 +231,17 @@ export function Codenames({
 
             return (
               <section key={role} data-active={acting}>
-                <h2>{role === "operative" ? "Operatives" : "Spymaster"}</h2>
+                <h2>{t(role === "operative" ? "lobby.operatives" : "lobby.spymaster")}</h2>
                 {members.length ? (
                   members.map((player) => (
                     <p key={player.id} data-active={acting}>
                       <GamePlayerAvatar player={player} />
                       <PlayerName player={player} />
-                      {acting && <span className="desk-active-label">Move</span>}
+                      {acting && <span className="desk-active-label">{t("board.codenames.move")}</span>}
                     </p>
                   ))
                 ) : (
-                  <p className="word-team-empty">Open seat</p>
+                  <p className="word-team-empty">{t("board.codenames.openSeat")}</p>
                 )}
               </section>
             );
@@ -248,8 +255,26 @@ export function Codenames({
 
   const heading =
     state.status === "ended"
-      ? "GAME FINISHED"
-      : `${state.activeTeam === "blue" ? "BLUE" : "RED"} ${state.turnState?.phase === "clue" ? "SPYMASTER’S" : "OPERATIVES’"} TURN`;
+      ? t("board.codenames.gameFinishedUpper")
+      : t("board.codenames.turnHeader", {
+          team: t(state.activeTeam === "blue" ? "lobby.blue" : "lobby.red"),
+          role: t(
+            state.turnState?.phase === "clue"
+              ? "board.codenames.spymasterUpper"
+              : "board.codenames.operativesUpper",
+          ),
+        });
+
+  const affiliationName = (kind: string) =>
+    t(
+      kind === "red"
+        ? "board.codenames.redAgent"
+        : kind === "blue"
+          ? "board.codenames.blueAgent"
+          : kind === "assassin"
+            ? "board.codenames.assassin"
+            : "board.codenames.bystander",
+    );
 
   const countLabel = clue ? (clue.count === "unlimited" ? "∞" : String(clue.count)) : "";
 
@@ -267,7 +292,7 @@ export function Codenames({
             {heading}
           </strong>
         </header>
-        <div className="words-controls" role="region" aria-label="Clue and turn controls">
+        <div className="words-controls" role="region" aria-label={t("board.codenames.clueControls")}>
           {can("give_clue") ? (
             <form
               className="words-clue-form"
@@ -282,23 +307,23 @@ export function Codenames({
               }}
             >
               <label className="words-field words-field-word">
-                <span>One-word clue</span>
+                <span>{t("board.codenames.oneWordClue")}</span>
                 <Input
-                  aria-label="Clue word"
+                  aria-label={t("board.codenames.clueWord")}
                   value={word}
                   onChange={(event) => setWord(event.target.value)}
                   required
                   pattern="\S+"
                   maxLength={40}
-                  placeholder="e.g. Orbit"
+                  placeholder={t("board.codenames.cluePlaceholder")}
                   autoComplete="off"
                   spellCheck={false}
                 />
               </label>
               <label className="words-field words-field-count">
-                <span>Count</span>
+                <span>{t("board.codenames.count")}</span>
                 <select
-                  aria-label="Clue count"
+                  aria-label={t("board.codenames.clueCount")}
                   className="ui-input"
                   value={count}
                   onChange={(event) => setCount(event.target.value)}
@@ -324,16 +349,22 @@ export function Codenames({
               {state.status === "ended" ? (
                 <strong className="words-result" data-team={state.winnerTeam ?? undefined}>
                   {state.winnerTeam
-                    ? `${state.winnerTeam === "red" ? "Red" : "Blue"} team wins`
-                    : "Game finished"}
+                    ? t("board.codenames.teamWins", {
+                        team: t(state.winnerTeam === "red" ? "lobby.red" : "lobby.blue"),
+                      })
+                    : t("board.codenames.gameFinished")}
                 </strong>
               ) : clue ? (
                 <>
                   <div className="words-clue-tile" data-team={state.activeTeam}>
-                    <span>Clue</span>
+                    <span>{t("board.codenames.clue")}</span>
                     <strong>{clue.word.toUpperCase()}</strong>
                     <b
-                      aria-label={clue.count === "unlimited" ? "unlimited" : `count ${clue.count}`}
+                      aria-label={
+                        clue.count === "unlimited"
+                          ? t("board.codenames.unlimited")
+                          : t("board.codenames.countValue", { count: clue.count })
+                      }
                     >
                       {countLabel}
                     </b>
@@ -342,18 +373,20 @@ export function Codenames({
                     <b>{state.guessesRemaining == null ? "∞" : state.guessesRemaining}</b>
                     <span>
                       {state.guessesRemaining == null
-                        ? "Unlimited guesses"
-                        : state.guessesRemaining === 1
-                          ? "guess left"
-                          : "guesses left"}
+                        ? t("board.codenames.unlimitedGuesses")
+                        : t(
+                            state.guessesRemaining === 1
+                              ? "board.codenames.guessLeft"
+                              : "board.codenames.guessesLeft",
+                          )}
                     </span>
                   </div>
                 </>
               ) : (
                 <p className="words-waiting">
                   {state.you?.isSpectator
-                    ? "Waiting for the spymaster’s clue."
-                    : "Waiting for the other players."}
+                    ? t("board.codenames.waitingClue")
+                    : t("board.codenames.waitingOthers")}
                 </p>
               )}
               {can("end_turn") && (
@@ -373,7 +406,7 @@ export function Codenames({
           ref={boardRef}
           className="words-board"
           role="group"
-          aria-label="Codenames board"
+          aria-label={t("board.codenames.boardTitle")}
           data-key={seesKey}
           data-guessing={can("guess_word") || undefined}
         >
@@ -395,7 +428,11 @@ export function Codenames({
                     [property: `--${string}`]: string | number | undefined;
                   }
                 }
-                aria-label={`${card.word}${card.revealed ? ", revealed" : ""}${affiliation ? `, ${affiliation}` : ""}`}
+                aria-label={[
+                  card.word,
+                  card.revealed ? `, ${t("board.codenames.revealed")}` : "",
+                  affiliation ? `, ${affiliationName(affiliation)}` : "",
+                ].join("")}
                 onClick={() => send("guess_word", { index: card.index })}
               >
                 {card.revealed && affiliation && <CardArt kind={affiliation} />}
