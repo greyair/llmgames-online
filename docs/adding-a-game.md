@@ -27,6 +27,11 @@ broadcast after `dispatchAction` writes the finished state and its receipt in
 one call. Do not call `saveState()` from a rule module: that pairing is what
 makes a retry a replay, and a second write reopens the gap M3.2.1 closed.
 
+Overrides are optional: `projectState` narrows the live projection, `rewatchView`
+narrows the replay frame (its default is full reveal of the state), `agentFields`
+adds MCP decision fields — and it only ever receives the recipient's own
+projection, so a rule module cannot widen what a player may see.
+
 Registration is still required in the deployment surface, which the plugin does
 not remove: the class export in `apps/workers/src/index.ts`, the `Env` binding,
 the `roomRouting.ts` case, both wrangler configs, and an appended D1 migration

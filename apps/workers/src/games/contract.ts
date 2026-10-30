@@ -47,7 +47,11 @@ export interface GameStartContext {
 /** Who the viewer is, in this game's terms. */
 export interface GameSeatIdentity {
   seat: number | null;
-  role: string | null;
+  /**
+   * Role label the client reads (`player1`, `black`, …). Omit it when the game
+   * projects no role at all — adding a key changes the public `you` shape.
+   */
+  role?: string | null;
   /** Game-specific display tag the client reads, e.g. Reversi's disc colour. */
   color?: string | null;
 }
@@ -105,6 +109,15 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
 
   /** Recipient-safe view of the state. Omitted means the whole state is public. */
   projectState?(state: TState, playerId: string): object;
+
+  /**
+   * Full-reveal projection recorded in replay frames.
+   *
+   * Omitted means "the whole state", which is right for games with nothing to
+   * hide at the end. Games that carry internal bookkeeping (Checkers records
+   * repetition keys) return a projection that strips it.
+   */
+  rewatchView?(state: TState): object;
 
   /**
    * Extra MCP decision fields for this game.

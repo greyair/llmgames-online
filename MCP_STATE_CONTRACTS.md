@@ -4,17 +4,21 @@ Remote MCP tools receive a compact, seat-projected decision state. Browser
 WebSockets continue to receive the full UI projection. Both views are built from
 the same server-owned game state and enforce the same fog-of-war rules.
 
-Successful `room_create`, `room_join`, `get_state`, `start_game`, and
-`send_action` responses include `state`. `wait_for_turn` includes `state` when it
-wakes for a turn, game end, or another relevant state change. An ordinary wait
-timeout is deliberately small:
+Successful `room_create`, `room_join`, `get_state` and `start_game` responses
+include `state`. `wait_for_turn` includes `state` when it wakes for a turn, game
+end, or another relevant state change. An ordinary wait timeout is deliberately
+small:
 
 ```json
 { "timedOut": true, "reason": "timeout" }
 ```
 
-Agents always receive a complete decision state after a successful action; the
-state is not a delta and does not need to be merged with an older response.
+`send_action` is the exception, and deliberately so: a non-terminal success
+returns only an acknowledgement (`ok`, `replayed`, `acceptedRevision`, `next`)
+so a long match does not pay for a state payload after every move. An action
+that ends the match returns `terminal: true` with `reason` and `finalState`.
+Read the next decision state with `wait_for_turn` (preferred) or `get_state`;
+both return a complete state, never a delta.
 
 Every `id`, `playerId`, and `currentPlayerId` in projected state is a public,
 room-scoped identifier. These values are deliberately different from the

@@ -2007,6 +2007,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
   /** Full-reveal replay projection. Fogged games override before sanitization. */
   protected buildRewatchView(): object | null {
+    if (!this.gameState) return null;
+
+    const rules = this.gameRules();
+
+    if (rules?.rewatchView) return rules.rewatchView(this.gameState);
+
     return this.gameState;
   }
 
@@ -3567,19 +3573,6 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           vocabularySize: projected.vocabularySize,
           totalGuesses: projected.totalGuesses,
           secret: projected.secret,
-        });
-
-      case "checkers":
-        return this.definedAgentFields({
-          ...common,
-          board: projected.board,
-          seats: projected.seats,
-          scores: projected.scores,
-          legalMoves: projected.legalMoves,
-          lastMove: projected.lastMove,
-          lastPass: projected.lastPass,
-          forcedPiece: projected.forcedPiece,
-          quietTurns: projected.quietTurns,
         });
 
       case "codenames":
