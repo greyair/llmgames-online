@@ -185,4 +185,7 @@ interface GamePlugin<TState extends BaseGameState, TId extends string = GameType
 
 ## 14. 本地提交
 
-本轮改动已提交到本地 `main`（未推送）：见 `git log -1 --oneline`。
+本轮改动已提交到本地 `main`（未推送、未部署）：
+
+- **实现提交**：`ced26c5` — "Unify game rules behind a static plugin contract"
+- **基线**：`7ba5c8b`
