@@ -238,7 +238,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
           }}
         >
           <label className="library-join-label" htmlFor="library-room-code">
-            {t("room.haveCode")}
+            <BilingualText k="room.haveCode" />
           </label>
           <div className="library-code-field">
             <Input
@@ -277,7 +277,11 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
             className="library-join-submit"
             disabled={!ready || joining}
           >
-            {joining ? t("library.finding") : t("library.join")}
+            {joining ? (
+              <BilingualText k="library.finding" />
+            ) : (
+              <BilingualText k="library.join" />
+            )}
             <Icon name="arrow" size={18} />
           </Button>
           {error && (
@@ -296,7 +300,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
               aria-pressed={filter === id}
               onClick={() => setFilter(id)}
             >
-              {t(name)}
+              <BilingualText k={name} />
               <span className="tabular">
                 {
                   visibleGames.filter(
@@ -308,7 +312,7 @@ export function Library({ onJoin }: { onJoin?: (code: string) => void } = {}) {
           ))}
         </div>
         <ButtonLink href="/series" className="library-series">
-          {t("library.series")}
+          <BilingualText k="library.series" />
           <Icon name="arrow" size={18} />
         </ButtonLink>
       </div>

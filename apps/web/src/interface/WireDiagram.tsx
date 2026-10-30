@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useLocale, useT } from "@/i18n";
+import { BilingualText, useLocale, useT } from "@/i18n";
 import { Icon } from "@/components/ui/icon";
 import {
   clamp,
@@ -879,8 +879,12 @@ export function WireDiagram() {
     <section ref={ref} className="landing-wire" aria-labelledby="landing-wire-title">
       <header className="landing-section-head">
         <div>
-          <h2 id="landing-wire-title">{t("wire.title")}</h2>
-          <p>{t("wire.lead")}</p>
+          <h2 id="landing-wire-title">
+            <BilingualText k="wire.title" />
+          </h2>
+          <p>
+            <BilingualText k="wire.lead" />
+          </p>
         </div>
       </header>
       <div className="wd-panel" data-surface="light">

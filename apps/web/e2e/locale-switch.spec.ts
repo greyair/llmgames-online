@@ -131,6 +131,122 @@ test.describe("first visit", () => {
       await context.close();
     }
   });
+
+  /**
+   * Visible copy that is still correct when the interface is Chinese: the games
+   * keep their shipped names. Anything else in Latin letters is a first-paint
+   * gap, and this test fails with the offending strings instead of waiting for a
+   * reader to notice a half-translated screen.
+   */
+  const LATIN_ALLOWED = new Set([
+    "Connect 4",
+    "Poker",
+    "Checkers",
+    "Battleship",
+    "Contexto",
+    "Reversi",
+    "Pokémon",
+    "Codenames",
+  ]);
+
+  /**
+   * Latin-only copy a visitor can read inside `scope` on the first screen.
+   *
+   * Clipped screen-reader text, the off-screen skip link, the brand lockup, the
+   * language the stylesheet hides and anything below the fold are left out. Game
+   * names keep their shipped spelling in Chinese, so `allowGameNames` drops
+   * those; anything else is a first-paint gap and fails with its own text.
+   */
+  async function untranslated(page: Page, scope: string, allowGameNames: boolean) {
+    const copy = await page.evaluate((selector) => {
+      const out: string[] = [];
+
+      for (const root of document.querySelectorAll(selector)) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const text = (node.textContent ?? "").replace(/\s+/g, " ").trim();
+
+          const host = node.parentElement;
+
+          if (!text || !host) continue;
+
+          const style = getComputedStyle(host);
+
+          const box = host.getBoundingClientRect();
+
+          const hidden =
+            host.closest(".sr-only, .site-skip, .site-logo") !== null ||
+            style.display === "none" ||
+            style.visibility === "hidden" ||
+            box.bottom < 0 ||
+            box.top > innerHeight ||
+            (box.width === 0 && box.height === 0);
+
+          if (hidden) continue;
+
+          out.push(text);
+        }
+      }
+
+      return out;
+    }, scope);
+
+    return copy.filter(
+      (text) =>
+        /[A-Za-z]{3,}/.test(text) &&
+        !/[\u4e00-\u9fff]/.test(text) &&
+        !(allowGameNames && LATIN_ALLOWED.has(text)),
+    );
+  }
+
+  test("paints the first screen in Chinese before hydration", async ({ browser, baseURL }) => {
+    const context = await browser.newContext({
+      baseURL,
+      locale: "zh-CN",
+      viewport: { width: 1440, height: 900 },
+      storageState: { cookies: [], origins: [] },
+    });
+
+    try {
+      // Keep the two inline init scripts so `data-locale` is written, drop every
+      // other script so nothing hydrates. Works against a build and against dev,
+      // because both serve stylesheets separately from the island bundles.
+      await context.route("**/*", (route) => {
+        const path = new URL(route.request().url()).pathname;
+        const initScript = path === "/locale-init.js" || path === "/theme-init.js";
+
+        return route.request().resourceType() === "script" && !initScript
+          ? route.abort()
+          : route.continue();
+      });
+
+      const page = await context.newPage();
+
+      await page.goto("/", { waitUntil: "load" });
+      await expect(page.locator("html")).toHaveAttribute("data-locale", "zh-CN");
+      await expect(page.locator("h1").first()).toContainText("你的 AI 能在");
+      await expect(page.locator(".site-bar .site-nav")).toContainText("首页");
+      await expect(page.getByRole("link", { name: "挑战 AI" })).toBeVisible();
+
+      const homeLatin = await untranslated(page, ".site-bar, .landing-hero", true);
+
+      expect(homeLatin, `untranslated first-screen copy on / : ${homeLatin.join(" | ")}`).toEqual([]);
+
+      await page.goto("/play", { waitUntil: "load" });
+      await expect(page.locator("h1").first()).toContainText("今天玩什么");
+      await expect(page.locator(".library-join-label")).toContainText("有房间码");
+      await expect(page.locator(".library-join-submit")).toContainText("加入房间");
+      await expect(page.locator(".library-series")).toContainText("创建系列赛");
+      await expect(page.getByRole("button", { name: /全部游戏/ })).toBeVisible();
+
+      const playLatin = await untranslated(page, ".site-bar, .library-head, .library-toolbar", false);
+
+      expect(playLatin, `untranslated first-screen copy on /play : ${playLatin.join(" | ")}`).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
   test("follows a Chinese browser", async ({ browser, baseURL }) => {
     const context = await browser.newContext({
       baseURL,

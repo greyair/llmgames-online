@@ -30,8 +30,13 @@ for (const viewport of [
 test("public content is present before hydration", async ({ request }) => {
   for (const path of ["/watch", "/setup", "/privacy", "/terms", "/games/reversi"]) {
     const html = await (await request.get(path)).text();
-    expect(html).toMatch(/<h1[^>]*>[^<]+<\/h1>/);
-    expect(html).toContain('rel="canonical"');
+
+    // The heading text may sit inside language spans, so strip tags before
+    // checking that the server actually shipped readable copy.
+    const heading = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1] ?? "";
+
+    expect(heading.replace(/<[^>]+>/g, "").trim().length, path).toBeGreaterThan(0);
+    expect(html, path).toContain('rel="canonical"');
   }
 
   const connect = await (await request.get("/connect-ai")).text();

@@ -4,7 +4,7 @@ import { Chrome } from "./Chrome";
 import { GameTile } from "./Library";
 import { ButtonLink } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { BilingualText, gameMessage, useT, type GameField, type MessageKey } from "@/i18n";
+import { BilingualText, gameMessage, useT, type MessageKey } from "@/i18n";
 import { getCurrentUser, peekCurrentUser } from "@/services/auth";
 import { go } from "@/lib/navigate";
 import { McpInstallCommand } from "./McpInstallCommand";
@@ -251,7 +251,6 @@ export function Landing() {
   const t = useT();
   const hero = useHeroGame();
   const current = heroGames[hero.index] ?? heroGames[0]!;
-  const currentCopy = (field: GameField) => t(gameMessage(current.id, field));
 
   return (
     <Chrome>
@@ -343,17 +342,19 @@ export function Landing() {
         >
           <figcaption className="landing-arcade-bar">
             <GameMark id={current.id} size={24} />
-            <strong>{t(gameMessage(current.id, "title"))}</strong>
+            <strong>
+              <BilingualText k={gameMessage(current.id, "title")} />
+            </strong>
             <span className="landing-arcade-live">
               <span aria-hidden="true" />
-              {t("landing.hero.demo")}
+              <BilingualText k="landing.hero.demo" />
             </span>
           </figcaption>
           <div className="landing-arcade-screen">
             <SketchArcade game={current.id} onPlay={hero.hold} className="landing-arcade-canvas" />
           </div>
           <p className="landing-arcade-hint" aria-hidden="true">
-            {currentCopy("hint")}
+            <BilingualText k={gameMessage(current.id, "hint")} />
           </p>
           <div
             className="landing-arcade-picker"
