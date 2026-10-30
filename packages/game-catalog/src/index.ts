@@ -1104,3 +1104,5 @@ function buildExample(action: GameActionSpec): GameToolExample {
     data,
   };
 }
+
+export * from "./room-errors.js";

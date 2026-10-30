@@ -35,6 +35,7 @@ import { GameBoard } from "@/game-ui/GameBoard";
 import { Chrome } from "./Chrome";
 import { gameRoute, getGame } from "./catalog";
 import { gameMessage, useLocale, useT, type GameField } from "@/i18n";
+import { ERROR_MESSAGE_KEYS, isRoomErrorCode } from "@/i18n/errorMessages";
 import { rules } from "./gameRules";
 import { rulesZhCN } from "./gameRules.zh-CN";
 import { HoleyLoader } from "@/components/ui/holey-loader";
@@ -337,18 +338,29 @@ export function Room({
         });
 
       if (message.type === "error") {
-        const message = isString(payload.message)
+        const code = isString(payload.code) ? payload.code : null;
+        const known = code && isRoomErrorCode(code) ? code : null;
+
+        const serverMessage = isString(payload.message)
           ? payload.message
           : isString(payload.error)
             ? payload.error
-            : t("room.actionRejected");
+            : null;
 
-        if (
-          !(
-            room.gameType === "contexto" && message === "That word is not in this game's dictionary"
-          )
-        )
-          setError(message);
+        // The server authors `message` in English, so English readers keep its
+        // exact wording — a coarse code would only make it vaguer. Chinese
+        // readers get the code's copy, which is sometimes broader than the
+        // server sentence but always readable.
+        const text =
+          locale === "en" && serverMessage
+            ? serverMessage
+            : known
+              ? t(ERROR_MESSAGE_KEYS[known])
+              : (serverMessage ?? t("room.actionRejected"));
+
+        // Contexto already marks a word that is not in the pool next to the
+        // input, so the duplicate toast is skipped by code, not by wording.
+        if (known !== "CONTEXTO_WORD_NOT_IN_DICTIONARY") setError(text);
       }
     });
 

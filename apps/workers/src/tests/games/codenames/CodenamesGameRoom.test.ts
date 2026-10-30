@@ -106,20 +106,23 @@ describe("official Codenames setup", () => {
         p2: valid.p2,
         p3: valid.p3,
       }),
-    ).toContain("every player");
+    ).toMatchObject({
+      message: "Assign every player to a Codenames role before starting",
+      code: "CODENAMES_ROLES_INCOMPLETE",
+    });
     expect(
       validateCodenamesAssignments(["p1", "p2", "p3", "p4"], {
         ...valid,
         p2: { team: "blue", role: "operative" },
       }),
-    ).toContain("blue spymaster");
+    ).toMatchObject({ code: "CODENAMES_SPYMASTER_COUNT" });
     expect(
       validateCodenamesAssignments(["p1", "p2", "p3", "p4", "p5", "p6"], {
         ...valid,
         p5: { team: "red", role: "operative" },
         p6: { team: "red", role: "operative" },
       }),
-    ).toContain("balanced");
+    ).toMatchObject({ code: "CODENAMES_TEAMS_UNBALANCED" });
   });
 
   it("fills defaults without replacing explicit roles", () => {

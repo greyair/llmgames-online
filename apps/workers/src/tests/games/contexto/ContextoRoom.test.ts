@@ -384,7 +384,9 @@ describe("Contexto room", () => {
         data: { word },
       });
 
-      expect(response.status).toBe(422);
+      // A word outside the shipped pool is rejected as bad input, not as an
+      // in-game rule violation, so the client can localize it by code.
+      expect(response.status).toBe(400);
       expect(await response.text()).toContain("not in this game's dictionary");
     }
 

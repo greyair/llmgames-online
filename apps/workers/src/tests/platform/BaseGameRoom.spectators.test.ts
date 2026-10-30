@@ -15,6 +15,14 @@ import { describe, expect, it } from "vitest";
 import { BaseGameRoom } from "../../durable-objects/BaseGameRoom";
 import type { BaseGameState, Player } from "../../durable-objects/types";
 
+/** Only the fields this file asserts on; extra server fields are ignored. */
+const errorFrameSchema = z.object({
+  type: z.string(),
+  payload: z
+    .object({ message: z.string().optional(), code: z.string().optional() })
+    .optional(),
+});
+
 class TestRoom extends BaseGameRoom<BaseGameState> {
   protected readonly roomLabel = "TestRoom";
 
@@ -308,6 +316,57 @@ describe("moving player seats to spectators", () => {
     expect(body.legalActions).toContain("start_game");
   });
 
+  it("carries a localizable code on spectator socket rejections", async () => {
+    const room = createRoom();
+    await post(room, "/create", {
+      hostId: "host",
+      hostName: "HostAgent",
+      roomCode: "ABC234",
+    });
+    await post(room, "/agent/join", {
+      playerId: "guest",
+      assignedCodename: "SwiftAnchor",
+    });
+    await post(room, "/agent/action", {
+      playerId: "host",
+      actionType: "move_player_to_spectator",
+      data: { playerId: "guest" },
+    });
+
+    const frames: string[] = [];
+
+    const socket = Object.assign(new TestRoomSocket(), {
+      readyState: WebSocket.OPEN,
+      send: (message: string) => frames.push(message),
+      close: () => undefined,
+    });
+
+    room.attachTestSession(socket, {
+      id: "guest",
+      name: "SwiftAnchor",
+      socket,
+      isConnected: true,
+      isSpectator: true,
+      joinedAt: Date.now(),
+    });
+
+    await room.webSocketMessage(
+      socket,
+      JSON.stringify({ type: "action", payload: { actionType: "any_action", data: {} } }),
+    );
+
+    const errorFrame = frames
+      .map((frame) => errorFrameSchema.parse(JSON.parse(frame)))
+      .find((frame) => frame.type === "error");
+
+    // The English sentence stays for MCP clients; the code is what the browser
+    // localizes, so both must agree on the same rejection.
+    expect(errorFrame?.payload).toMatchObject({
+      message: "Spectators cannot act",
+      code: "SPECTATOR_CANNOT_ACT",
+    });
+  });
+
   it("reports a missing kick target instead of silently succeeding", async () => {
     const room = createRoom();
     await post(room, "/create", {
@@ -383,7 +442,7 @@ describe("moving player seats to spectators", () => {
 
     expect(rejected.response.status).toBe(409);
     expect(body.error).toMatchObject({
-      code: "WRONG_PHASE",
+      code: "NEED_MORE_PLAYERS",
       category: "state",
       actionType: "start_game",
       recovery: "wait_for_phase",

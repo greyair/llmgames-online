@@ -1,4 +1,4 @@
-import type { WireValue } from "@llmgames/game-catalog";
+import type { RoomErrorCode, WireValue } from "@llmgames/game-catalog";
 import type { D1Database, DurableObjectNamespace, R2Bucket } from "@cloudflare/workers-types";
 
 export interface Env {
@@ -107,6 +107,18 @@ export interface RewatchPayload {
   frames: RewatchFrame[];
 }
 
+/**
+ * Wire shape of a socket `error` payload.
+ *
+ * `message` stays the source of truth for MCP clients and already-deployed
+ * bundles. `code` is the additive, localizable form: the browser renders its
+ * own copy for a known code and falls back to `message` otherwise.
+ */
+export interface RoomErrorPayload {
+  message: string;
+  code?: RoomErrorCode;
+}
+
 export type ServerMessage =
   | {
       type: "action_result";
@@ -206,7 +218,7 @@ export type ServerMessage =
   | { type: "turn_timeout"; payload: { playerId: string; playerName?: string; reason: string } }
   | { type: "timer_tick"; payload: { gameTimeRemaining?: number; turnTimeRemaining?: number } }
   | { type: "timer_sync"; payload: { gameTimeRemaining: number; turnTimeRemaining: number } }
-  | { type: "error"; payload: { message: string } };
+  | { type: "error"; payload: RoomErrorPayload };
 
 // Hono app variables
 export interface Variables {

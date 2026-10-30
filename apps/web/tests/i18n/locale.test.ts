@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { ROOM_ERROR_CODES } from "@llmgames/game-catalog";
 import { en, zhCN } from "@/i18n";
 import { interpolate, localeFromLanguages, translate } from "@/i18n/core";
+import { ERROR_MESSAGE_KEYS, isRoomErrorCode } from "@/i18n/errorMessages";
 import { rules } from "@/interface/gameRules";
 import { rulesZhCN } from "@/interface/gameRules.zh-CN";
 
@@ -55,6 +57,27 @@ describe("translation table", () => {
 
     for (const key of keys)
       expect(placeholders(zhCN[key]), key).toEqual(placeholders(en[key]));
+  });
+});
+
+describe("socket error codes", () => {
+  it("has distinct localized copy for every code the server can send", () => {
+    for (const code of ROOM_ERROR_CODES) {
+      const key = ERROR_MESSAGE_KEYS[code];
+      const english = translate("en", key).trim();
+      const chinese = translate("zh-CN", key).trim();
+
+      expect(english, code).not.toBe("");
+      expect(chinese, code).not.toBe("");
+      // Equal values would mean the Chinese table silently kept the English string.
+      expect(chinese, code).not.toBe(english);
+    }
+  });
+
+  it("recognizes only codes from the shared vocabulary", () => {
+    expect(isRoomErrorCode("NOT_YOUR_TURN")).toBe(true);
+    expect(isRoomErrorCode("not_your_turn")).toBe(false);
+    expect(isRoomErrorCode("")).toBe(false);
   });
 });
 

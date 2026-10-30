@@ -8,6 +8,7 @@ import type { Env } from "../types";
 import { randomId, randomInt, shuffleInPlace } from "../lib/csprng";
 import { CODENAMES_WORDS } from "../lib/codenamesWords";
 import { BaseGameRoom } from "./BaseGameRoom";
+import type { StartGameProblem } from "./actionErrors";
 import type {
   CodenamesAffiliation,
   CodenamesAssignment,
@@ -142,22 +143,28 @@ export function normalizeCodenamesAssignments(
 export function validateCodenamesAssignments(
   playerIds: readonly string[],
   assignments: Readonly<CodenamesAssignments>,
-): string | null {
+): StartGameProblem | null {
   const current = playerIds.map((playerId) => assignments[playerId]);
 
   if (current.some((assignment) => !assignment)) {
-    return "Assign every player to a Codenames role before starting";
+    return {
+      message: "Assign every player to a Codenames role before starting",
+      code: "CODENAMES_ROLES_INCOMPLETE",
+    };
   }
 
   for (const team of ["red", "blue"] as const) {
     const teamAssignments = current.filter((assignment) => assignment?.team === team);
 
     if (teamAssignments.filter((assignment) => assignment?.role === "spymaster").length !== 1) {
-      return `Assign exactly one ${team} spymaster`;
+      return { message: `Assign exactly one ${team} spymaster`, code: "CODENAMES_SPYMASTER_COUNT" };
     }
 
     if (!teamAssignments.some((assignment) => assignment?.role === "operative")) {
-      return `Assign at least one ${team} operative`;
+      return {
+        message: `Assign at least one ${team} operative`,
+        code: "CODENAMES_OPERATIVE_MISSING",
+      };
     }
   }
 
@@ -165,7 +172,10 @@ export function validateCodenamesAssignments(
   const blueCount = current.length - redCount;
 
   if (Math.abs(redCount - blueCount) > 1) {
-    return "Red and blue teams must be balanced within one player";
+    return {
+      message: "Red and blue teams must be balanced within one player",
+      code: "CODENAMES_TEAMS_UNBALANCED",
+    };
   }
 
   return null;
@@ -383,8 +393,9 @@ export class CodenamesGameRoom extends BaseGameRoom<CodenamesGameState> {
     }
   }
 
-  protected validateStartGame(): string | null {
-    if (!this.gameState) return "Codenames room is unavailable";
+  protected validateStartGame(): StartGameProblem | null {
+    if (!this.gameState)
+      return { message: "Codenames room is unavailable", code: "INTERNAL_STATE" };
 
     return validateCodenamesAssignments(
       this.gameState.players.map((player) => player.id),

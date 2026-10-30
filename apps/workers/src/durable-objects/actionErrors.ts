@@ -1,17 +1,10 @@
-export type ActionErrorCode =
-  | "UNSUPPORTED_ACTION"
-  | "INVALID_ACTION_DATA"
-  | "NOT_YOUR_TURN"
-  | "WRONG_PHASE"
-  | "ILLEGAL_MOVE"
-  | "INSUFFICIENT_RESOURCE"
-  | "ALREADY_RESOLVED"
-  | "FORBIDDEN"
-  | "NOT_SEATED"
-  | "NOT_FOUND"
-  | "INTERNAL_STATE"
-  | "IDEMPOTENCY_CONFLICT"
-  | "ACTION_REJECTED";
+import type { RoomErrorCode } from "@llmgames/game-catalog";
+
+/**
+ * Agent-facing code for a rejected action. The union lives in the shared
+ * catalog so the browser can switch on the same values the socket carries.
+ */
+export type ActionErrorCode = RoomErrorCode;
 
 export type ActionErrorCategory =
   | "scope"
@@ -44,6 +37,12 @@ export interface ActionRejection extends ActionError {
   httpStatus: number;
 }
 
+/** A lobby rejection that carries both the agent-facing sentence and its code. */
+export interface StartGameProblem {
+  message: string;
+  code: RoomErrorCode;
+}
+
 const includesAny = (message: string, patterns: readonly string[]): boolean =>
   patterns.some((pattern) => message.includes(pattern));
 
@@ -55,6 +54,92 @@ const includesAny = (message: string, patterns: readonly string[]): boolean =>
 export function classifyActionError(message: string, actionType: string): ActionRejection {
   const normalized = message.toLowerCase();
   const base = { message, actionType };
+
+  // Room-lifecycle rejections a player hits from the lobby. They are matched
+  // first because the category buckets below already claim their wording:
+  // "need at least" would fall into WRONG_PHASE and "spectators" into NOT_SEATED,
+  // and neither generic sentence tells the player what to actually do.
+  if (normalized.includes("free jev game has been used")) {
+    return {
+      ...base,
+      code: "JEV_TRIAL_USED",
+      category: "resource",
+      recovery: "correct_input",
+      httpStatus: 403,
+    };
+  }
+
+  if (normalized.startsWith("need at least") && normalized.includes("player")) {
+    return {
+      ...base,
+      code: "NEED_MORE_PLAYERS",
+      category: "state",
+      recovery: "wait_for_phase",
+      httpStatus: 409,
+    };
+  }
+
+  if (normalized.includes("spectators cannot act")) {
+    return {
+      ...base,
+      code: "SPECTATOR_CANNOT_ACT",
+      category: "permission",
+      recovery: "none",
+      httpStatus: 403,
+    };
+  }
+
+  if (normalized.includes("assign every player to a codenames role")) {
+    return {
+      ...base,
+      code: "CODENAMES_ROLES_INCOMPLETE",
+      category: "input",
+      recovery: "correct_input",
+      httpStatus: 400,
+    };
+  }
+
+  if (normalized.includes("exactly one") && normalized.includes("spymaster")) {
+    return {
+      ...base,
+      code: "CODENAMES_SPYMASTER_COUNT",
+      category: "input",
+      recovery: "correct_input",
+      httpStatus: 400,
+    };
+  }
+
+  if (normalized.includes("at least one") && normalized.includes("operative")) {
+    return {
+      ...base,
+      code: "CODENAMES_OPERATIVE_MISSING",
+      category: "input",
+      recovery: "correct_input",
+      httpStatus: 400,
+    };
+  }
+
+  if (normalized.includes("teams must be balanced")) {
+    return {
+      ...base,
+      code: "CODENAMES_TEAMS_UNBALANCED",
+      category: "input",
+      recovery: "correct_input",
+      httpStatus: 400,
+    };
+  }
+
+  // Contexto already shows "not in the dictionary" inline next to the input, so
+  // the client suppresses the toast by code instead of matching its wording.
+  if (normalized.includes("not in this game's dictionary")) {
+    return {
+      ...base,
+      code: "CONTEXTO_WORD_NOT_IN_DICTIONARY",
+      category: "input",
+      recovery: "correct_input",
+      httpStatus: 400,
+    };
+  }
 
   if (
     includesAny(normalized, [

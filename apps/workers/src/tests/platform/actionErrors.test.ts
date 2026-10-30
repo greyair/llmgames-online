@@ -31,4 +31,23 @@ describe("agent action error taxonomy", () => {
       httpStatus: 422,
     });
   });
+
+  // These wordings used to disappear into a generic bucket ("need at least" →
+  // WRONG_PHASE, "spectators" → NOT_SEATED), which gave the browser a sentence
+  // that never told the player what to do next.
+  it.each([
+    ["Need at least 3 player(s) to start", "NEED_MORE_PLAYERS"],
+    ["Spectators cannot act — watch only", "SPECTATOR_CANNOT_ACT"],
+    [
+      "Your free Jev game has been used. Connect TypeSafe in Profile settings to keep playing.",
+      "JEV_TRIAL_USED",
+    ],
+    ["Assign every player to a Codenames role before starting", "CODENAMES_ROLES_INCOMPLETE"],
+    ["Assign exactly one blue spymaster", "CODENAMES_SPYMASTER_COUNT"],
+    ["Assign at least one red operative", "CODENAMES_OPERATIVE_MISSING"],
+    ["Red and blue teams must be balanced within one player", "CODENAMES_TEAMS_UNBALANCED"],
+    ["That word is not in this game's dictionary", "CONTEXTO_WORD_NOT_IN_DICTIONARY"],
+  ])("keeps %s out of the generic buckets", (message, code) => {
+    expect(classifyActionError(message, "test_action").code).toBe(code);
+  });
 });

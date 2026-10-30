@@ -15,8 +15,16 @@ import {
   ROOM_INACTIVITY_MS,
   TURN_TIME_MAX_MS,
   TURN_TIME_MIN_MS,
+  type RoomErrorCode,
 } from "@llmgames/game-catalog";
-import type { ClientMessage, ServerMessage, Env, RewatchFrame, RewatchPayload } from "../types";
+import type {
+  ClientMessage,
+  ServerMessage,
+  Env,
+  RewatchFrame,
+  RewatchPayload,
+  RoomErrorPayload,
+} from "../types";
 import type {
   AgentRoomMember,
   BaseGameState,
@@ -60,6 +68,7 @@ import {
   internalActionError,
   publicActionError,
   type ActionRejection,
+  type StartGameProblem,
 } from "./actionErrors";
 
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -2732,7 +2741,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
               },
             });
           } else if (error) {
-            this.sendError(player, error.message);
+            this.sendError(player, error.message, error.code);
           }
 
           break;
@@ -2770,7 +2779,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
                 message: "The server could not complete this action.",
               },
             }
-          : { type: "error", payload: { message: "Invalid message format" } },
+          : { type: "error", payload: { message: "Invalid message format", code: "INVALID_MESSAGE" } },
       );
     } finally {
       if (holdsTerminalResponse) {
@@ -3040,18 +3049,22 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       !isCodenamesRoleJoin &&
       (player.isSpectator || this.isSpectator(player.id))
     ) {
-      if (sendErrors) this.sendError(player, "Spectators cannot act — watch only");
+      const rejection = classifyActionError("Spectators cannot act", payload.actionType);
 
-      return classifyActionError("Spectators cannot act", payload.actionType);
+      if (sendErrors) this.sendError(player, "Spectators cannot act — watch only", rejection.code);
+
+      return rejection;
     }
 
     // Handle shared actions first
     const handled = await this.handleSharedAction(player, payload);
 
     if (isString(handled)) {
-      if (sendErrors) this.sendError(player, handled);
+      const rejection = classifyActionError(handled, payload.actionType);
 
-      return classifyActionError(handled, payload.actionType);
+      if (sendErrors) this.sendError(player, handled, rejection.code);
+
+      return rejection;
     }
 
     if (handled) {
@@ -3110,9 +3123,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         else delete series.metrics[player.id];
       }
 
-      if (sendErrors) this.sendError(player, error);
+      const rejection = classifyActionError(error, payload.actionType);
 
-      return classifyActionError(error, payload.actionType);
+      if (sendErrors) this.sendError(player, error, rejection.code);
+
+      return rejection;
     }
 
     this.gameState.updatedAt = Date.now();
@@ -3134,11 +3149,22 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     this.resolveTurnWaiters();
   }
 
-  /** Send an error message to a single player (by Player object). */
-  protected sendError(player: Player, message: string): void {
+  /**
+   * Send an error message to a single player (by Player object).
+   *
+   * @param {Player}          player  - The recipient.
+   * @param {string}          message - English sentence for MCP clients and logs.
+   * @param {RoomErrorCode}   [code]  - Localizable code; omit when the wording is
+   *                                    game-specific and has no stable category.
+   */
+  protected sendError(player: Player, message: string, code?: RoomErrorCode): void {
+    const payload: RoomErrorPayload = { message };
+
+    if (code) payload.code = code;
+
     for (const [ws, p] of this.sessions) {
       if (p.id === player.id && ws.readyState === WebSocket.OPEN) {
-        this.sendTo(ws, { type: "error", payload: { message } });
+        this.sendTo(ws, { type: "error", payload });
       }
     }
   }
@@ -3673,7 +3699,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   }
 
   /** Optional game-specific lobby validation performed before state enters play. */
-  protected validateStartGame(): string | null {
+  protected validateStartGame(): StartGameProblem | null {
     return null;
   }
 
@@ -3693,18 +3719,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     if (this.gameState.players.length < this.minPlayersToStart) {
       const msg = `Need at least ${this.minPlayersToStart} player(s) to start`;
-      this.broadcast({
-        type: "error",
-        payload: { message: msg },
-      });
+
+      this.broadcast({ type: "error", payload: { message: msg, code: "NEED_MORE_PLAYERS" } });
       throw new ExpectedGameStartError(msg);
     }
 
     const startError = this.validateStartGame();
 
     if (startError) {
-      this.broadcast({ type: "error", payload: { message: startError } });
-      throw new ExpectedGameStartError(startError);
+      this.broadcast({ type: "error", payload: startError });
+      throw new ExpectedGameStartError(startError.message);
     }
 
     const firstPlayer = this.gameState.players[0];
@@ -3726,7 +3750,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         const msg =
           "Your free Jev game has been used. Connect TypeSafe in Profile settings to keep playing.";
 
-        this.broadcast({ type: "error", payload: { message: msg } });
+        this.broadcast({ type: "error", payload: { message: msg, code: "JEV_TRIAL_USED" } });
         throw new ExpectedGameStartError(msg);
       }
     }
