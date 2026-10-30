@@ -4,9 +4,35 @@ A new game consists of a server room, public contracts, a browser board, and
 an agent projection. There is no dynamic plugin loader. Registration is
 explicit so the compiler can catch missing cases.
 
-Use Reversi as a small reference. Its rules and room live in
-`apps/workers/src/durable-objects/ReversiRoom.ts`; its rule and integration
-tests live under `apps/workers/src/tests/games/reversi`.
+Since M3 a game can implement its rules as a `GamePlugin` and keep the Durable
+Object as a thin adapter — see [M3-DESIGN.md](M3-DESIGN.md). Connect 4 is the
+reference: rules in `apps/workers/src/games/connect4/`, room in
+`apps/workers/src/durable-objects/Connect4Room.ts`. Games that have not been
+migrated still implement the rules directly on their `BaseGameRoom` subclass;
+both shapes are supported, so migrate one game at a time.
+
+```text
+rules plugin   apps/workers/src/games/<id>/{rules,plugin}.ts    no storage, clocks or sockets
+adapter room   apps/workers/src/durable-objects/<X>Room.ts      ~40 lines of platform glue
+metadata       packages/game-catalog/src/manifest.ts            one entry
+actions        packages/game-catalog/src/index.ts               GAME_ACTIONS + GAME_INSTRUCTIONS
+board          apps/web/src/game-ui/boardRegistry.ts            one lazy entry
+```
+
+A plugin returns effects (`event`, `stop_timers`, `match_ended`) instead of
+persisting or broadcasting: `BaseGameRoom.applyGameEffects` is the only place
+those reach the audit log, the clocks and the final `game_ended` delivery. Do
+not call `saveState()` from a rule module — M2's idempotent receipt is written
+together with the state in `dispatchAction`, and a second write reopens that gap.
+
+Registration is still required in the deployment surface, which the plugin does
+not remove: the class export in `apps/workers/src/index.ts`, the `Env` binding,
+the `roomRouting.ts` case, both wrangler configs, and an appended D1 migration
+that widens the `game_type` CHECK constraint.
+
+Use Reversi as a small reference for a room written before M3. Its rules and
+room live in `apps/workers/src/durable-objects/ReversiRoom.ts`; its rule and
+integration tests live under `apps/workers/src/tests/games/reversi`.
 
 ## 1. Define the contracts and rules
 

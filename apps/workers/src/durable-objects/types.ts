@@ -40,7 +40,7 @@ interface TimerConfig {
   turnTime: number;
 }
 
-interface BaseTurnState {
+export interface BaseTurnState {
   currentPlayerId: string | null;
   turnNumber: number;
   phase: string;

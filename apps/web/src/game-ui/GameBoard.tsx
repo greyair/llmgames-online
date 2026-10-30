@@ -1,30 +1,13 @@
 import type { WireValue } from "@llmgames/game-catalog";
 import type { ClientView } from "@/domain/game-state";
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { useT } from "@/i18n";
 import { Badge } from "@/components/ui/badge";
 import { LoadingPanel } from "@/components/ui/loading-panel";
 import { GameMark } from "@/interface/GameMark";
+import { boardFor } from "./boardRegistry";
 import "./game-board.css";
 import "./sketch/sketch.css";
-
-const Battleship = lazy(() =>
-  import("./Battleship").then(({ Battleship }) => ({ default: Battleship })),
-);
-
-const Discs = lazy(() => import("./Discs").then(({ Discs }) => ({ default: Discs })));
-
-const Codenames = lazy(() =>
-  import("./Codenames").then(({ Codenames }) => ({ default: Codenames })),
-);
-
-const Cards = lazy(() => import("./Cards").then(({ Cards }) => ({ default: Cards })));
-
-const Pokemon = lazy(() => import("./Pokemon").then(({ Pokemon }) => ({ default: Pokemon })));
-
-const Checkers = lazy(() => import("./Checkers").then(({ Checkers }) => ({ default: Checkers })));
-
-const Contexto = lazy(() => import("./Contexto").then(({ Contexto }) => ({ default: Contexto })));
 
 interface BoardProps {
   state: ClientView;
@@ -47,8 +30,22 @@ export function GameBoard({
   );
 }
 
+/**
+ * Resolve the registered board renderer.
+ *
+ * Kept outside the component body: the renderer comes from a module-level map,
+ * so nothing is created per render, and an unknown id yields `null` for the
+ * "unsupported" panel below.
+ */
+function boardView(state: ClientView, send: BoardProps["send"]) {
+  const Renderer = boardFor(state.type);
+
+  return Renderer ? <Renderer state={state} send={send} /> : null;
+}
+
 function Board({ state, send }: BoardProps) {
   const t = useT();
+  const view = boardView(state, send);
 
   if (state.status === "waiting")
     return (
@@ -60,20 +57,7 @@ function Board({ state, send }: BoardProps) {
       </div>
     );
 
-  if (state.type === "connect4" || state.type === "reversi")
-    return <Discs state={state} send={send} />;
-
-  if (state.type === "checkers") return <Checkers state={state} send={send} />;
-
-  if (state.type === "codenames") return <Codenames state={state} send={send} />;
-
-  if (state.type === "poker") return <Cards state={state} send={send} />;
-
-  if (state.type === "battleship") return <Battleship state={state} send={send} />;
-
-  if (state.type === "pokemon") return <Pokemon state={state} send={send} />;
-
-  if (state.type === "contexto") return <Contexto state={state} send={send} />;
+  if (view) return view;
 
   return (
     <div className="board-unavailable" role="status">

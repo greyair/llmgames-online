@@ -6,6 +6,8 @@ export * from "./series.js";
 
 export * from "./game-log-document.js";
 
+export { GAME_MANIFESTS, gameManifest, type GameManifest } from "./manifest.js";
+
 export { battleshipAgentState } from "./battleship-state.js";
 
 import { BATTLESHIP_FLEET_FORMAT } from "./fleet.js";

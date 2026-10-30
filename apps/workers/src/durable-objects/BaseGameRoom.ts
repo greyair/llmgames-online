@@ -70,6 +70,8 @@ import {
   type ActionRejection,
   type StartGameProblem,
 } from "./actionErrors";
+import type { GameEffect, GamePlugin } from "../games/contract";
+import { gamePluginFor } from "../games/registry";
 
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -3321,6 +3323,42 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   }
 
   /**
+   * The game rule module this room delegates to (M3).
+   *
+   * `null` means the room is a legacy subclass that implements the rules
+   * in-place. A migrated room overrides this and keeps the class as a thin
+   * adapter, so no shared branch in this base class has to know the game.
+   */
+  protected gameRules(): GamePlugin<TState, string> | null {
+    return null;
+  }
+
+  /**
+   * Apply the effects a game rule module returned, in order.
+   *
+   * Rule modules describe what must happen instead of performing platform work
+   * themselves: this is the only place a plugin's effects reach the audit log,
+   * the clocks and the final `game_ended` delivery.
+   */
+  protected applyGameEffects(effects: readonly GameEffect[]): void {
+    for (const effect of effects) {
+      switch (effect.type) {
+        case "event":
+          this.recordEvent(effect.event, effect.data);
+          break;
+        case "stop_timers":
+          this.stopTimers();
+          break;
+        case "match_ended":
+          void this.saveState().then(() => {
+            this.broadcastProjected("game_ended", { reason: effect.reason });
+          });
+          break;
+      }
+    }
+  }
+
+  /**
    * Client view: projected state + `you` metadata for agent/UI convenience.
    * Always includes a public `spectators` list so every client can render who is watching.
    */
@@ -3416,6 +3454,14 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         series: { code: this.gameState.series.code, index: this.gameState.series.index },
       });
 
+    // A migrated room returns its rule module; a room that only declares a
+    // registered game id inherits that game's decision fields. Legacy rooms
+    // still on the branches below are unaffected.
+    const rules = this.gameRules() ?? gamePluginFor(this.gameState.type);
+
+    if (rules?.agentFields)
+      return this.definedAgentFields({ ...common, ...rules.agentFields(this.gameState) });
+
     switch (projected.type) {
       case "pokemon":
         return this.definedAgentFields({
@@ -3428,14 +3474,6 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           battleTurn: projected.battleTurn,
           winnerSeat: projected.winnerSeat,
         });
-      case "connect4":
-        return this.definedAgentFields({
-          ...common,
-          board: projected.board,
-          seats: projected.seats,
-          lastMove: projected.lastMove,
-        });
-
       case "contexto":
         return this.definedAgentFields({
           ...common,
