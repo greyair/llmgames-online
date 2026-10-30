@@ -17,6 +17,7 @@ import { FleetStatus, SunkenFleet, type SunkenShip } from "./SunkenShips";
 import { BattleshipEffects, useBattleshipEffects } from "./BattleshipEffects";
 import "./battleship.css";
 import "./sketch/battleship.css";
+import { useT, type MessageKey } from "@/i18n";
 
 type Point = { row: number; col: number };
 
@@ -79,12 +80,12 @@ function cells(ship: Placement, spec: Fleet): Point[] {
 }
 
 const weapons = [
-  { id: "cannon", label: "Cannon", hint: "Hit, fire again." },
-  { id: "mine", label: "Mines", hint: "Your waters. 3 return shots." },
-  { id: "bomb", label: "Bomb", hint: "Hit a 2 × 2 area." },
-  { id: "radar", label: "Radar", hint: "Scan a 3 × 3 area." },
-  { id: "torpedo", label: "Torpedo", hint: "Fire inward from an edge." },
-];
+  { id: "cannon", label: "board.ships.weaponCannon", hint: "board.ships.weaponCannonHint" },
+  { id: "mine", label: "board.ships.weaponMines", hint: "board.ships.weaponMinesHint" },
+  { id: "bomb", label: "board.ships.weaponBomb", hint: "board.ships.weaponBombHint" },
+  { id: "radar", label: "board.ships.weaponRadar", hint: "board.ships.weaponRadarHint" },
+  { id: "torpedo", label: "board.ships.weaponTorpedo", hint: "board.ships.weaponTorpedoHint" },
+] as const satisfies readonly { id: string; label: MessageKey; hint: MessageKey }[];
 
 const ENERGY_SEGMENTS = 10;
 
@@ -201,6 +202,7 @@ function EnergyBolt() {
 }
 
 function EnergyMeter({ points, spend }: { points: number; spend: number }) {
+  const t = useT();
   const rows = Math.max(1, Math.ceil(points / ENERGY_SEGMENTS));
 
   return (
@@ -208,12 +210,12 @@ function EnergyMeter({ points, spend }: { points: number; spend: number }) {
       className="ship-energy"
       data-overflow={rows > 1}
       role="img"
-      title="+2 energy at turn start; +1 for every new hit your fleet takes, including ability hits. Reuse specials while you have enough energy; they keep your cannon available."
-      aria-label={`${points} energy`}
+      title={t("board.ships.energyTip")}
+      aria-label={t("board.ships.energyPoints", { points })}
     >
       <span className="energy-label">
         <EnergyBolt />
-        Energy
+        {t("board.ships.energy")}
       </span>
       <span className="energy-cells" aria-hidden="true">
         {Array.from({ length: rows * ENERGY_SEGMENTS }, (_, i) => (
@@ -238,6 +240,8 @@ function EnergyMeter({ points, spend }: { points: number; spend: number }) {
 }
 
 function WeaponTrails({ sea }: { sea: Sea }) {
+  const t = useT();
+
   return (
     <div className="weapon-trails">
       {sea.triggeredMines?.map((point) => (
@@ -245,8 +249,10 @@ function WeaponTrails({ sea }: { sea: Sea }) {
           key={`mine:${coordinate(point)}`}
           className="triggered-mine"
           role="img"
-          aria-label={`Triggered mine at ${String.fromCharCode(65 + point.row)}${point.col + 1}`}
-          title="Triggered mine · fired 3 return shots"
+          aria-label={t("board.ships.triggeredMine", {
+            cell: `${String.fromCharCode(65 + point.row)}${point.col + 1}`,
+          })}
+          title={t("board.ships.triggeredMineTitle")}
           style={{ left: `${point.col * 10}%`, top: `${point.row * 10}%` }}
         >
           <TriggeredMineArt />
@@ -258,7 +264,10 @@ function WeaponTrails({ sea }: { sea: Sea }) {
             className="torpedo-path"
             data-axis={path.row === path.endRow ? "h" : "v"}
             role="img"
-            aria-label={`Torpedo path from ${String.fromCharCode(65 + path.row)}${path.col + 1} to ${String.fromCharCode(65 + path.endRow)}${path.endCol + 1}`}
+            aria-label={t("board.ships.torpedoPath", {
+              from: `${String.fromCharCode(65 + path.row)}${path.col + 1}`,
+              to: `${String.fromCharCode(65 + path.endRow)}${path.endCol + 1}`,
+            })}
             style={{
               left: `${Math.min(path.col, path.endCol) * 10}%`,
               top: `${Math.min(path.row, path.endRow) * 10}%`,
@@ -269,7 +278,7 @@ function WeaponTrails({ sea }: { sea: Sea }) {
           <svg
             className="torpedo-start"
             role="img"
-            aria-label="Torpedo launch"
+            aria-label={t("board.ships.torpedoLaunch")}
             viewBox="0 0 24 24"
             style={{
               left: `${(path.col + 0.5) * 10}%`,
@@ -289,7 +298,9 @@ function WeaponTrails({ sea }: { sea: Sea }) {
             (hit) => coordinate(hit) === coordinate(point),
           )}
           role="img"
-          aria-label={`Mine return shot at ${String.fromCharCode(65 + point.row)}${point.col + 1}`}
+          aria-label={t("board.ships.mineReturn", {
+            cell: `${String.fromCharCode(65 + point.row)}${point.col + 1}`,
+          })}
           style={{ left: `${point.col * 10}%`, top: `${point.row * 10}%` }}
         />
       ))}
@@ -406,6 +417,8 @@ export function Battleship({
   finalResult?: boolean;
   renderResultPlayer?: (playerId?: string) => ReactNode;
 }) {
+  const t = useT();
+
   const { effects, launch, radarScanning, incomingRadarScanning, visibleRadarCounts } =
     useBattleshipEffects(state);
 
@@ -853,19 +866,21 @@ export function Battleship({
       ? projectedBoards.map((sea, i) => ({
           sea,
           id: i === 0 ? "target" : "own",
-          title: state.players?.find((p) => p.id === sea.playerId)?.name ?? `Player ${i + 1}`,
+          title:
+            state.players?.find((p) => p.id === sea.playerId)?.name ??
+            t("board.ships.playerNumber", { number: i + 1 }),
         }))
       : placement
         ? [
             {
               sea: own ?? {},
               id: "target",
-              title: own?.ready ? "Fleet ready" : "Place your fleet",
+              title: own?.ready ? t("board.ships.fleetReady") : t("board.ships.placeFleet"),
             },
           ]
         : [
-            { sea: opponent ?? {}, id: "target", title: "Enemy fleet" },
-            { sea: own ?? {}, id: "own", title: "Your fleet" },
+            { sea: opponent ?? {}, id: "target", title: t("board.ships.enemyFleet") },
+            { sea: own ?? {}, id: "own", title: t("board.ships.yourFleet") },
           ];
 
   const boards = sourceBoards.map((board) => {
@@ -907,7 +922,7 @@ export function Battleship({
 
   const placementHeading = (
     <header className="ships-heading">
-      <span className="ships-heading-tag">Fleet placement</span>
+      <span className="ships-heading-tag">{t("board.ships.fleetPlacement")}</span>
       {!watching && (
         <span className="ships-heading-meta">
           {own?.ready ? fleet.length : draft.length}/{fleet.length} ships · {points} energy
@@ -933,7 +948,7 @@ export function Battleship({
         {placement && !watching && !own?.ready && (
           <div className="fleet-tools">
             {placementHeading}
-            <div className="fleet-picker" role="group" aria-label="Choose a ship">
+            <div className="fleet-picker" role="group" aria-label={t("board.ships.chooseShip")}>
               {fleet
                 .filter((ship) => !draft.some((item) => item.id === ship.id))
                 .map((ship, index) => {
@@ -985,15 +1000,15 @@ export function Battleship({
             </div>
             <p className="fleet-tools-hint">
               {selectedShip
-                ? "Tap the grid to drop it."
+                ? t("board.ships.tapGrid")
                 : draft.length === fleet.length
-                  ? "All ships placed. Rotate or drag to adjust."
-                  : "Pick a ship, or drag it onto the grid."}
+                  ? t("board.ships.allPlaced")
+                  : t("board.ships.pickShip")}
             </p>
           </div>
         )}
         {boards.length > 1 && (
-          <div className="ship-grid-tabs" role="group" aria-label="Choose grid">
+          <div className="ship-grid-tabs" role="group" aria-label={t("board.ships.chooseGrid")}>
             {boards.map((board) => (
               <button
                 type="button"
@@ -1055,7 +1070,11 @@ export function Battleship({
                   <div
                     className="sea-grid"
                     role="group"
-                    aria-label={id === "target" && !placement && !watching ? "Target grid" : title}
+                    aria-label={
+                      id === "target" && !placement && !watching
+                        ? t("board.ships.targetGrid")
+                        : title
+                    }
                   >
                     <span className="sea-water" aria-hidden="true" />
                     <span className="sea-corner" aria-hidden="true" />
@@ -1224,7 +1243,7 @@ export function Battleship({
                     })}
                     {!placement && <WeaponTrails sea={sea} />}
                     {!placement && (
-                      <div className="bombed-areas" role="group" aria-label="Bombed areas">
+                      <div className="bombed-areas" role="group" aria-label={t("board.ships.bombedAreas")}>
                         {sea.bombedAreas?.map((area, index) => (
                           <span
                             key={index}
@@ -1234,7 +1253,9 @@ export function Battleship({
                               left: `${area.col * 10}%`,
                               top: `${area.row * 10}%`,
                             }}
-                            aria-label={`Bombed 2 by 2 area at ${cellName(area.row, area.col)}`}
+                            aria-label={t("board.ships.bombedArea", {
+                              cell: cellName(area.row, area.col),
+                            })}
                           />
                         ))}
                       </div>
@@ -1295,7 +1316,9 @@ export function Battleship({
                                       left: `${Math.min(97, col * 10)}%`,
                                       top: `${Math.max(3, row * 10)}%`,
                                     }}
-                                    aria-label={`Rotate ${spec.shortName ?? spec.name}`}
+                                    aria-label={t("board.ships.rotate", {
+                                      ship: spec.shortName ?? spec.name,
+                                    })}
                                     title="Rotate 90°"
                                     data-sound="flip"
                                     disabled={!can("place_fleet")}
@@ -1339,7 +1362,7 @@ export function Battleship({
           {!placement && !watching && (
             <div className="ship-abilities">
               <EnergyMeter points={points} spend={spend} />
-              <div className="ship-weapons" role="group" aria-label="Weapons">
+              <div className="ship-weapons" role="group" aria-label={t("board.ships.weapons")}>
                 {weapons.map((item, index) => {
                   const cannon = item.id === "cannon";
                   const cost = costOf(item.id);
@@ -1356,7 +1379,7 @@ export function Battleship({
                           [property: `--${string}`]: string | number | undefined;
                         }
                       }
-                      title={item.hint}
+                      title={t(item.hint)}
                       aria-pressed={currentWeapon === item.id}
                       disabled={!can(item.id)}
                       onPointerEnter={() => setHoverWeapon(item.id)}
@@ -1384,18 +1407,18 @@ export function Battleship({
                         <WeaponIcon name={item.id} />
                       </span>
                       <span className="power-label">
-                        <span className="power-name">{item.label}</span>
-                        <span className="power-description">{item.hint}</span>
+                        <span className="power-name">{t(item.label)}</span>
+                        <span className="power-description">{t(item.hint)}</span>
                       </span>
                       {cannon ? (
                         <span className="power-cost" data-free="true">
-                          Free
+                          {t("board.ships.free")}
                         </span>
                       ) : (
                         <span
                           className="power-cost"
                           role="img"
-                          aria-label={`${cost ?? "?"} energy`}
+                          aria-label={t("board.ships.energyCost", { cost: cost ?? "?" })}
                         >
                           <span className="power-cost-value" aria-hidden="true">
                             {cost ?? "?"}
@@ -1410,14 +1433,14 @@ export function Battleship({
             </div>
           )}
           {!placement && !watching && (
-            <aside className="ship-game-log" aria-label="Game log">
+            <aside className="ship-game-log" aria-label={t("board.ships.gameLog")}>
               <div
                 className="ship-log-content"
                 tabIndex={0}
                 role="region"
-                aria-label="Recent moves"
+                aria-label={t("board.ships.recentMoves")}
               >
-                <h3>Game log</h3>
+                <h3>{t("board.ships.gameLog")}</h3>
                 {announcement && <p className="ship-log-announcement">{announcement}</p>}
                 {shotLog.length ? (
                   <ol>
@@ -1443,7 +1466,7 @@ export function Battleship({
                     ))}
                   </ol>
                 ) : (
-                  !announcement && <p className="ship-log-empty">No shots yet.</p>
+                  !announcement && <p className="ship-log-empty">{t("board.ships.noShots")}</p>
                 )}
               </div>
             </aside>
@@ -1463,12 +1486,12 @@ export function Battleship({
           <WeaponIcon name={powerGhost.id} />
           <span>
             {powerGhost.id === "torpedo"
-              ? "Possible path · stops at first ship"
+              ? t("board.ships.possiblePath")
               : powerGhost.id === "mine"
-                ? "Place on your waters"
+                ? t("board.ships.placeWaters")
                 : powerGhost.id === "radar"
-                  ? "Scan area"
-                  : "Blast area"}
+                  ? t("board.ships.scanArea")
+                  : t("board.ships.blastArea")}
           </span>
         </div>
       )}
@@ -1478,10 +1501,10 @@ export function Battleship({
         data-tone={placement && !own?.ready && notice ? "danger" : undefined}
       >
         {state.status === "ended"
-          ? "Match finished."
+          ? t("board.ships.matchFinished")
           : (placement && !own?.ready ? notice : "") ||
             announcement ||
-            (placement && own?.ready ? "Fleet locked. Waiting for the opponent." : "")}
+            (placement && own?.ready ? t("board.ships.fleetLocked") : "")}
       </footer>
     </div>
   );
