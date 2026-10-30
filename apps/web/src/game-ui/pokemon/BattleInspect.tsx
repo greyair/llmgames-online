@@ -8,6 +8,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/i18n";
 
 /** Inspect with hover/focus, or hold on touch. A hold never submits the wrapped action. */
 export function BattleInspect({
@@ -27,6 +28,8 @@ export function BattleInspect({
   clickToOpen?: boolean;
   disabled?: boolean;
 }) {
+  const t = useT();
+
   const anchor = useRef<HTMLDivElement>(null),
     hold = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
     hide = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
@@ -198,7 +201,7 @@ export function BattleInspect({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
           {content}
-          <DialogClose render={<Button variant="outline" />}>Close</DialogClose>
+          <DialogClose render={<Button variant="outline" />}>{t("board.pokemon.close")}</DialogClose>
         </DialogContent>
       </Dialog>
     </div>

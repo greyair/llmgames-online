@@ -5,24 +5,27 @@ import { Button } from "@/components/ui/button";
 import { TypeBadge } from "./TypeBadge";
 import { BattleInspect } from "./BattleInspect";
 import type { Move } from "./BattleControls";
+import { useT } from "@/i18n";
 
 function MoveDetails({ move }: { move: Move }) {
+  const t = useT();
+
   return (
     <>
-      <p>{move.fullDescription ?? move.description ?? "No additional effect."}</p>
+      <p>{move.fullDescription ?? move.description ?? t("board.pokemon.noEffect")}</p>
       <dl className="poke-move-facts">
         <div>
-          <dt>{move.damage ? "Damage" : "Base power"}</dt>
+          <dt>{t(move.damage ? "board.pokemon.damage" : "board.pokemon.basePower")}</dt>
           <dd>{move.damage ?? (move.power || "—")}</dd>
         </div>
         <div>
-          <dt>Base accuracy</dt>
+          <dt>{t("board.pokemon.baseAccuracy")}</dt>
           <dd>
             {move.accuracy === true
-              ? "Always hits"
+              ? t("board.pokemon.alwaysHits")
               : isNumber(move.accuracy)
                 ? move.accuracy + "%"
-                : "Varies"}
+                : t("board.pokemon.varies")}
           </dd>
         </div>
         <div>
@@ -32,22 +35,25 @@ function MoveDetails({ move }: { move: Move }) {
           </dd>
         </div>
       </dl>
-      {move.sameTypeBonus && <p>Same-type attack bonus: ×1.5 damage.</p>}
+      {move.sameTypeBonus && <p>{t("board.pokemon.stab")}</p>}
       {move.typeMatchup !== undefined && (
         <p>
-          Type matchup vs {move.matchupTarget ?? "opponent"}: ×{move.typeMatchup}. Based on current
-          types only, not a damage estimate.
+          {t("board.pokemon.typeMatchup", {
+            target: move.matchupTarget ?? t("board.pokemon.opponent"),
+            multiplier: move.typeMatchup,
+          })}
         </p>
       )}
       {Boolean(move.priority) && (
         <p>
-          Move priority: {move.priority! > 0 ? "+" : ""}
-          {move.priority}. Priority acts before Speed.
+          {t("board.pokemon.priority", {
+            priority: `${move.priority! > 0 ? "+" : ""}${move.priority}`,
+          })}
         </p>
       )}
       {(move.disabled || move.pp === 0) && (
         <p className="poke-move-unavailable">
-          {move.pp === 0 ? "No PP remaining." : "This move is currently unavailable."}
+          {t(move.pp === 0 ? "board.pokemon.noPp" : "board.pokemon.moveUnavailable")}
         </p>
       )}
     </>

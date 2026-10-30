@@ -1,6 +1,7 @@
 import { knownValue } from "@/domain/view-contracts";
 import { effectLabel, statLabel, statusLabel } from "./battleLabels";
 import { useEffect, useRef } from "react";
+import { useT } from "@/i18n";
 
 const mon = (value = "") => value.replace(/^p[12][a-z]?: /, "");
 
@@ -74,6 +75,8 @@ export function logLine(line: string): string | null {
 }
 
 export function BattleLog({ lines, offset = 0 }: { lines: string[]; offset?: number }) {
+  const t = useT();
+
   const scroll = useRef<HTMLDivElement>(null),
     follow = useRef(true);
 
@@ -101,13 +104,13 @@ export function BattleLog({ lines, offset = 0 }: { lines: string[]; offset?: num
     .filter((entry) => entry.text);
 
   return (
-    <aside className="poke-log" aria-label="Battle log">
-      <h2>Battle log</h2>
+    <aside className="poke-log" aria-label={t("board.pokemon.battleLog")}>
+      <h2>{t("board.pokemon.battleLog")}</h2>
       <div
         ref={scroll}
         className="poke-log-scroll"
         role="region"
-        aria-label="Battle history"
+        aria-label={t("board.pokemon.battleHistory")}
         tabIndex={0}
         onScroll={() => {
           const el = scroll.current;
@@ -137,7 +140,7 @@ export function BattleLog({ lines, offset = 0 }: { lines: string[]; offset?: num
             ),
           )
         ) : (
-          <p className="poke-log-empty">Moves and results appear here as the battle unfolds.</p>
+          <p className="poke-log-empty">{t("board.pokemon.logEmpty")}</p>
         )}
       </div>
     </aside>

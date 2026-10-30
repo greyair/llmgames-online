@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MoveButton } from "./MoveButton";
 import { HealthBar, Sprite } from "./MonsterView";
 import { PokemonDetails } from "./PokemonDetails";
+import { useT } from "@/i18n";
 
 export type Move = {
   slot: number;
@@ -45,6 +46,7 @@ export function BattleControls({
   message: string;
   send: (name: string, data: WireValue) => void;
 }) {
+  const t = useT();
   const showMoves = Boolean(decision && !decision.forceSwitch && decision.moves.length > 0);
 
   return (
@@ -52,7 +54,7 @@ export function BattleControls({
       className="pokemon-decision poke-controls"
       data-force-switch={decision?.forceSwitch || undefined}
       data-has-moves={showMoves || undefined}
-      aria-label="Battle controls"
+      aria-label={t("board.pokemon.battleControls")}
       tabIndex={0}
     >
       {decision ? (
@@ -75,7 +77,7 @@ export function BattleControls({
           <div className="poke-control-group poke-control-switches">
             {decision.forceSwitch && (
               <p className="poke-controls-label" aria-hidden="true">
-                Send in your next Pokémon
+                {t("board.pokemon.sendNext")}
               </p>
             )}
             <div className="poke-switches">
@@ -93,14 +95,24 @@ export function BattleControls({
                       onClick={() => {
                         if (choice) send("pokemon_switch", { slot: choice.slot });
                       }}
-                      aria-label={`${mon.name ?? mon.species ?? "Pokémon"}${mon.fainted ? ", fainted" : mon.active ? ", active" : ""}`}
+                      aria-label={`${mon.name ?? mon.species ?? t("board.pokemon.name")}${
+                        mon.fainted
+                          ? `, ${t("board.pokemon.faintedLower")}`
+                          : mon.active
+                            ? `, ${t("board.pokemon.activeLower")}`
+                            : ""
+                      }`}
                       title={`${mon.name ?? mon.species} · ${mon.condition ?? ""}`}
                     >
                       <strong>{mon.name ?? mon.species}</strong>
                       <Sprite mon={mon} />
                       <HealthBar mon={mon} />
                       <small>
-                        {mon.fainted ? "Fainted" : mon.active ? "Active" : mon.condition}
+                        {mon.fainted
+                          ? t("board.pokemon.fainted")
+                          : mon.active
+                            ? t("board.pokemon.active")
+                            : mon.condition}
                       </small>
                     </Button>
                   </PokemonDetails>

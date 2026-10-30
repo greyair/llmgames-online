@@ -7,6 +7,7 @@ import { BattleEffects } from "./BattleEffects";
 import type { Cue, Side } from "@/features/pokemon/playback";
 import { MonsterStatus, Sprite } from "./MonsterView";
 import { play, type SoundName } from "@/lib/sound";
+import { useT } from "@/i18n";
 
 const cueSound: Partial<Record<Cue["kind"], SoundName>> = {
   move: "attack",
@@ -51,11 +52,12 @@ export function Battlefield({
   players: Record<string, GamePlayer>;
   turn: number;
 }) {
+  const t = useT();
   const stage = useRef<HTMLElement>(null);
   useCueSound(cue);
 
   return (
-    <section ref={stage} className="poke-field" aria-label="Active Pokémon">
+    <section ref={stage} className="poke-field" aria-label={t("board.pokemon.activePokemon")}>
       <span className="poke-sky" aria-hidden="true" />
       <span className="poke-horizon" aria-hidden="true" />
       <span className="poke-turn">Turn {turn}</span>

@@ -1,5 +1,6 @@
 import type { Side } from "@/features/pokemon/playback";
 import { HealthBar, Sprite } from "./MonsterView";
+import { useT } from "@/i18n";
 
 /** Only display the public team and move information in the current projection. */
 export function SpectatorTeams({
@@ -13,6 +14,8 @@ export function SpectatorTeams({
   logs: string[];
   details: Record<string, string | null>;
 }) {
+  const t = useT();
+
   return (
     <div className="poke-spectator-teams">
       {sides.map((side) => {
@@ -36,31 +39,37 @@ export function SpectatorTeams({
                 {details[side.seat] && <small>{details[side.seat]}</small>}
               </span>
               <span className="poke-team-count">
-                {remaining} / {side.pokemon.length} remaining
+                {t("board.pokemon.remaining", {
+                  remaining,
+                  total: side.pokemon.length,
+                })}
               </span>
             </header>
             <div className="poke-last-move" aria-live="polite">
-              <small>Last move</small>
+              <small>{t("board.pokemon.lastMove")}</small>
               {move ? (
                 <>
                   <strong>{move[3]}</strong>
                   <span>
-                    {move[2]?.replace(/^p[12][a-z]?: /, "")} used {move[3]}
+                    {t("board.pokemon.usedMove", {
+                      name: move[2]?.replace(/^p[12][a-z]?: /, "") ?? "",
+                      move: move[3] ?? "",
+                    })}
                   </span>
                 </>
               ) : (
-                <span>No move yet</span>
+                <span>{t("board.pokemon.noMoveYet")}</span>
               )}
             </div>
             <div className="poke-spectator-roster">
               {side.pokemon.map((mon, index) => {
                 const label = mon.hidden
-                  ? "Unrevealed"
+                  ? t("board.pokemon.unrevealed")
                   : mon.fainted
-                    ? "Fainted"
+                    ? t("board.pokemon.fainted")
                     : mon.active
-                      ? "In battle"
-                      : "On bench";
+                      ? t("board.pokemon.inBattle")
+                      : t("board.pokemon.onBench");
 
                 return (
                   <div
@@ -70,7 +79,9 @@ export function SpectatorTeams({
                   >
                     <Sprite mon={mon} />
                     <strong>
-                      {mon.hidden ? "Unknown" : (mon.name ?? mon.species ?? "Unknown")}
+                      {mon.hidden
+                        ? t("board.pokemon.unknown")
+                        : (mon.name ?? mon.species ?? t("board.pokemon.unknown"))}
                     </strong>
                     <small>{label}</small>
                     {!mon.hidden && <HealthBar mon={mon} />}

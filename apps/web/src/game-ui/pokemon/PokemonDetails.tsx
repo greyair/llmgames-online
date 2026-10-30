@@ -5,6 +5,7 @@ import { Sprite, HealthBar } from "./MonsterView";
 import { TypeBadge } from "./TypeBadge";
 import { BattleInspect } from "./BattleInspect";
 import { effectLabel, effectDescription, statusLabel, statLabel } from "./battleLabels";
+import { useT } from "@/i18n";
 
 export function PokemonDetails({
   mon,
@@ -17,6 +18,8 @@ export function PokemonDetails({
   children?: ReactNode;
   disabled?: boolean;
 }) {
+  const t = useT();
+
   if (mon.hidden)
     return (
       <span className="poke-roster-slot">
@@ -28,7 +31,7 @@ export function PokemonDetails({
   return (
     <BattleInspect
       title={`${name} · Lv. ${mon.level ?? "?"}`}
-      description={own ? "Your Pokémon" : "Revealed information"}
+      description={t(own ? "board.pokemon.yourPokemon" : "board.pokemon.revealedInfo")}
       className={children ? "poke-switch-card" : "poke-roster-inspect"}
       disabled={disabled}
       clickToOpen={!children}
@@ -45,16 +48,18 @@ export function PokemonDetails({
               <HealthBar mon={mon} />
               <p>
                 {mon.fainted
-                  ? "Fainted"
-                  : `${mon.condition?.split(" ")[0] ?? "Unknown"}${own ? " HP" : " public HP"}`}{" "}
+                  ? t("board.pokemon.fainted")
+                  : t(own ? "board.pokemon.hpValue" : "board.pokemon.publicHpValue", {
+                      condition: mon.condition?.split(" ")[0] ?? t("board.pokemon.unknown"),
+                    })}{" "}
                 {statusLabel(mon.condition?.split(" ")[1] ?? "")}
               </p>
-              {mon.active && <small>Currently battling</small>}
+              {mon.active && <small>{t("board.pokemon.currentlyBattling")}</small>}
             </div>
           </div>
           {own && mon.stats && (
             <>
-              <h3>Base stats</h3>
+              <h3>{t("board.pokemon.baseStats")}</h3>
               <dl className="poke-detail-stats">
                 {(["atk", "def", "spa", "spe"] as const).map((stat) => (
                   <div key={stat}>
@@ -63,33 +68,31 @@ export function PokemonDetails({
                   </div>
                 ))}
               </dl>
-              <p className="poke-detail-note">
-                Before battle modifiers. Gen 1 uses one Special stat.
-              </p>
+              <p className="poke-detail-note">{t("board.pokemon.beforeModifiers")}</p>
             </>
           )}
           {mon.effects?.length || Object.values(mon.boosts ?? {}).some(Boolean) ? (
             <section>
-              <h3>Battle effects</h3>
+              <h3>{t("board.pokemon.battleEffects")}</h3>
               <div className="poke-status-tags">
                 {Object.entries(mon.boosts ?? {})
                   .filter(([, value]) => value)
                   .map(([stat, value]) => (
                     <span key={stat}>
                       {statLabel(stat)} {value! > 0 ? "+" : ""}
-                      {value} stages
+                      {t("board.pokemon.stages", { value })}
                     </span>
                   ))}
               </div>
               {mon.effects?.map((effect) => (
                 <p key={effect}>
                   <strong>{effectLabel(effect)}</strong> ·{" "}
-                  {knownValue(effectDescription, effect) ?? "Active battle effect."}
+                  {knownValue(effectDescription, effect) ?? t("board.pokemon.activeEffect")}
                 </p>
               ))}
             </section>
           ) : null}
-          <h3>{own ? "Moves" : "Revealed moves"}</h3>
+          <h3>{t(own ? "board.pokemon.moves" : "board.pokemon.revealedMoves")}</h3>
           <div className="poke-detail-moves">
             {own && mon.moves?.length ? (
               mon.moves.map((move) => (
@@ -104,19 +107,19 @@ export function PokemonDetails({
               mon.revealedMoves.map((move) => (
                 <div key={move}>
                   <strong>{move}</strong>
-                  <span>Revealed</span>
+                  <span>{t("board.pokemon.revealed")}</span>
                 </div>
               ))
             ) : (
               <p>
                 {own
-                  ? "Move details are not available in this snapshot."
-                  : "No moves revealed yet."}
+                  ? t("board.pokemon.noMoveDetails")
+                  : t("board.pokemon.noRevealedMoves")}
               </p>
             )}
           </div>
           {!own && (
-            <p className="poke-detail-note">Unrevealed moves and exact stats stay hidden.</p>
+            <p className="poke-detail-note">{t("board.pokemon.hiddenNote")}</p>
           )}
         </>
       }

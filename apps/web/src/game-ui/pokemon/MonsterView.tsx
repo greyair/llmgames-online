@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { TypeBadge } from "./TypeBadge";
 import { effectLabel, statusLabel, statLabel } from "./battleLabels";
 import type { Monster } from "@/features/pokemon/playback";
+import { useT } from "@/i18n";
 
 export function health(mon: Monster) {
   const match = mon.condition?.match(/^(\d+)\/(\d+)/);
@@ -77,17 +78,20 @@ export function Sprite({
 }
 
 export function HealthBar({ mon }: { mon: Monster }) {
+  const t = useT();
   const hp = health(mon);
 
   return (
     <div
       className="poke-health"
       role="meter"
-      aria-label={`${mon.name ?? mon.species ?? "Pokémon"} health`}
+      aria-label={t("board.pokemon.health", {
+        name: mon.name ?? mon.species ?? t("board.pokemon.name"),
+      })}
       aria-valuenow={hp ?? undefined}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuetext={mon.condition ?? "Unknown"}
+      aria-valuetext={mon.condition ?? t("board.pokemon.unknown")}
     >
       <span
         data-range={hp !== null && hp <= 20 ? "low" : hp !== null && hp <= 50 ? "medium" : "high"}
@@ -112,10 +116,12 @@ export function MonsterStatus({
   showStats?: boolean;
   own?: boolean;
 }) {
+  const t = useT();
+
   if (mon.hidden)
     return (
       <div className="poke-status" data-hidden="true">
-        Unrevealed Pokémon
+        {t("board.pokemon.unrevealedPokemon")}
       </div>
     );
 
@@ -132,7 +138,7 @@ export function MonsterStatus({
       data-fainted={mon.fainted || undefined}
     >
       <div className="poke-mon-name">
-        <strong>{mon.name ?? mon.species ?? "Pokémon"}</strong>
+        <strong>{mon.name ?? mon.species ?? t("board.pokemon.name")}</strong>
         <span className="poke-level">Lv{mon.level ?? "?"}</span>
         {mon.fainted ? (
           <span className="poke-status-sticker" data-status="fnt">
@@ -154,7 +160,11 @@ export function MonsterStatus({
         <HealthBar mon={mon} />
       </div>
       <div className="poke-hp-line">
-        <span>{mon.fainted ? "Fainted" : (mon.condition?.split(" ")[0] ?? "HP unknown")}</span>
+        <span>
+          {mon.fainted
+            ? t("board.pokemon.fainted")
+            : (mon.condition?.split(" ")[0] ?? t("board.pokemon.hpUnknown"))}
+        </span>
         <strong>{hp !== null ? `${Math.ceil(hp)}%` : ""}</strong>
       </div>
       <div className="poke-mon-chips">
@@ -182,8 +192,8 @@ export function MonsterStatus({
       {showStats && mon.stats && (
         <dl
           className="poke-stats"
-          aria-label="Your Pokémon base stats"
-          title="Base stats before battle modifiers"
+          aria-label={t("board.pokemon.baseStatsYours")}
+          title={t("board.pokemon.statsTip")}
         >
           {(
             [
@@ -199,12 +209,12 @@ export function MonsterStatus({
                   <dt
                     title={
                       key === "spa"
-                        ? "Gen 1 combines Special Attack and Special Defense into one Special stat."
+                        ? t("board.pokemon.gen1Special")
                         : key === "atk"
-                          ? "Physical Attack"
+                          ? t("board.pokemon.physicalAttack")
                           : key === "def"
-                            ? "Physical Defense"
-                            : "Speed"
+                            ? t("board.pokemon.physicalDefense")
+                            : t("board.pokemon.speed")
                     }
                   >
                     {label}
