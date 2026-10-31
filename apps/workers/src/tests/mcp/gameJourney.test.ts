@@ -7,6 +7,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createLlmgamesMcpServer } from "../../mcp/createServer";
 import { Connect4Room } from "../../durable-objects/Connect4Room";
+import { ReversiRoom } from "../../durable-objects/ReversiRoom";
+import { CheckersRoom } from "../../durable-objects/CheckersRoom";
+import { BattleshipRoom } from "../../durable-objects/BattleshipRoom";
+import { CodenamesGameRoom } from "../../durable-objects/CodenamesGameRoom";
 import { migratedDb } from "../fixtures/migrated-db";
 import { MemoryR2Bucket } from "../fixtures/memory-r2";
 import { MemoryRoomRuntime } from "../fixtures/memory-runtime";
@@ -14,10 +18,16 @@ import { testEnv, testNamespace } from "../fixtures/env";
 import type { Env } from "../../types";
 
 /**
- * M3.3 acceptance: a whole match played through the **real MCP tool path**
+ * M3 acceptance: whole matches played through the **real MCP tool path**
  * (`agent_claim` → `room_create`/`room_join` → `start_game` → `send_action` →
  * `get_state`), then archived to R2 with a D1 index row and read back through
  * the shared archive contract.
+ *
+ * One case per migrated game, because the contract risk lives in the seams
+ * between a plugin and the platform, and each game exercises different ones:
+ * turn order (Connect4), automatic skips (Reversi), forced captures (Checkers),
+ * private boards and placement (Battleship), roles and two-phase turns
+ * (Codenames).
  *
  * Nothing is stubbed inside the Worker: the only local substitutes are the
  * in-process Durable Object namespace, D1 (real SQLite schema) and the R2
@@ -26,21 +36,192 @@ import type { Env } from "../../types";
 
 const toolContentSchema = z.array(z.object({ type: z.string(), text: z.string().optional() }));
 
-const actionResponseSchema = z.object({
-  ok: z.boolean().optional(),
-  state: z
-    .object({
-      type: z.string(),
-      status: z.string(),
-      turnState: z.object({ currentPlayerId: z.string().nullable() }).loose(),
-      you: z.object({ playerId: z.string(), legalActions: z.array(z.string()) }).loose(),
-    })
-    .loose(),
-});
+const stateSchema = z
+  .object({
+    type: z.string(),
+    status: z.string(),
+    turnState: z
+      .object({ currentPlayerId: z.string().nullable(), phase: z.string().optional() })
+      .loose(),
+    you: z
+      .object({
+        playerId: z.string(),
+        legalActions: z.array(z.string()),
+        yourRole: z.string().optional(),
+      })
+      .loose(),
+    ownGrid: z.array(z.string()).optional(),
+    targetGrid: z.array(z.string()).optional(),
+    legalMoves: z
+      .array(
+        z
+          .object({
+            row: z.number(),
+            col: z.number(),
+            fromRow: z.number().optional(),
+            fromCol: z.number().optional(),
+          })
+          .loose(),
+      )
+      .optional(),
+    board: z.unknown().optional(),
+  })
+  .loose();
 
-type ToolBody = WireObject;
+type RoomState = z.output<typeof stateSchema>;
 
-function roomHarness() {
+const actionResponseSchema = z.object({ ok: z.boolean().optional(), state: stateSchema });
+
+const wordBoardSchema = z.array(
+  z.object({ word: z.string(), revealed: z.boolean().optional() }).loose(),
+);
+
+type RoomClass = new (
+  runtime: MemoryRoomRuntime,
+  env: Env,
+) => { fetch: (request: Request) => Promise<Response> };
+
+interface Step {
+  actionType: string;
+  data: WireObject;
+}
+
+interface Journey {
+  gameType: "connect4" | "reversi" | "checkers" | "battleship" | "codenames";
+  Room: RoomClass;
+  binding: "CONNECT4_ROOM" | "REVERSI_ROOM" | "CHECKERS_ROOM" | "BATTLESHIP_ROOM" | "CODENAMES_ROOM";
+  players: number;
+  /** Actions the driver must get accepted before the match may stop short of an end. */
+  minActions: number;
+  /** Accepted actions allowed before the driver gives up (default 160). */
+  budget?: number;
+  /** Lobby work that has to happen between the last join and the start. */
+  prepare?: (send: Send, roomId: string, host: string) => Promise<void>;
+  next: (state: RoomState, seatTurn: number, matchTurn: number) => Step | null;
+  /** Fields that must never be readable by the opposing seat. */
+  secret?: (state: RoomState) => string[];
+  /** A rival's projection may only carry what the rules reveal about this seat. */
+  assertRival?: (rival: RoomState) => void;
+}
+
+type Send = (controllerId: string, actionType: string, data: WireObject) => Promise<void>;
+
+const BATTLESHIP_FLEET = [
+  { id: "carrier", row: 2, col: 2, rotation: 90 },
+  { id: "dreadnought", row: 0, col: 5, rotation: 0 },
+  { id: "cruiser", row: 5, col: 9, rotation: 180 },
+  { id: "submarine", row: 9, col: 4, rotation: 270 },
+  { id: "destroyer", row: 6, col: 3, rotation: 90 },
+];
+
+/** Connect 4 plays a scripted line so the match ends in a known shape. */
+const CONNECT4_COLUMNS = [0, 0, 1, 1, 2, 2, 3];
+
+const journeys: Journey[] = [
+  {
+    gameType: "connect4",
+    Room: Connect4Room,
+    binding: "CONNECT4_ROOM",
+    players: 2,
+    minActions: CONNECT4_COLUMNS.length,
+    next: (_state, _seatTurn, turn) => {
+      const col = CONNECT4_COLUMNS[turn];
+
+      return col === undefined ? null : { actionType: "drop_disc", data: { col } };
+    },
+  },
+  {
+    gameType: "reversi",
+    Room: ReversiRoom,
+    binding: "REVERSI_ROOM",
+    players: 2,
+    minActions: 40,
+    // Every placement flips at least one disc, so taking the first legal move
+    // always reaches a board neither side can play into.
+    next: (state) => {
+      const [move] = state.legalMoves ?? [];
+
+      return move ? { actionType: "place_disc", data: { row: move.row, col: move.col } } : null;
+    },
+  },
+  {
+    gameType: "checkers",
+    Room: CheckersRoom,
+    binding: "CHECKERS_ROOM",
+    players: 2,
+    minActions: 12,
+    next: (state) => {
+      const moves = state.legalMoves ?? [];
+      const move = moves.find((candidate) => candidate.fromRow !== undefined) ?? moves[0];
+
+      if (!move || move.fromRow === undefined || move.fromCol === undefined) return null;
+
+      return {
+        actionType: "move_checker",
+        data: { fromRow: move.fromRow, fromCol: move.fromCol, row: move.row, col: move.col },
+      };
+    },
+  },
+  {
+    gameType: "battleship",
+    Room: BattleshipRoom,
+    binding: "BATTLESHIP_ROOM",
+    players: 2,
+    minActions: 10,
+    // 22 hull cells per fleet at roughly one shot per turn, minus the hits that
+    // grant a repeat shot, needs a longer run than the shared default.
+    budget: 400,
+    next: (state, turn) => {
+      if (state.you.legalActions.includes("place_fleet"))
+        return { actionType: "place_fleet", data: { ships: BATTLESHIP_FLEET } };
+
+      if (!state.you.legalActions.includes("cannon")) return null;
+
+      // Each seat's own counter walks its 100 cells once, so no repeat shots.
+      return {
+        actionType: "cannon",
+        data: { row: Math.floor(turn / 10) % 10, col: turn % 10 },
+      };
+    },
+    // A rival sees hits and misses on this seat's water, never the ships
+    // themselves: the target grid only ever holds unknown, miss or hit.
+    assertRival: (rival) => {
+      for (const row of rival.targetGrid ?? []) expect(row).toMatch(/^[.ox]+$/);
+    },
+  },
+  {
+    gameType: "codenames",
+    Room: CodenamesGameRoom,
+    binding: "CODENAMES_ROOM",
+    players: 4,
+    minActions: 6,
+    prepare: async (send, roomId, host) => {
+      await send(host, "randomize_codenames_roles", {});
+    },
+    next: (state, turn) => {
+      const { legalActions } = state.you;
+
+      if (!legalActions.includes("give_clue") && !legalActions.includes("guess_word")) return null;
+
+      if (state.turnState.phase === "clue") {
+        // A clue is a single word and may not repeat a visible codename, so
+        // prefix one of them instead of inventing a word that might collide.
+        const visible = wordBoardSchema.safeParse(state.board).data?.[0]?.word ?? "word";
+
+        return { actionType: "give_clue", data: { word: `zq${visible}`, count: 9 } };
+      }
+
+      const board = wordBoardSchema.safeParse(state.board).data ?? [];
+      const index = board.findIndex((card) => !card.revealed);
+
+      return index === -1 ? null : { actionType: "guess_word", data: { index } };
+    },
+    // An operative must never be able to read the assassin's location.
+    secret: (state) => (state.you.yourRole === "operative" ? ["assassin"] : []),
+  },
+];
+
+function roomHarness(binding: Journey["binding"], Room: RoomClass) {
   const db = migratedDb();
 
   db.sqlite
@@ -50,8 +231,7 @@ function roomHarness() {
     .run();
 
   const bucket = new MemoryR2Bucket();
-  const rooms = new Map<string, Connect4Room>();
-  const runtimes = new Map<string, MemoryRoomRuntime>();
+  const rooms = new Map<string, { fetch: (request: Request) => Promise<Response> }>();
 
   const namespace = testNamespace(async (name, request) => {
     const existing = rooms.get(name);
@@ -59,10 +239,7 @@ function roomHarness() {
     if (existing) return existing.fetch(request);
 
     const runtime = new MemoryRoomRuntime(new Map());
-
-    runtimes.set(name, runtime);
-
-    const room = new Connect4Room(runtime, env);
+    const room = new Room(runtime, env);
 
     rooms.set(name, room);
     await runtime.initialized;
@@ -70,9 +247,9 @@ function roomHarness() {
     return room.fetch(request);
   });
 
-  const env: Env = testEnv({ DB: db, GAME_LOGS: bucket, CONNECT4_ROOM: namespace });
+  const env: Env = testEnv({ DB: db, GAME_LOGS: bucket, [binding]: namespace });
 
-  return { db, bucket, rooms, runtimes, env };
+  return { db, bucket, rooms, env };
 }
 
 async function connect(env: Env) {
@@ -108,151 +285,189 @@ async function connect(env: Env) {
 }
 
 describe("MCP match journey", () => {
-  it("plays a match over MCP and archives a readable replay", async () => {
-    const harness = roomHarness();
-    const { client, call } = await connect(harness.env);
+  for (const journey of journeys) {
+    it(`plays ${journey.gameType} over MCP without leaking private state`, async () => {
+      const harness = roomHarness(journey.binding, journey.Room);
+      const { client, call } = await connect(harness.env);
 
-    try {
-      const hostClaim = await call("agent_claim");
-      const guestClaim = await call("agent_claim");
+      try {
+        const controllers: string[] = [];
 
-      expect(hostClaim.isError).toBe(false);
-      expect(guestClaim.isError).toBe(false);
+        for (let seat = 0; seat < journey.players; seat += 1) {
+          const claim = await call("agent_claim");
 
-      const hostController = z.string().parse(hostClaim.body.controllerId);
-      const guestController = z.string().parse(guestClaim.body.controllerId);
+          expect(claim.isError).toBe(false);
+          controllers.push(z.string().parse(claim.body.controllerId));
+        }
 
-      const created = await call("room_create", {
-        controllerId: hostController,
-        gameType: "connect4",
-        turnTime: 30_000,
-      });
+        const hostController = controllers[0];
 
-      expect(created.isError).toBe(false);
+        if (!hostController) throw new Error("agent_claim did not return a controller");
 
-      const roomId = z.string().parse(created.body.roomId);
-      const roomCode = z.string().parse(created.body.roomCode);
-
-      expect(roomId).toBe(`connect4-${roomCode}`);
-
-      const joined = await call("room_join", { controllerId: guestController, roomCode });
-
-      expect(joined.isError).toBe(false);
-
-      const started = await call("start_game", { controllerId: hostController, roomId });
-
-      expect(started.isError).toBe(false);
-
-      // Seat order is random, so drive whichever controller is on turn.
-      const controllers = new Map<string, string>();
-
-      const stateOf = async (controllerId: string) =>
-        actionResponseSchema.parse(
-          (await call("get_state", { controllerId, roomId })).body,
-        ).state;
-
-      for (const controllerId of [hostController, guestController]) {
-        const state = await stateOf(controllerId);
-
-        controllers.set(state.you.playerId, controllerId);
-      }
-
-      expect(controllers.size).toBe(2);
-
-      let state = await stateOf(hostController);
-      const columns = [0, 0, 1, 1, 2, 2, 3];
-
-      for (const col of columns) {
-        const current = state.turnState.currentPlayerId;
-        const controllerId = current ? controllers.get(current) : undefined;
-
-        expect(controllerId).toBeTruthy();
-
-        const action = await call("send_action", {
-          controllerId,
-          roomId,
-          actionType: "drop_disc",
-          data: { col },
+        const created = await call("room_create", {
+          controllerId: hostController,
+          gameType: journey.gameType,
+          turnTime: 30_000,
         });
 
-        expect(action.isError).toBe(false);
-        state = await stateOf(controllerId!);
+        expect(created.isError).toBe(false);
+
+        const roomId = z.string().parse(created.body.roomId);
+        const roomCode = z.string().parse(created.body.roomCode);
+
+        expect(roomId).toBe(`${journey.gameType}-${roomCode}`);
+
+        for (const controllerId of controllers.slice(1)) {
+          const joined = await call("room_join", { controllerId, roomCode });
+
+          expect(joined.isError).toBe(false);
+        }
+
+        const send: Send = async (controllerId, actionType, data) => {
+          const result = await call("send_action", { controllerId, roomId, actionType, data });
+
+          expect(result.isError, `${actionType} rejected: ${JSON.stringify(result.body)}`).toBe(
+            false,
+          );
+        };
+
+        if (journey.prepare) await journey.prepare(send, roomId, hostController);
+
+        const started = await call("start_game", { controllerId: hostController, roomId });
+
+        expect(started.isError).toBe(false);
+
+        const stateOf = async (controllerId: string) =>
+          actionResponseSchema.parse((await call("get_state", { controllerId, roomId })).body).state;
+
+        // Seat order is random, so map every controller to the seat it plays.
+        const controllersBySeat = new Map<string, string>();
+
+        for (const controllerId of controllers) {
+          const state = await stateOf(controllerId);
+
+          controllersBySeat.set(state.you.playerId, controllerId);
+        }
+
+        expect(controllersBySeat.size).toBe(journey.players);
+
+        const budget = journey.budget ?? 160;
+        const perSeat = new Map<string, number>();
+        let state = await stateOf(hostController);
+        let accepted = 0;
+
+        for (let turn = 0; turn < budget && state.status === "playing"; turn += 1) {
+          const current = state.turnState.currentPlayerId;
+          const owned = current ? controllersBySeat.get(current) : undefined;
+
+          // A named turn owner must be a seat some controller is playing.
+          if (current) expect(controllersBySeat.has(current)).toBe(true);
+
+          // Placement, simultaneous clues and other role-scoped decisions have
+          // no single turn owner, so ask each seat what it is allowed to send.
+          let actor = owned;
+
+          if (!actor)
+            for (const candidate of controllers) {
+              const own = await stateOf(candidate);
+
+              if (journey.next(own, perSeat.get(candidate) ?? 0, turn)) {
+                actor = candidate;
+                break;
+              }
+            }
+
+          if (!actor) break;
+
+          const own = await stateOf(actor);
+          const step = journey.next(own, perSeat.get(actor) ?? 0, turn);
+
+          if (!step) break;
+
+          await send(actor, step.actionType, step.data);
+          accepted += 1;
+          perSeat.set(actor, (perSeat.get(actor) ?? 0) + 1);
+          state = await stateOf(actor);
+        }
+
+        expect(accepted).toBeGreaterThanOrEqual(journey.minActions);
+
+        expect(state.status).toBe("ended");
+
+        // Private material never reaches another seat's projection.
+        for (const controllerId of controllers) {
+          const own = await stateOf(controllerId);
+
+          expect(own.you.playerId).toBe(
+            [...controllersBySeat.entries()].find(([, value]) => value === controllerId)?.[0],
+          );
+          expect(JSON.stringify(own)).not.toContain(controllerId);
+
+          const rival = controllers.find((other) => other !== controllerId);
+
+          if (rival) journey.assertRival?.(await stateOf(rival));
+
+          for (const secret of journey.secret?.(own) ?? []) {
+            const rivalState = await stateOf(
+              controllers.find((candidate) => candidate !== controllerId)!,
+            );
+
+            expect(JSON.stringify(rivalState)).not.toContain(secret);
+          }
+        }
+
+        for (const controllerId of controllers)
+          await call("get_state", { controllerId, roomId });
+
+        await vi.waitFor(() => expect(harness.bucket.objects.size).toBe(1), { timeout: 5_000 });
+
+        const [key] = [...harness.bucket.objects.keys()];
+        const stored = await harness.bucket.get(key!);
+
+        expect(stored).not.toBeNull();
+
+        const raw = await new Response(
+          new Blob([await stored!.arrayBuffer()]).stream().pipeThrough(
+            new DecompressionStream("gzip"),
+          ),
+        ).text();
+
+        const document = gameLogDocumentSchema.parse(JSON.parse(raw));
+
+        expect(document.gameType).toBe(journey.gameType);
+        expect(document.version).toBe(1);
+        expect(document.participants.every((participant) => participant.isAgent)).toBe(true);
+        expect(document.participants).toHaveLength(journey.players);
+        // A lobby action can be archived before the start (Codenames role
+        // assignment), so only presence is guaranteed, not position.
+        const eventTypes = document.events.map((event) => event.type);
+
+        expect(eventTypes).toContain("game_started");
+        expect(eventTypes).toContain("game_ended");
+
+        const frames = z.array(wireObjectSchema).parse(document.rewatch.frames);
+
+        expect(frames.length).toBeGreaterThan(1);
+        expect(JSON.stringify(frames.at(-1))).toContain('"status":"ended"');
+
+        for (const controllerId of controllers) expect(raw).not.toContain(controllerId);
+
+        const index = harness.db.sqlite
+          .prepare("SELECT game_type, end_reason, r2_key FROM game_logs")
+          .all();
+
+        expect(index).toEqual([
+          {
+            game_type: journey.gameType,
+            end_reason: document.endReason,
+            r2_key: key,
+          },
+        ]);
+      } finally {
+        await client.close();
       }
-
-      expect(state.status).toBe("ended");
-      expect(state.you.legalActions).not.toContain("drop_disc");
-
-      // Reading the finished state with both controllers closes final delivery.
-      for (const controllerId of [hostController, guestController])
-        await call("get_state", { controllerId, roomId });
-
-      await vi.waitFor(() => expect(harness.bucket.objects.size).toBe(1), { timeout: 5_000 });
-
-      const [key] = [...harness.bucket.objects.keys()];
-      const stored = await harness.bucket.get(key!);
-
-      expect(stored).not.toBeNull();
-
-      const raw = await new Response(
-        new Blob([await stored!.arrayBuffer()]).stream().pipeThrough(new DecompressionStream("gzip")),
-      ).text();
-
-      const document = gameLogDocumentSchema.parse(JSON.parse(raw));
-
-      expect(document.gameType).toBe("connect4");
-      expect(document.version).toBe(1);
-      expect(document.endReason).toBe("connect4");
-      expect(document.participants.map((participant) => participant.ref).sort()).toEqual([
-        "p1",
-        "p2",
-      ]);
-      expect(document.participants.every((participant) => participant.isAgent)).toBe(true);
-      const eventTypes = document.events.map((event) => event.type);
-
-      expect(eventTypes[0]).toBe("game_started");
-      expect(eventTypes.filter((type) => type === "drop_disc")).toHaveLength(columns.length);
-      expect(eventTypes.filter((type) => type === "turn_changed")).toHaveLength(
-        columns.length - 1,
-      );
-      expect(eventTypes).toContain("game_ended");
-      expect(eventTypes.at(-1)).toBe("action");
-
-      const frames = z.array(wireObjectSchema).parse(document.rewatch.frames);
-
-      expect(frames.length).toBeGreaterThan(1);
-      expect(JSON.stringify(frames.at(-1))).toContain('"status":"ended"');
-
-      // The replay is a full reveal: some frame state carries the winning row.
-      const boards = frames.flatMap((frame) => {
-        const state = wireObjectSchema.safeParse(frame.state);
-
-        if (!state.success || !Array.isArray(state.data.board)) return [];
-
-        return [z.array(z.array(z.number())).parse(state.data.board)];
-      });
-
-      expect(boards.length).toBeGreaterThan(0);
-      expect(boards.at(-1)?.[5]?.slice(0, 4)).toEqual([1, 1, 1, 1]);
-
-      // Private identity material never reaches the archive.
-      expect(raw).not.toContain(hostController);
-      expect(raw).not.toContain(guestController);
-      expect(raw).not.toContain("agentId");
-
-      const index = harness.db.sqlite
-        .prepare("SELECT game_type, end_reason, event_count, r2_key FROM game_logs")
-        .all();
-
-      expect(index).toEqual([
-        {
-          game_type: "connect4",
-          end_reason: "connect4",
-          event_count: document.events.length,
-          r2_key: key,
-        },
-      ]);
-    } finally {
-      await client.close();
-    }
-  });
+      // Battleship needs a few hundred round trips; the default 5s is tight
+      // once the whole suite shares two workers.
+    }, 30_000);
+  }
 });
