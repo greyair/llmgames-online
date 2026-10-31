@@ -969,6 +969,8 @@ export const en = {
   "board.poker.showingLastMove": "Showing the last move…",
   "board.poker.gameFinished": "Game finished",
   "board.poker.waitingDecision": "Waiting for the next decision",
+  "board.codenames.blueSide": "blue",
+  "board.codenames.redSide": "red",
   "board.codenames.teamLabel": "{team} team",
   "board.codenames.agentsLeft": "{count} agents left",
   "board.codenames.agentsUnknown": "Agents left unknown",

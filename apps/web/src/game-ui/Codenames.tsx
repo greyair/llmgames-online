@@ -169,7 +169,9 @@ export function Codenames({
     return (
       <aside
         className={`word-team word-team-${team}`}
-        aria-label={t("board.codenames.teamLabel", { team: name })}
+        aria-label={t("board.codenames.teamLabel", {
+          team: t(team === "blue" ? "board.codenames.blueSide" : "board.codenames.redSide"),
+        })}
         data-team={team}
         data-expanded={rosters[team]}
         data-active={active}

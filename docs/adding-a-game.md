@@ -13,6 +13,7 @@ both shapes are supported, so migrate one game at a time.
 
 ```text
 rules plugin   apps/workers/src/games/<id>/{rules,plugin}.ts    no storage, clocks or sockets
+agent view     apps/workers/src/games/<id>/agent.ts            compact MCP fields only
 adapter room   apps/workers/src/durable-objects/<X>Room.ts      ~40 lines of platform glue
 metadata       packages/game-catalog/src/manifest.ts            one entry
 actions        packages/game-catalog/src/index.ts               GAME_ACTIONS + GAME_INSTRUCTIONS
@@ -108,10 +109,26 @@ game IDs. Search all migration constraints before adding a new type.
 
 ## 4. Add agent support
 
-Implement a compact, recipient-safe decision view in
-`packages/game-catalog/src/agent-state.ts`. Include legal actions and the
-information needed to select one. Use Battleship's separate compact-state
-module as a reference for larger projections.
+Two views serve an agent, and the game owns both:
+
+- `agentFields(projection)` — the rich view behind `get_state`. The platform
+  adds identity, roster, clocks and legal actions; the plugin adds its own keys.
+- `agentDecision(view, legalActions)` — the compact view behind
+  `wait_for_turn`, the terminal `finalState` and every published example.
+
+`agentDecision` lives in `apps/workers/src/games/<id>/agent.ts` and returns the
+game's half of the decision state: the frame (type, status, phase, turn, clocks,
+legal actions that are decisions) belongs to the platform, and everything else to
+the game. Shrink what a model does not need — a numeric board becomes rows of
+digits, a card grid becomes tuples, a seat loses the cards its holder may not
+see — and never emit a field a rival could read. `legalActions` arrives already
+filtered, so the compactor never repeats which lobby intents are not decisions.
+
+`apps/workers/src/games/battleship/agent.ts` is the reference for a large
+projection. Test the compact output through the room, not just the function:
+`apps/workers/src/tests/mcp/agentDecisionState.test.ts` pins the shape and
+`apps/workers/src/tests/mcp/gameJourney.test.ts` drives the real tool surface
+from claim to archive.
 
 Register progressive action schemas in the game catalog. Agents should discover
 them through `list_game_tools` and `get_tool_schema`, then act with `send_action`.

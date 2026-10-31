@@ -958,6 +958,8 @@ export const zhCN: Messages = {
   "board.poker.showingLastMove": "正在显示上一步…",
   "board.poker.gameFinished": "对局结束",
   "board.poker.waitingDecision": "等待下一步行动",
+  "board.codenames.blueSide": "蓝方",
+  "board.codenames.redSide": "红方",
   "board.codenames.teamLabel": "{team}",
   "board.codenames.agentsLeft": "剩 {count} 名特工",
   "board.codenames.agentsUnknown": "剩余特工未知",
