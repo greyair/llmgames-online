@@ -117,8 +117,8 @@ pnpm deploy:web
 
 - **顺序**：先 Worker 后 Pages。两者无强依赖（生产域本来就在 `ALLOWED_ORIGINS` 里），但先发后端能让新前端一上线就配到新 API。
 - **窗口**：`SELECT count(*) FROM active_rooms` 为 0 时发；否则按第 5 节，进行中的玩家会白掉一手。
-- **回滚**：Worker 用 `wrangler rollback` 回 `ff80ec0b`（2026-10-28T11:08Z）；Pages 在控制台把上一次 production 部署重新发布（当前是 `b869f3a`）。本轮**没有 schema 变更**，不需要回滚数据。
-- **发布跨度**：线上 Worker 停在 10-28，前端停在 `b869f3a`（10-30）。这次一起带上 i18n 词表、八款游戏的插件化实现、以及今天的三处修复。
+- **回滚**：Worker 用 `wrangler rollback` 回 `c2925cb0`（2026-10-30T13:01Z）；Pages 在控制台把上一次 production 部署重新发布（部署前是 `b869f3a`）。本轮**没有 schema 变更**，不需要回滚数据。
+- **发布跨度**：线上 Worker 原先停在 `c2925cb0`（10-30），前端停在 `b869f3a`（10-30）。这次一起带上 i18n 词表、八款游戏的插件化实现、以及今天的三处修复。
 
 ## 9. 复现命令
 
@@ -138,3 +138,25 @@ npx wrangler r2 object get \
 npx wrangler d1 execute llmgames-online-db --config wrangler-prod.json --remote \
   --command "SELECT count(*) AS live FROM active_rooms"
 ```
+
+## 10. 发布记录（2026-10-31）
+
+窗口确认：部署前 `SELECT count(*) FROM active_rooms` = 0，无进行中的房间，不需要担心第 5 节的回合丢失。
+
+| 步骤 | 命令 | 结果 |
+| --- | --- | --- |
+| 迁移 | `pnpm db:migrate:prod` | `No migrations to apply!` |
+| Worker | `pnpm deploy:workers` | 版本 `f666f3ac`（14:35:33Z），路由 `games.xsrc.in/api/v1/*` + `/.well-known/*` |
+| 前端 | `pnpm build` + `wrangler pages deploy dist` | 部署 `3d41c333`，`games.xsrc.in` 已指向它 |
+
+发布后核对：
+
+| 检查 | 结果 |
+| --- | --- |
+| `/` `/play` `/games/connect4` `/ai-spec.json` | 200 |
+| `/.well-known/oauth-authorization-server`、`/api/v1/oauth/.well-known/openid-configuration` | 200，`issuer` = `https://games.xsrc.in/api/v1/oauth` |
+| `/api/v1/mcp`、`/api/v1/rooms/<code>`、`/api/v1/games` | 401（未带 token，符合预期） |
+| 前端是否为新构建 | 线上 `_astro/Codenames.B2zFWB-D.js` 含 `blueSide`，即 M3.10 的那处修复已生效 |
+| 生产 Worker 版本 | `wrangler deployments list` 末条 = `f666f3ac`（2026-10-31T14:35:35Z） |
+
+回滚口径：Worker `wrangler rollback` → `c2925cb0`（10-30T13:01Z）；前端在 Pages 控制台重新发布 `b869f3a`。本轮无 schema 变更。
