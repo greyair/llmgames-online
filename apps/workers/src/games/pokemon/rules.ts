@@ -9,8 +9,15 @@ import type { BattleSeat } from "./engine";
  * The simulator is only ever read through a snapshot: the state holds JSON, and
  * rule calls parse it, act, then serialize it back. Parsing is the expensive
  * part of every view and every action, so the last parsed battle is memoized by
- * its snapshot string. The snapshot fully determines the battle, so the cache
- * cannot leak one room's battle into another's answer.
+ * its snapshot string.
+ *
+ * A {@link Battle} is mutable, so the memo is only valid while the key is the
+ * snapshot that matches the battle's current contents. {@link syncBattle}
+ * re-keys it after every write for exactly that reason: the battle that was
+ * parsed as S0 is S1 by the time it is stored, and a stale S0 → S1 entry would
+ * answer for a snapshot the state no longer holds. That matters when a write
+ * fails — the platform rolls the state back to the stored snapshot, and a stale
+ * entry would then project an action that never reached disk.
  */
 
 let cachedSnapshot: string | null = null;
@@ -26,6 +33,12 @@ export function parseBattle(snapshot: string | null): Battle | null {
   cachedSnapshot = snapshot;
 
   return cachedBattle;
+}
+
+/** Assert that `snapshot` is the serialized form of `battle` from now on. */
+function rememberBattle(snapshot: string, battle: Battle): void {
+  cachedSnapshot = snapshot;
+  cachedBattle = battle;
 }
 
 export function seatOf(state: PokemonGameState, playerId: string): BattleSeat | null {
@@ -59,6 +72,8 @@ export function syncBattle(
   { newDecision, now }: SyncOptions,
 ): boolean {
   state.battleSnapshot = JSON.stringify(battle.toJSON());
+  // The battle was mutated in place, so the memo must move to the new key.
+  rememberBattle(state.battleSnapshot, battle);
   state.turnState.turnNumber = battle.turn;
   state.turnState.currentPlayerId = null;
 
