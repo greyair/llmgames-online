@@ -6,6 +6,7 @@ import { battleshipPlugin } from "./battleship/plugin";
 import { connect4Plugin } from "./connect4/plugin";
 import { checkersPlugin } from "./checkers/plugin";
 import { codenamesPlugin } from "./codenames/plugin";
+import { contextoPlugin } from "./contexto/plugin";
 import { reversiPlugin } from "./reversi/plugin";
 
 /**
@@ -27,6 +28,7 @@ const PRODUCTION_PLUGINS: readonly ProductionGamePlugin[] = [
   checkersPlugin,
   codenamesPlugin,
   connect4Plugin,
+  contextoPlugin,
   reversiPlugin,
 ];
 

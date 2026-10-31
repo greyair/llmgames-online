@@ -37,7 +37,21 @@ export type GameEffect =
 /** A rejected intent carries the exact English message legacy clients already read. */
 export type GameActionResult =
   | { ok: true; effects: readonly GameEffect[] }
-  | { ok: false; message: string };
+  | {
+      ok: false;
+      message: string;
+      /**
+       * The intent is refused but the attempt itself belongs in the state.
+       *
+       * Contexto records a word outside its dictionary on the seat's progress so
+       * every client can show "not in pool" next to the guess box, then answers
+       * 400 so an agent reads it as bad input rather than a rule violation. The
+       * adapter persists and broadcasts before it reports the rejection; a
+       * plugin that leaves this unset keeps the plain "state is untouched"
+       * contract.
+       */
+      persist?: boolean;
+    };
 
 /** Seat order is a platform decision: CSPRNG for casual rooms, coordinator for series. */
 export interface GameStartContext {

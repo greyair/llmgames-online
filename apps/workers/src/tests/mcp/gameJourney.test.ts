@@ -11,6 +11,8 @@ import { ReversiRoom } from "../../durable-objects/ReversiRoom";
 import { CheckersRoom } from "../../durable-objects/CheckersRoom";
 import { BattleshipRoom } from "../../durable-objects/BattleshipRoom";
 import { CodenamesGameRoom } from "../../durable-objects/CodenamesGameRoom";
+import { ContextoRoom } from "../../durable-objects/ContextoRoom";
+import { contextoGuessFamily, contextoWord } from "../../lib/contextoRanks";
 import { migratedDb } from "../fixtures/migrated-db";
 import { MemoryR2Bucket } from "../fixtures/memory-r2";
 import { MemoryRoomRuntime } from "../fixtures/memory-runtime";
@@ -52,6 +54,13 @@ const stateSchema = z
       .loose(),
     ownGrid: z.array(z.string()).optional(),
     targetGrid: z.array(z.string()).optional(),
+    progress: z
+      .record(
+        z.string(),
+        // A rival's guesses are masked down to ranks, so only the word is optional.
+        z.object({ guesses: z.array(z.object({ word: z.string().optional() }).loose()) }).loose(),
+      )
+      .optional(),
     legalMoves: z
       .array(
         z
@@ -87,9 +96,15 @@ interface Step {
 }
 
 interface Journey {
-  gameType: "connect4" | "reversi" | "checkers" | "battleship" | "codenames";
+  gameType: "connect4" | "reversi" | "checkers" | "battleship" | "codenames" | "contexto";
   Room: RoomClass;
-  binding: "CONNECT4_ROOM" | "REVERSI_ROOM" | "CHECKERS_ROOM" | "BATTLESHIP_ROOM" | "CODENAMES_ROOM";
+  binding:
+    | "CONNECT4_ROOM"
+    | "REVERSI_ROOM"
+    | "CHECKERS_ROOM"
+    | "BATTLESHIP_ROOM"
+    | "CODENAMES_ROOM"
+    | "CONTEXTO_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
@@ -190,11 +205,41 @@ const journeys: Journey[] = [
     },
   },
   {
+    gameType: "contexto",
+    Room: ContextoRoom,
+    binding: "CONTEXTO_ROOM",
+    players: 2,
+    minActions: 8,
+    budget: 220,
+    // Everyone guesses on their own clock, so the driver walks the shipped
+    // vocabulary and skips any word this seat already tried. Fifty accepted
+    // words per seat exhaust the table and end the match on best rank.
+    next: (state, seatTurn) => {
+      if (!state.you.legalActions.includes("guess_word")) return null;
+
+      const guessed = new Set(
+        (state.progress?.[state.you.playerId]?.guesses ?? [])
+          .flatMap((guess) => (guess.word ? [contextoGuessFamily(guess.word)] : [])),
+      );
+
+      for (let step = 0; step < 400; step += 1) {
+        const word = contextoWord((seatTurn + step) % 5000);
+
+        if (!word) break;
+
+        if (!guessed.has(contextoGuessFamily(word)))
+          return { actionType: "guess_word", data: { word } };
+      }
+
+      return null;
+    },
+  },
+  {
     gameType: "codenames",
     Room: CodenamesGameRoom,
     binding: "CODENAMES_ROOM",
     players: 4,
-    minActions: 6,
+    minActions: 3,
     prepare: async (send, roomId, host) => {
       await send(host, "randomize_codenames_roles", {});
     },
