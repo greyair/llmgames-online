@@ -11,6 +11,8 @@ const games = [
   "poker",
   "pokemon",
   "battleship",
+  "gomoku",
+  "aeroplane",
 ];
 
 for (const viewport of [

@@ -55,6 +55,45 @@ export function fixture(type: string): ClientView {
       you: { ...base.you, legalActions: ["drop_disc"] },
     };
 
+  if (type === "gomoku") {
+    const board = Array.from({ length: 15 }, () => Array(15).fill(0));
+
+    board[7]![7] = 1;
+    board[7]![8] = 2;
+    board[8]![8] = 1;
+    board[6]![8] = 2;
+    board[9]![9] = 1;
+
+    return {
+      ...base,
+      board,
+      lastMove: { row: 9, col: 9 },
+      you: { ...base.you, legalActions: ["place_stone"] },
+    };
+  }
+
+  if (type === "aeroplane")
+    return {
+      ...base,
+      seats: { "preview-0": 0, "preview-1": 1 },
+      colours: [0, 2],
+      takeoff: [6],
+      // Progress numbers: -1 hangar, 0 take-off, 1-52 loop, 53-58 runway, 59 home.
+      planes: [
+        [-1, 7, 20, 55],
+        [4, -1, -1, 12],
+      ],
+      roll: null,
+      sixes: 0,
+      turnState: {
+        phase: "roll",
+        turnNumber: 12,
+        currentPlayerId: "preview-0",
+        turnTimeRemaining: 45000,
+      },
+      you: { ...base.you, seat: 0, legalActions: ["roll"] },
+    };
+
   if (type === "checkers") {
     const board = Array.from({ length: 8 }, (_, r) =>
       Array.from({ length: 8 }, (_, c) => ((r + c) % 2 === 0 ? 0 : r < 3 ? 2 : r > 4 ? 1 : 0)),

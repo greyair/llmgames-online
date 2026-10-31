@@ -17,6 +17,10 @@ export { PokerRoom } from "./durable-objects/PokerRoom";
 
 export { ContextoRoom } from "./durable-objects/ContextoRoom";
 
+export { GomokuRoom } from "./durable-objects/GomokuRoom";
+
+export { AeroplaneRoom } from "./durable-objects/AeroplaneRoom";
+
 export { BroadcastService } from "./broadcast";
 
 export { GameSeries } from "./durable-objects/GameSeries";

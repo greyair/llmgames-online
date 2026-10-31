@@ -16,6 +16,8 @@ export const previewScreens = [
   { id: "placement", name: "Fleet placement" },
   { id: "pokemon", name: "Pokémon" },
   { id: "contexto", name: "Contexto" },
+  { id: "gomoku", name: "Gomoku" },
+  { id: "aeroplane", name: "Aeroplane Chess" },
 ] as const;
 
 const sharedStates = [
@@ -46,6 +48,8 @@ const sharedStates = [
 
 const gameStates = {
   connect4: ["opening", "full-column"],
+  gomoku: ["opening", "midgame", "win"],
+  aeroplane: ["opening", "midgame", "win"],
   reversi: ["opening", "forced-pass", "endgame"],
   codenames: [
     "clue",

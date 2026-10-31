@@ -11,6 +11,20 @@
   --game-ink: var(--palette-white);
   --game-2: var(--palette-c4-yellow);
 }
+[data-game="gomoku"] {
+  /* Sand is light, so the mark reads as dark stones on it — the same pairing
+     the board itself uses. */
+  --game: var(--palette-gomoku-board);
+  --game-ink: var(--palette-gomoku-stone-black);
+  --game-2: var(--palette-gomoku-stone-white-deep);
+}
+[data-game="aeroplane"] {
+  /* Four inks on one board, so the mark wears the first one and the second
+     keeps the pair readable on a light squircle. */
+  --game: var(--palette-aero-blue);
+  --game-ink: var(--palette-white);
+  --game-2: var(--palette-aero-yellow);
+}
 [data-game="checkers"] {
   --game: var(--palette-walnut);
   --game-ink: var(--palette-ivory);

@@ -240,7 +240,12 @@ export function broadcastProjection<T>(
     return value;
   };
 
-  if (source.type === "connect4" || source.type === "reversi" || source.type === "checkers") {
+  if (
+    source.type === "connect4" ||
+    source.type === "reversi" ||
+    source.type === "checkers" ||
+    source.type === "gomoku"
+  ) {
     result.board = pick(source.board, [[true]]) ?? [];
     const seats = source.seats;
 

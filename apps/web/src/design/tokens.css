@@ -63,6 +63,33 @@
   --palette-ivory-deep: #d3c4a6;
   --palette-crown: #ffd166;
 
+  /* Gomoku: warm sand board, ebony and shell stones */
+  --palette-gomoku-board: #e9d9bd;
+  --palette-gomoku-board-deep: #cdb692;
+  --palette-gomoku-line: #8a7355;
+  --palette-gomoku-star: #6b563c;
+  --palette-gomoku-stone-black: #201d19;
+  --palette-gomoku-stone-black-light: #4a453d;
+  --palette-gomoku-stone-white: #fbf8f1;
+  --palette-gomoku-stone-white-deep: #d6cfbf;
+  --palette-gomoku-mark: #c8603f;
+  --palette-gomoku-win: #b8452b;
+
+  /* Aeroplane Chess: a pale paper cross with four classic inks */
+  --palette-aero-board: #f4f1e8;
+  --palette-aero-board-deep: #d9d3c3;
+  --palette-aero-line: #b9b09b;
+  --palette-aero-centre: #efe6d0;
+  --palette-aero-centre-deep: #d3c4a0;
+  --palette-aero-red: #e2705f;
+  --palette-aero-red-deep: #b04a3a;
+  --palette-aero-yellow: #efc24a;
+  --palette-aero-yellow-deep: #bd8f27;
+  --palette-aero-blue: #6f9fd8;
+  --palette-aero-blue-deep: #3d6aa3;
+  --palette-aero-green: #79bf86;
+  --palette-aero-green-deep: #3f8750;
+
   /* Reversi: pastel felt, black and white discs */
   --palette-reversi-felt: #7cc79b;
   --palette-reversi-felt-deep: #4da172;

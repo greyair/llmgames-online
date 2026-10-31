@@ -77,6 +77,34 @@ describe("MCP decision state", () => {
     });
   });
 
+  it("encodes Gomoku as digit rows plus the immediate win", () => {
+    const board = Array.from({ length: 15 }, () => Array.from({ length: 15 }, () => 0));
+
+    for (let col = 0; col < 4; col += 1) board[7]![col] = 1;
+
+    const state = common("gomoku", {
+      board,
+      seats: { p1: 1, p2: 2 },
+      lastMove: { row: 7, col: 3, seat: 1 },
+      winLine: null,
+    });
+
+    state.you = { playerId: "p1", legalActions: ["leave", "place_stone"] };
+
+    const decision = compactState(state);
+
+    expect(decision).toMatchObject({
+      yourSeat: 1,
+      currentSeat: 1,
+      // Row 7, column E (columns skip I), counted from the bottom like the rules text.
+      winningMoves: ["E8"],
+      legalActions: ["place_stone"],
+      // Row 7 of the grid, one digit per column.
+      board: expect.arrayContaining(["111100000000000"]),
+    });
+    expect(decision).not.toHaveProperty("players");
+  });
+
   it("uses tuple cards for Codenames", () => {
     const state = common("codenames", {
       board: [

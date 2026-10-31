@@ -28,6 +28,12 @@ const Checkers = lazy(() => import("./Checkers").then(({ Checkers }) => ({ defau
 
 const Contexto = lazy(() => import("./Contexto").then(({ Contexto }) => ({ default: Contexto })));
 
+const Gomoku = lazy(() => import("./Gomoku").then(({ Gomoku }) => ({ default: Gomoku })));
+
+const Aeroplane = lazy(() =>
+  import("./Aeroplane").then(({ Aeroplane }) => ({ default: Aeroplane })),
+);
+
 /**
  * Game id → board renderer.
  *
@@ -44,6 +50,8 @@ const BOARDS: Readonly<Record<GameTypeId, LazyBoard>> = {
   battleship: Battleship,
   pokemon: Pokemon,
   contexto: Contexto,
+  gomoku: Gomoku,
+  aeroplane: Aeroplane,
 };
 
 /** Renderer for a game, or null when this build does not ship that board. */

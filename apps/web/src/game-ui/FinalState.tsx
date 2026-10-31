@@ -6,6 +6,8 @@ import { useT } from "@/i18n";
 import { playerPrimaryName } from "@/features/shared/playerIdentity";
 import { Discs } from "./Discs";
 import { Checkers } from "./Checkers";
+import { Gomoku } from "./Gomoku";
+import { Aeroplane } from "./Aeroplane";
 import { Battleship } from "./Battleship";
 import { contextoRankStyle } from "./contextoRankStyle";
 import "./final-state.css";
@@ -287,14 +289,28 @@ export function FinalState({
       }
     : { ...state, replayReadOnly: true };
 
-  if (["connect4", "reversi", "checkers"].includes(state.type ?? "") && Array.isArray(final.board))
+  if (
+    ["connect4", "reversi", "checkers", "gomoku"].includes(state.type ?? "") &&
+    Array.isArray(final.board)
+  )
     return (
       <section className="result-board" aria-label={t("match.finalBoard")}>
-        {state.type === "checkers" ? (
+        {state.type === "gomoku" ? (
+          <Gomoku state={final} send={() => {}} />
+        ) : state.type === "checkers" ? (
           <Checkers state={final} send={() => {}} />
         ) : (
           <Discs state={final} send={() => {}} />
         )}
+      </section>
+    );
+
+  // Aeroplane has no board array but the table is the whole story, so the final
+  // frame shows every plane where it stopped.
+  if (state.type === "aeroplane")
+    return (
+      <section className="result-board" aria-label={t("match.finalBoard")}>
+        <Aeroplane state={final} send={() => {}} />
       </section>
     );
 

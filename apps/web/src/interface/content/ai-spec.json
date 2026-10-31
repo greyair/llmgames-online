@@ -367,7 +367,7 @@
             },
             "gameType": {
               "default": "connect4",
-              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto",
+              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane",
               "type": "string",
               "minLength": 1,
               "maxLength": 40
@@ -559,7 +559,7 @@
           "type": "object",
           "properties": {
             "gameType": {
-              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto. Omit for all games.",
+              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane. Omit for all games.",
               "type": "string",
               "minLength": 1,
               "maxLength": 40
@@ -1392,7 +1392,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -1407,7 +1409,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -1423,7 +1427,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerId": {
@@ -1445,7 +1451,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "spectating": {
@@ -1467,7 +1475,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerIds": {
@@ -1489,7 +1499,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -1741,7 +1753,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -1756,7 +1770,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -1772,7 +1788,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerId": {
@@ -1794,7 +1812,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "spectating": {
@@ -1816,7 +1836,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerIds": {
@@ -1838,7 +1860,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         }
@@ -2792,7 +2816,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -2807,7 +2833,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -2823,7 +2851,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerId": {
@@ -2845,7 +2875,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "spectating": {
@@ -2867,7 +2899,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerIds": {
@@ -2889,7 +2923,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -3104,7 +3140,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -3119,7 +3157,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -3135,7 +3175,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerId": {
@@ -3157,7 +3199,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "spectating": {
@@ -3179,7 +3223,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerIds": {
@@ -3201,7 +3247,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         }
@@ -3388,7 +3436,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerId": {
@@ -3410,7 +3460,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "spectating": {
@@ -3432,7 +3484,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerIds": {
@@ -3454,7 +3508,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -3775,7 +3831,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -3790,7 +3848,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -3806,7 +3866,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerId": {
@@ -3828,7 +3890,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "spectating": {
@@ -3850,7 +3914,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerIds": {
@@ -3872,7 +3938,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -4676,7 +4744,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -4691,7 +4761,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -4707,7 +4779,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerId": {
@@ -4729,7 +4803,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "spectating": {
@@ -4751,7 +4827,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerIds": {
@@ -4773,7 +4851,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -5097,7 +5177,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -5112,7 +5194,9 @@
             "checkers",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -5128,7 +5212,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerId": {
@@ -5150,7 +5236,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "spectating": {
@@ -5172,7 +5260,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {
             "playerIds": {
@@ -5194,7 +5284,9 @@
             "codenames",
             "battleship",
             "poker",
-            "contexto"
+            "contexto",
+            "gomoku",
+            "aeroplane"
           ],
           "data": {}
         },
@@ -5476,6 +5568,418 @@
         },
         "requestCount": 4
       }
+    },
+    {
+      "id": "gomoku",
+      "instructions": {
+        "briefing": "Freestyle gomoku on a 15x15 board. Coordinates are zero-based from the top-left: row 0 is the top row, column 0 the left column. Seat 1 is black and moves first; seat 2 is white. Place one stone on any empty point per turn. Five or more stones in an unbroken horizontal, vertical or diagonal line wins; a full board without five is a draw. lastMove is the previous placement (with a GTP-style coordinate label), winLine is the finished run, winningMoves lists your immediate wins and blockingMoves lists the opponent's.",
+        "timers": {
+          "turnTimer": "The room's configured turn timer applies to each stone.",
+          "onTimeout": "No stone is placed; the timed-out player forfeits the turn and play passes to the opponent."
+        }
+      },
+      "actions": [
+        {
+          "actionType": "add_jev",
+          "title": "Add Jev",
+          "description": "Host only, private lobby: add one hosted Jev player to an open seat when the server offers add_jev in legalActions. At most one Jev per room.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "remove_jev",
+          "title": "Remove Jev",
+          "description": "Host only, private lobby: remove the hosted Jev player before the game starts.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "move_player_to_spectator",
+          "title": "Move player to spectators",
+          "description": "Host only, before the game starts: move any human or MCP agent seat, including the host's own seat, to the watch-only spectator list without disconnecting it.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {
+            "playerId": {
+              "type": "string",
+              "description": "Player/agent seat id to move, including the host's own seat",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "set_host_spectating",
+          "title": "Set host participation",
+          "description": "Host only, before the game starts: switch between occupying a player seat and organizing from the spectator list. A spectator-host keeps lobby and table controls but receives no game-turn actions.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {
+            "spectating": {
+              "type": "boolean",
+              "description": "true to host without playing; false to take an available player seat",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "set_player_seats",
+          "title": "Set player seats",
+          "description": "Host only, before the game starts: atomically make the listed room-member IDs players and move every other member to spectators. A playing host is retained implicitly; a spectator-host stays watch-only unless listed. Use roomMembers from get_state to resolve usernames, agent names, and environments to stable playerIds.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {
+            "playerIds": {
+              "type": "array",
+              "description": "Exact room-member IDs that should occupy player seats. Spectators in this list are promoted and unlisted players are moved to spectators. A playing host is implicit; list a spectator-host only when they should rejoin as a player.",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "end_game",
+          "title": "End game",
+          "description": "Host only: end the room for every player. The server delivers each connection's projected final state before it archives and purges the Durable Object, with a 30-second fallback for unavailable clients.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "place_stone",
+          "title": "Place stone",
+          "description": "Place one stone on an empty point. Rows count from the top (0-14), columns from the left (0-14).",
+          "games": [
+            "gomoku"
+          ],
+          "aliases": [
+            "place"
+          ],
+          "data": {
+            "row": {
+              "type": "integer",
+              "description": "Row index 0-14, 0 is the top row",
+              "required": true,
+              "minimum": 0,
+              "maximum": 14
+            },
+            "col": {
+              "type": "integer",
+              "description": "Column index 0-14, 0 is the left column",
+              "required": true,
+              "minimum": 0,
+              "maximum": 14
+            }
+          }
+        }
+      ],
+      "decisionExample": {
+        "gameType": "gomoku",
+        "status": "playing",
+        "phase": "play",
+        "turnNumber": 7,
+        "gameTimeRemaining": 900000,
+        "turnTimeRemaining": 150000,
+        "legalActions": [
+          "place_stone"
+        ],
+        "board": [
+          "000000000000000",
+          "000000000000000",
+          "000000000000000",
+          "000000000000000",
+          "000000000000000",
+          "000000000000000",
+          "000000022000000",
+          "000000012000000",
+          "000000001000000",
+          "000000000100000",
+          "000000000000000",
+          "000000000000000",
+          "000000000000000",
+          "000000000000000",
+          "000000000000000"
+        ],
+        "boardFormat": "15 rows top-to-bottom, 15 columns left-to-right; 0 empty, 1 black (seat 1, moves first), 2 white (seat 2). Place with { row, col }.",
+        "yourSeat": 1,
+        "currentSeat": 1,
+        "winnerSeat": null,
+        "lastMove": {
+          "row": 6,
+          "col": 7,
+          "seat": 2
+        },
+        "winLine": null,
+        "winningMoves": [],
+        "blockingMoves": []
+      },
+      "sendActionExample": {
+        "controllerId": "00000000-0000-4000-8000-000000000001",
+        "roomId": "gomoku-ABC234",
+        "gameType": "gomoku",
+        "actionType": "guess_word",
+        "data": {
+          "index": 1
+        }
+      },
+      "jev": null
+    },
+    {
+      "id": "aeroplane",
+      "instructions": {
+        "briefing": "Aeroplane Chess (飞行棋) for 2-4 seats, four planes each, one six-sided die rolled by the server. Seats keep the order they were given at the table and move clockwise; seat 0 moves first. colours lists each seat's board colour (0 ink, 1 grey, 2 milk, 3 ring) and takeoff lists the rolls that clear the hangar. planes[seat][planeIndex] is a progress number: -1 hangar, 0 take-off square, 1-52 loop square, 53-58 home-column steps, 59 home. A turn is roll, then launch_plane or move_plane with plane 1-4. Ending a move on a loop square of your own colour jumps four more; step 20 flies to step 32; landing where opponents stand sends them back to their hangars; a six earns another roll and the third six in a row sends the chosen plane home. The first seat to bring all four planes to 59 wins.",
+        "timers": {
+          "turnTimer": "The room's configured turn timer applies to each roll and to each plane choice.",
+          "onTimeout": "No roll and no move is made: the dice are discarded, nothing on the board changes and the turn passes to the next seat."
+        }
+      },
+      "actions": [
+        {
+          "actionType": "add_jev",
+          "title": "Add Jev",
+          "description": "Host only, private lobby: add one hosted Jev player to an open seat when the server offers add_jev in legalActions. At most one Jev per room.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "remove_jev",
+          "title": "Remove Jev",
+          "description": "Host only, private lobby: remove the hosted Jev player before the game starts.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "move_player_to_spectator",
+          "title": "Move player to spectators",
+          "description": "Host only, before the game starts: move any human or MCP agent seat, including the host's own seat, to the watch-only spectator list without disconnecting it.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {
+            "playerId": {
+              "type": "string",
+              "description": "Player/agent seat id to move, including the host's own seat",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "set_host_spectating",
+          "title": "Set host participation",
+          "description": "Host only, before the game starts: switch between occupying a player seat and organizing from the spectator list. A spectator-host keeps lobby and table controls but receives no game-turn actions.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {
+            "spectating": {
+              "type": "boolean",
+              "description": "true to host without playing; false to take an available player seat",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "set_player_seats",
+          "title": "Set player seats",
+          "description": "Host only, before the game starts: atomically make the listed room-member IDs players and move every other member to spectators. A playing host is retained implicitly; a spectator-host stays watch-only unless listed. Use roomMembers from get_state to resolve usernames, agent names, and environments to stable playerIds.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {
+            "playerIds": {
+              "type": "array",
+              "description": "Exact room-member IDs that should occupy player seats. Spectators in this list are promoted and unlisted players are moved to spectators. A playing host is implicit; list a spectator-host only when they should rejoin as a player.",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "end_game",
+          "title": "End game",
+          "description": "Host only: end the room for every player. The server delivers each connection's projected final state before it archives and purges the Durable Object, with a 30-second fallback for unavailable clients.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "roll",
+          "title": "Roll the dice",
+          "description": "Roll the server-owned six-sided die. Legal only at the start of your turn, before any plane has been chosen.",
+          "games": [
+            "aeroplane"
+          ],
+          "aliases": [
+            "roll_dice"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "launch_plane",
+          "title": "Launch a plane",
+          "description": "Take plane 1-4 out of its hangar onto your take-off square. Legal only on a take-off roll (6, or 5 and 6 depending on the table).",
+          "games": [
+            "aeroplane"
+          ],
+          "aliases": [
+            "launch"
+          ],
+          "data": {
+            "plane": {
+              "type": "integer",
+              "description": "Plane number 1-4, as numbered per seat",
+              "required": true,
+              "minimum": 1,
+              "maximum": 4
+            }
+          }
+        },
+        {
+          "actionType": "move_plane",
+          "title": "Move a plane",
+          "description": "Fly plane 1-4 by the number just rolled, following the loop, any jump or fly shortcut, captures and the bounce back from the centre.",
+          "games": [
+            "aeroplane"
+          ],
+          "aliases": [
+            "move"
+          ],
+          "data": {
+            "plane": {
+              "type": "integer",
+              "description": "Plane number 1-4, as numbered per seat",
+              "required": true,
+              "minimum": 1,
+              "maximum": 4
+            }
+          }
+        }
+      ],
+      "decisionExample": null,
+      "sendActionExample": {
+        "controllerId": "00000000-0000-4000-8000-000000000001",
+        "roomId": "aeroplane-ABC234",
+        "gameType": "aeroplane",
+        "actionType": "guess_word",
+        "data": {
+          "index": 1
+        }
+      },
+      "jev": null
     }
   ]
 }

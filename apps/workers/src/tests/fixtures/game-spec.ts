@@ -8,6 +8,7 @@ import { CodenamesGameRoom } from "../../durable-objects/CodenamesGameRoom";
 import { PokerRoom } from "../../durable-objects/PokerRoom";
 import { PokemonRoom } from "../../durable-objects/PokemonRoom";
 import { ContextoRoom } from "../../durable-objects/ContextoRoom";
+import { GomokuRoom } from "../../durable-objects/GomokuRoom";
 import { createContextoRanking } from "../../lib/contextoRanks";
 
 /** Deterministic examples passed through each real room's private-seat projection. */
@@ -20,14 +21,27 @@ export async function otherGameExamples() {
     const connect4 = await createGameRoomFixture(Connect4Room, "connect4", 2, environment);
     const checkers = await createGameRoomFixture(CheckersRoom, "checkers", 2, environment);
     const reversi = await createGameRoomFixture(ReversiRoom, "reversi", 2, environment);
+    const gomoku = await createGameRoomFixture(GomokuRoom, "gomoku", 2, environment);
 
-    for (const game of [connect4, checkers, reversi]) {
+    for (const game of [connect4, checkers, reversi, gomoku]) {
       game.state().seats = { [game.ids[0]!]: 1, [game.ids[1]!]: 2 };
       game.state().turnState.currentPlayerId = game.ids[0]!;
     }
 
     for (const col of [0, 1, 2, 1, 3, 4])
       await connect4.action(connect4.state().turnState.currentPlayerId!, "drop_disc", { col });
+
+    // Three stones on the main diagonal plus one reply, so the published
+    // example shows a mid-game board rather than an empty grid.
+    for (const [row, col] of [
+      [7, 7],
+      [7, 8],
+      [8, 8],
+      [6, 8],
+      [9, 9],
+      [6, 7],
+    ])
+      await gomoku.action(gomoku.state().turnState.currentPlayerId!, "place_stone", { row, col });
 
     const pokemon = await createGameRoomFixture(PokemonRoom, "pokemon", 2, environment);
     const battle = new Battle({ formatid: toID("gen1randombattle"), seed: "1,2,3,4" });
@@ -124,6 +138,7 @@ export async function otherGameExamples() {
       codenames: await codenames.view(),
       poker: await poker.view(cards.actionPlayerId!),
       contexto: await contexto.view(),
+      gomoku: await gomoku.view(),
     };
   } finally {
     Date.now = originalNow;

@@ -94,3 +94,33 @@ and from this MIT source distribution. The original project generator is
 included to reproduce the data locally; it does not grant redistribution or
 usage rights to the upstream dataset. Curated target and alias files are
 original project data.
+
+## West Window (rain-go) game rules
+
+Gomoku in this repository is a port of the freestyle gomoku rule module from
+[West Window / 西窗](https://github.com/SerenQi/rain-go), pinned at commit
+`06e4b7515da709d3f5860ac37c4c3bddd00fce42`. The rules, the five-in-a-row scan
+and the coordinate convention come from that project; the room adapter, action
+schema, projections, front-end board and tests are written for this platform.
+
+MIT License
+
+Copyright (c) 2026 SerenQi
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -152,7 +152,7 @@ export function PlayerRow({
   );
 
   const pieceLabel = t("match.piecesOf", { color: colorName });
-  const showPiece = !gameType || ["connect4", "reversi", "checkers"].includes(gameType);
+  const showPiece = !gameType || ["connect4", "reversi", "checkers", "gomoku"].includes(gameType);
 
   return (
     <div
@@ -565,7 +565,7 @@ export function MatchDesk({
                   <section className="desk-players" aria-label={t("match.players")} tabIndex={0}>
                     {state.players?.map((player, index) => {
                       const seat =
-                        ["connect4", "reversi", "checkers"].includes(state.type ?? "") &&
+                        ["connect4", "reversi", "checkers", "gomoku"].includes(state.type ?? "") &&
                         !Array.isArray(state.seats)
                           ? (state.seats?.[player.id] ?? index + 1)
                           : index + 1;

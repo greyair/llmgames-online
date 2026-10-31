@@ -239,7 +239,7 @@ async function main() {
     if (committed !== output)
       throw new Error("AI spec is stale. Run pnpm generate:ai-spec.");
     console.log(
-      `AI spec matches all ${tools.length} MCP tools, 8 game catalogs and 7 hosted Jev adapters. No network calls.`,
+      `AI spec matches all ${tools.length} MCP tools, ${KNOWN_GAME_TYPES.length} game catalogs and ${JEV_GAMES.size} hosted Jev adapters. No network calls.`,
     );
   } else {
     await writeFile(path, output);

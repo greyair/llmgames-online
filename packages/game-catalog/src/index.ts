@@ -43,7 +43,9 @@ export type GameTypeId =
   | "codenames"
   | "battleship"
   | "poker"
-  | "contexto";
+  | "contexto"
+  | "gomoku"
+  | "aeroplane";
 
 /** Absolute lifetime of a game room, measured from room creation. */
 export const ROOM_LIFETIME_MINUTES = 45;
@@ -83,6 +85,8 @@ export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
   battleship: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
   pokemon: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
   poker: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 90 * 60 * 1000 },
+  gomoku: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
+  aeroplane: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
 };
 
 /** Largest match length any game accepts; the real cap is per game. */
@@ -162,6 +166,24 @@ export const GAME_INSTRUCTIONS: Readonly<Record<GameTypeId, GameInstructionSpec>
     timers: {
       turnTimer: "One timer for the whole turn, including chained jumps.",
       onTimeout: "Turn timeout forfeits the match. Match time expiry is a draw.",
+    },
+  },
+  gomoku: {
+    briefing:
+      "Freestyle gomoku on a 15x15 board. Coordinates are zero-based from the top-left: row 0 is the top row, column 0 the left column. Seat 1 is black and moves first; seat 2 is white. Place one stone on any empty point per turn. Five or more stones in an unbroken horizontal, vertical or diagonal line wins; a full board without five is a draw. lastMove is the previous placement (with a GTP-style coordinate label), winLine is the finished run, winningMoves lists your immediate wins and blockingMoves lists the opponent's.",
+    timers: {
+      turnTimer: "The room's configured turn timer applies to each stone.",
+      onTimeout:
+        "No stone is placed; the timed-out player forfeits the turn and play passes to the opponent.",
+    },
+  },
+  aeroplane: {
+    briefing:
+      "Aeroplane Chess (飞行棋) for 2-4 seats, four planes each, one six-sided die rolled by the server. Seats keep the order they were given at the table and move clockwise; seat 0 moves first. colours lists each seat's board colour (0 ink, 1 grey, 2 milk, 3 ring) and takeoff lists the rolls that clear the hangar. planes[seat][planeIndex] is a progress number: -1 hangar, 0 take-off square, 1-52 loop square, 53-58 home-column steps, 59 home. A turn is roll, then launch_plane or move_plane with plane 1-4. Ending a move on a loop square of your own colour jumps four more; step 20 flies to step 32; landing where opponents stand sends them back to their hangars; a six earns another roll and the third six in a row sends the chosen plane home. The first seat to bring all four planes to 59 wins.",
+    timers: {
+      turnTimer: "The room's configured turn timer applies to each roll and to each plane choice.",
+      onTimeout:
+        "No roll and no move is made: the dice are discarded, nothing on the board changes and the turn passes to the next seat.",
     },
   },
   reversi: {
@@ -289,14 +311,14 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
     title: "Add Jev",
     description:
       "Host only, private lobby: add one hosted Jev player to an open seat when the server offers add_jev in legalActions. At most one Jev per room.",
-    games: ["connect4", "pokemon", "reversi", "checkers", "battleship", "poker", "contexto"],
+    games: ["connect4", "pokemon", "reversi", "checkers", "battleship", "poker", "contexto", "gomoku", "aeroplane"],
     data: emptyData,
   },
   {
     actionType: "remove_jev",
     title: "Remove Jev",
     description: "Host only, private lobby: remove the hosted Jev player before the game starts.",
-    games: ["connect4", "pokemon", "reversi", "checkers", "battleship", "poker", "contexto"],
+    games: ["connect4", "pokemon", "reversi", "checkers", "battleship", "poker", "contexto", "gomoku", "aeroplane"],
     data: emptyData,
   },
   {
@@ -313,6 +335,8 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
       "battleship",
       "poker",
       "contexto",
+      "gomoku",
+      "aeroplane",
     ],
     data: {
       playerId: {
@@ -336,6 +360,8 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
       "battleship",
       "poker",
       "contexto",
+      "gomoku",
+      "aeroplane",
     ],
     data: {
       spectating: {
@@ -359,6 +385,8 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
       "battleship",
       "poker",
       "contexto",
+      "gomoku",
+      "aeroplane",
     ],
     data: {
       playerIds: {
@@ -383,8 +411,55 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
       "battleship",
       "poker",
       "contexto",
+      "gomoku",
+      "aeroplane",
     ],
     data: emptyData,
+  },
+
+  // ── Aeroplane Chess ─────────────────────────────────────────
+  {
+    actionType: "roll",
+    title: "Roll the dice",
+    description:
+      "Roll the server-owned six-sided die. Legal only at the start of your turn, before any plane has been chosen.",
+    games: ["aeroplane"],
+    aliases: ["roll_dice"],
+    data: emptyData,
+  },
+  {
+    actionType: "launch_plane",
+    title: "Launch a plane",
+    description:
+      "Take plane 1-4 out of its hangar onto your take-off square. Legal only on a take-off roll (6, or 5 and 6 depending on the table).",
+    games: ["aeroplane"],
+    aliases: ["launch"],
+    data: {
+      plane: {
+        type: "integer",
+        description: "Plane number 1-4, as numbered per seat",
+        required: true,
+        minimum: 1,
+        maximum: 4,
+      },
+    },
+  },
+  {
+    actionType: "move_plane",
+    title: "Move a plane",
+    description:
+      "Fly plane 1-4 by the number just rolled, following the loop, any jump or fly shortcut, captures and the bounce back from the centre.",
+    games: ["aeroplane"],
+    aliases: ["move"],
+    data: {
+      plane: {
+        type: "integer",
+        description: "Plane number 1-4, as numbered per seat",
+        required: true,
+        minimum: 1,
+        maximum: 4,
+      },
+    },
   },
 
   // ── Connect 4 ───────────────────────────────────────────────
@@ -401,6 +476,32 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
         required: true,
         minimum: 0,
         maximum: 6,
+      },
+    },
+  },
+
+  // ── Gomoku ──────────────────────────────────────────────────
+  {
+    actionType: "place_stone",
+    title: "Place stone",
+    description:
+      "Place one stone on an empty point. Rows count from the top (0-14), columns from the left (0-14).",
+    games: ["gomoku"],
+    aliases: ["place"],
+    data: {
+      row: {
+        type: "integer",
+        description: "Row index 0-14, 0 is the top row",
+        required: true,
+        minimum: 0,
+        maximum: 14,
+      },
+      col: {
+        type: "integer",
+        description: "Column index 0-14, 0 is the left column",
+        required: true,
+        minimum: 0,
+        maximum: 14,
       },
     },
   },
@@ -769,6 +870,8 @@ export const KNOWN_GAME_TYPES: readonly GameTypeId[] = [
   "battleship",
   "poker",
   "contexto",
+  "gomoku",
+  "aeroplane",
 ] as const;
 
 export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
@@ -780,6 +883,8 @@ export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
   battleship: true,
   poker: true,
   contexto: true,
+  gomoku: true,
+  aeroplane: true,
 };
 
 export const ENABLED_GAME_TYPES: readonly GameTypeId[] = KNOWN_GAME_TYPES.filter(
@@ -791,6 +896,11 @@ export function normalizeGameType(raw: string): GameTypeId | string {
   const g = raw.trim().toLowerCase().replace(/\s+/g, "-");
 
   switch (g) {
+    case "aeroplane-chess":
+    case "flying-chess":
+      return "aeroplane";
+    case "five-in-a-row":
+      return "gomoku";
     case "connect-4":
       return "connect4";
     case "draughts":

@@ -710,6 +710,7 @@ export function Room({
                           "poker",
                           "battleship",
                           "contexto",
+                          "gomoku",
                         ].includes(gameType)
                           ? t("room.createHelpOpponent")
                           : t("room.createHelpTeam")}

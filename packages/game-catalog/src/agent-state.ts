@@ -51,6 +51,12 @@ export interface ProjectionPart {
   seats?: unknown;
   winner?: unknown;
   lastMove?: unknown;
+  winLine?: unknown;
+  planes?: unknown;
+  colours?: unknown;
+  takeoff?: unknown;
+  roll?: unknown;
+  sixes?: unknown;
   scores?: unknown;
   legalMoves?: unknown;
   forcedPiece?: unknown;
@@ -259,6 +265,11 @@ const objectValue = z
     guessLimit: z.unknown().optional(),
     vocabularySize: z.unknown().optional(),
     totalGuesses: z.unknown().optional(),
+    planes: z.unknown().optional(),
+    colours: z.unknown().optional(),
+    takeoff: z.unknown().optional(),
+    roll: z.unknown().optional(),
+    sixes: z.unknown().optional(),
     secret: z.unknown().optional(),
   })
   .loose()

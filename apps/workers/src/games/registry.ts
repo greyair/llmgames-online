@@ -7,6 +7,8 @@ import { connect4Plugin } from "./connect4/plugin";
 import { checkersPlugin } from "./checkers/plugin";
 import { codenamesPlugin } from "./codenames/plugin";
 import { contextoPlugin } from "./contexto/plugin";
+import { gomokuPlugin } from "./gomoku/plugin";
+import { aeroplanePlugin } from "./aeroplane/plugin";
 import { pokerPlugin } from "./poker/plugin";
 import { pokemonPlugin } from "./pokemon/plugin";
 import { reversiPlugin } from "./reversi/plugin";
@@ -31,6 +33,8 @@ const PRODUCTION_PLUGINS: readonly ProductionGamePlugin[] = [
   codenamesPlugin,
   connect4Plugin,
   contextoPlugin,
+  gomokuPlugin,
+  aeroplanePlugin,
   pokerPlugin,
   pokemonPlugin,
   reversiPlugin,

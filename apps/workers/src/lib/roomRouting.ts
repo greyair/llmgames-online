@@ -34,6 +34,10 @@ export function getRoomNamespace(env: Env, gameType: GameType): DurableObjectNam
       return env.POKER_ROOM;
     case "contexto":
       return env.CONTEXTO_ROOM;
+    case "gomoku":
+      return env.GOMOKU_ROOM;
+    case "aeroplane":
+      return env.AEROPLANE_ROOM;
   }
 }
 

@@ -24,6 +24,8 @@ const heroOrder = [
   "reversi",
   "pokemon",
   "contexto",
+  "gomoku",
+  "aeroplane",
 ];
 
 const heroGames = heroOrder.flatMap((id) => {

@@ -1,0 +1,53 @@
+/* Gomoku: a warm sand board, thin grid, ebony and shell stones. The frame,
+   grid, star points and stones all come from palette tokens so the board keeps
+   its material in both themes while the room chrome stays monochrome. */
+
+.gomoku-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4);
+  container-type: size;
+}
+
+.gomoku-fit {
+  position: relative;
+  width: min(100cqw, 100cqh, 920px);
+}
+
+.gomoku-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 0 var(--palette-gomoku-board-deep);
+}
+
+.gomoku-point {
+  cursor: default;
+}
+
+.gomoku-svg[data-readonly="false"] .gomoku-point {
+  cursor: pointer;
+}
+
+.gomoku-point:hover {
+  fill: var(--palette-gomoku-line);
+  fill-opacity: 0.12;
+}
+
+.gomoku-hint {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 2.2%;
+  margin: 0;
+  font-size: var(--type-caption);
+  color: var(--palette-gomoku-star);
+  text-align: center;
+  pointer-events: none;
+}

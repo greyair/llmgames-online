@@ -682,6 +682,99 @@ function Pokemon() {
   );
 }
 
+function Gomoku() {
+  const bx = 12,
+    by = 4,
+    cell = 9,
+    cols = 8,
+    rows = 6;
+
+  let lines = "";
+
+  for (let i = 0; i <= cols; i += 1) lines += R(bx + i * cell, by, 1, rows * cell);
+
+  for (let i = 0; i <= rows; i += 1) lines += R(bx, by + i * cell, cols * cell + 1, 1);
+
+  const stones: Array<{ row: number; col: number; black: boolean }> = [
+    { row: 2, col: 2, black: true },
+    { row: 2, col: 3, black: true },
+    { row: 2, col: 4, black: true },
+    { row: 3, col: 3, black: false },
+    { row: 3, col: 4, black: false },
+    { row: 4, col: 4, black: true },
+    { row: 1, col: 5, black: false },
+  ];
+
+  return (
+    <>
+      <Glow fill={c("gomoku-board")} />
+      <F d={R(bx - 4, by - 4, cols * cell + 9, rows * cell + 8)} fill={c("gomoku-board-deep")} />
+      <F d={R(bx - 1, by - 1, cols * cell + 3, rows * cell + 3)} fill={c("gomoku-board")} />
+      <T d={lines} fill={c("gomoku-line")} level={10} />
+      <T d={R(bx + 4 * cell - 1, by + 3 * cell - 1, 3, 3)} fill={c("gomoku-star")} level={12} />
+      {stones.map(({ row, col, black }) => (
+        <Disc
+          key={`${row}:${col}`}
+          x={bx + col * cell - 3}
+          y={by + row * cell - 3}
+          d={7}
+          base={c(black ? "gomoku-stone-black" : "gomoku-stone-white")}
+          deep={c(black ? "gomoku-stone-black" : "gomoku-stone-white-deep")}
+          light={c(black ? "gomoku-stone-black-light" : "gomoku-stone-white")}
+        />
+      ))}
+    </>
+  );
+}
+
+function Aeroplane() {
+  const bx = 18,
+    by = 2,
+    cell = 4;
+
+  // The 15x15 cross the real board walks around, at four pixels a cell.
+  const arms = R(bx + 6 * cell, by, 3 * cell, 15 * cell) + R(bx, by + 6 * cell, 15 * cell, 3 * cell);
+
+  // One quadrant of the track: enough steps to read as a ring without repeating
+  // all fifty-two, grouped the way the board colours them.
+  let red = "";
+  let yellow = "";
+  let blue = "";
+
+  const step = (col: number, row: number, group: number) => {
+    const patch = R(bx + col * cell, by + row * cell, cell - 1, cell - 1);
+
+    if (group === 0) red += patch;
+    else if (group === 1) yellow += patch;
+    else blue += patch;
+  };
+
+  for (let i = 0; i < 3; i += 1) step(6 + i, 0, i);
+
+  for (let i = 1; i <= 5; i += 1) step(8, i, (i + 2) % 3);
+
+  for (let i = 9; i <= 14; i += 1) step(i, 6, (i + 1) % 3);
+
+  return (
+    <>
+      <Glow fill={c("aero-board")} />
+      {/* Hangar corners sit outside the cross, so they stay translucent. */}
+      <T d={R(bx, by, 6 * cell, 6 * cell)} fill={c("aero-red")} level={2} />
+      <T d={R(bx + 9 * cell, by + 9 * cell, 6 * cell, 6 * cell)} fill={c("aero-blue")} level={2} />
+      <F d={arms} fill={c("aero-board")} />
+      <T d={red} fill={c("aero-red")} level={12} />
+      <T d={yellow} fill={c("aero-yellow")} level={12} />
+      <T d={blue} fill={c("aero-blue")} level={12} />
+      <F d={R(bx + 7 * cell - 1, by + 7 * cell - 1, cell + 2, cell + 2)} fill={c("aero-centre")} />
+      <F d={oval(bx + 7 * cell - 3, by + 2 * cell - 3, 8, 8)} fill={c("aero-red")} />
+      <T d={oval(bx + 7 * cell - 3, by + 2 * cell - 3, 8, 8, 0, 4)} fill={c("aero-red-deep")} level={6} />
+      <F d={oval(bx + 2 * cell - 2, by + 2 * cell - 2, 7, 7)} fill={c("aero-red")} />
+      <F d={oval(bx + 7 * cell - 3, by + 12 * cell - 3, 8, 8)} fill={c("aero-blue")} />
+      <T d={oval(bx + 7 * cell - 3, by + 12 * cell - 3, 8, 8, 0, 4)} fill={c("aero-blue-deep")} level={6} />
+    </>
+  );
+}
+
 const scenes = {
   connect4: Connect4,
   checkers: Checkers,
@@ -691,6 +784,8 @@ const scenes = {
   codenames: Codenames,
   contexto: Contexto,
   pokemon: Pokemon,
+  gomoku: Gomoku,
+  aeroplane: Aeroplane,
 } satisfies Record<string, () => ReactElement>;
 
 export function GameScene({ id, className }: { id: string; className?: string }) {

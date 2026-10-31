@@ -17,6 +17,8 @@ export interface Env {
   BATTLESHIP_ROOM: DurableObjectNamespace;
   POKER_ROOM: DurableObjectNamespace;
   CONTEXTO_ROOM: DurableObjectNamespace;
+  GOMOKU_ROOM: DurableObjectNamespace;
+  AEROPLANE_ROOM: DurableObjectNamespace;
 
   EMAIL?: {
     send(message: {

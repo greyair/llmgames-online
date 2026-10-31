@@ -189,6 +189,8 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     BATTLESHIP_ROOM: namespace,
     POKER_ROOM: namespace,
     CONTEXTO_ROOM: namespace,
+    GOMOKU_ROOM: namespace,
+    AEROPLANE_ROOM: namespace,
     GOOGLE_CLIENT_ID: "",
     TURNSTILE_SITE_KEY: "",
     FRONTEND_URL: "http://localhost:3000",

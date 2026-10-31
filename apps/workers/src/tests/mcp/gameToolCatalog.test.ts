@@ -83,6 +83,8 @@ describe("gameToolCatalog", () => {
       "battleship",
       "poker",
       "contexto",
+      "gomoku",
+      "aeroplane",
     ]);
     expect(Object.keys(all.gameInstructions)).toEqual(Object.keys(all.games));
     expect(all.turnTimerConfig).toEqual({

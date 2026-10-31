@@ -82,6 +82,28 @@ export function applyPreviewScenario(
   if (scenario === "opening" && screen === "connect4")
     s.board = Array.from({ length: 6 }, () => Array(7).fill(0));
 
+  if (scenario === "opening" && screen === "gomoku")
+    s.board = Array.from({ length: 15 }, () => Array(15).fill(0));
+
+  if (screen === "aeroplane") {
+    if (scenario === "opening") {
+      s.planes = [
+        [-1, -1, -1, -1],
+        [-1, -1, -1, -1],
+      ];
+      s.roll = null;
+      s.sixes = 0;
+    }
+
+    if (scenario === "midgame") {
+      s.roll = 6;
+      s.sixes = 1;
+      turn.phase = "choose";
+      you.phase = "choose";
+      you.legalActions = ["launch_plane", "move_plane"];
+    }
+  }
+
   if (scenario === "full-column")
     s.board = [
       [0, 0, 0, 2, 0, 0, 0],
@@ -543,6 +565,36 @@ export function applyPreviewScenario(
       s.board = numericBoardSchema
         .parse(s.board)
         .map((row) => row.map((x) => (x === 1 ? 2 : x === 2 ? 1 : 0)));
+
+    if (screen === "gomoku") {
+      const board = Array.from({ length: 15 }, () => Array(15).fill(0));
+
+      if (scenario === "draw") {
+        // Brick pattern: no five anywhere, but every point is taken.
+        for (let row = 0; row < 15; row++)
+          for (let col = 0; col < 15; col++) board[row]![col] = (row + Math.floor(col / 2)) % 2 ? 1 : 2;
+
+        s.winLine = undefined;
+      } else {
+        for (let col = 3; col <= 7; col++) board[7]![col] = 1;
+
+        for (let col = 4; col <= 6; col++) board[8]![col] = 2;
+
+        s.winLine = Array.from({ length: 5 }, (_, index) => ({ row: 7, col: 3 + index }));
+      }
+
+      s.board = board;
+    }
+
+    if (screen === "aeroplane") {
+      // Aeroplane has no draw, so the shared draw state shows the last roll
+      // rather than a board that never happened; the winner is still set above.
+      const home = scenario === "loss" ? 1 : 0;
+
+      s.planes = s.planes?.map((row, index) => (index === home ? [59, 59, 59, 59] : row));
+      s.roll = null;
+      s.sixes = 0;
+    }
 
     if (screen === "reversi") {
       const first = scenario === "draw" ? 32 : scenario === "loss" ? 24 : 40;

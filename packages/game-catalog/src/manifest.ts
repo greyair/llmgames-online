@@ -92,6 +92,22 @@ export const GAME_MANIFESTS = {
     detail: "Find the fleet. Keep yours afloat.",
     i18n: { game: "game.battleship" },
   },
+  aeroplane: {
+    id: "aeroplane",
+    title: "Aeroplane Chess",
+    players: "2-4",
+    category: "Dice",
+    detail: "Roll, take off, and race four planes home.",
+    i18n: { game: "game.aeroplane" },
+  },
+  gomoku: {
+    id: "gomoku",
+    title: "Gomoku",
+    players: "2",
+    category: "Strategy",
+    detail: "Five stones in a row. Fifteen lines to watch.",
+    i18n: { game: "game.gomoku" },
+  },
   contexto: {
     id: "contexto",
     title: "Contexto",

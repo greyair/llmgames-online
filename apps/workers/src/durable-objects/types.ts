@@ -170,6 +170,71 @@ export interface Connect4GameState extends BaseGameState {
   lastMove: { col: number; row: number; seat: 1 | 2 } | null;
 }
 
+// --- Gomoku ---
+
+/** 0 empty, 1 black (seat 1), 2 white (seat 2). */
+export type GomokuCell = 0 | 1 | 2;
+
+export interface GomokuGameState extends BaseGameState {
+  type: "gomoku";
+  turnState: BaseTurnState & { phase: "waiting" | "play" | "ended" };
+  /** 15 rows × 15 cols, row 0 = top. Same axis as the structured `place_stone`. */
+  board: GomokuCell[][];
+  /** playerId → seat 1 | 2 */
+  seats: Record<string, 1 | 2>;
+  winner: string | null; // playerId | "draw"
+  lastMove: { row: number; col: number; seat: 1 | 2 } | null;
+  /** The run that ended the match, kept for the winning-line highlight. */
+  winLine: Array<{ row: number; col: number }> | null;
+}
+
+// --- Aeroplane Chess (飞行棋) ---
+
+/**
+ * Progress values every plane shares, ported from West Window's board geometry:
+ * -1 hangar, 0 take-off square, 1..52 loop, 53..58 home column, 59 home.
+ */
+export type AeroplaneProgress = number;
+
+export interface AeroplaneCaptures {
+  seat: number;
+  planes: number[];
+}
+
+export interface AeroplaneGameState extends BaseGameState {
+  type: "aeroplane";
+  turnState: BaseTurnState & { phase: "waiting" | "roll" | "choose" | "ended" };
+  /** playerId → seat index 0..N-1, in board-colour order. */
+  seats: Record<string, number>;
+  /** Board colour (0..3) owned by each seat, clockwise from the bottom arm. */
+  colours: number[];
+  /** Rolls that let a plane leave the hangar: `[6]` or `[5, 6]`. */
+  takeoff: number[];
+  /** `planes[seat][planeIndex]`; four planes per seat, numbered 1..4 to players. */
+  planes: AeroplaneProgress[][];
+  /** The roll the seat to move must use, and who rolled it. */
+  roll: number | null;
+  rollBy: string | null;
+  /** Consecutive sixes in the current turn. Three sends the chosen plane home. */
+  sixes: number;
+  /** What the roll did the last time a plane moved, for the browser trail. */
+  lastMove: {
+    playerId: string;
+    seat: number;
+    plane: number;
+    kind: "launch" | "move";
+    from: AeroplaneProgress;
+    to: AeroplaneProgress;
+    jump: AeroplaneProgress | null;
+    fly: AeroplaneProgress | null;
+    bounce: boolean;
+    home: boolean;
+    sentBack: boolean;
+    captures: AeroplaneCaptures[];
+  } | null;
+  winner: string | null; // playerId
+}
+
 // --- Contexto ---
 
 export interface ContextoGuess {
@@ -786,4 +851,76 @@ export interface CheckersGameState extends BaseGameState {
   lastMove: (CheckersMove & { playerId: string; crowned: boolean }) | null;
   quietTurns: number;
   positionCounts: Record<string, number>;
+}
+
+// --- Shared card vocabulary for 跑得快 and 斗地主 ---
+
+/** Shapes both card games recognise; each game enables a subset. */
+export type CardComboKind =
+  | "single"
+  | "pair"
+  | "triple"
+  | "triple_one"
+  | "triple_pair"
+  | "straight"
+  | "pair_run"
+  | "plane"
+  | "plane_one"
+  | "plane_pair"
+  | "four_two"
+  | "four_two_pair"
+  | "bomb"
+  | "rocket";
+
+/**
+ * A recognised play.
+ *
+ * `size` is how many cards it uses (a follower must match it), `key` is the rank
+ * that decides which of two shapes of the same kind wins, and `len` is the chain
+ * length — 1 for every fixed shape.
+ */
+export interface CardCombo {
+  kind: CardComboKind;
+  size: number;
+  key: number;
+  len: number;
+}
+
+/** One play or pass in a trick. `combo` is null for a pass. */
+export interface CardActionRecord {
+  seat: number;
+  cards: string[];
+  combo: CardCombo | null;
+  n: number;
+}
+
+export interface PaodekuaiGameState extends BaseGameState {
+  type: "paodekuai";
+  turnState: BaseTurnState & { phase: "waiting" | "play" | "ended" };
+  /** playerId → seat index 0..N-1. */
+  seats: Record<string, number>;
+  /** One hand per seat, sorted weakest first. */
+  hands: string[][];
+  /** Cards set aside unseen in a two-player game; empty with three seats. */
+  unused: string[];
+  /** Seat that led the first trick. */
+  first: number;
+  /** A card the next lead must include (♠3 on the first play), else null. */
+  mustLead: string | null;
+  toPlay: number;
+  /** The combination to beat, or null when `toPlay` leads. */
+  trick: CardActionRecord | null;
+  /** The play that won the previous trick, shown while the next one is led. */
+  lastTrick: CardActionRecord | null;
+  /** Passes since the last play. */
+  passes: number;
+  lastPass: number | null;
+  /** Each seat's latest action in the current trick. */
+  acts: (CardActionRecord | null)[];
+  /** Recent actions, newest last. */
+  plays: CardActionRecord[];
+  tricks: number;
+  /** Cards each seat has played, for the spring bonus. */
+  played: number[];
+  winner: string | null;
 }

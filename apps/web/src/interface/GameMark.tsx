@@ -20,6 +20,37 @@ const glyphs = {
     a: "var(--palette-c4-red)",
     b: "var(--palette-c4-yellow)",
   },
+  gomoku: {
+    rows: [
+      "..........",
+      "..........",
+      "..aa......",
+      "......a...",
+      ".#####....",
+      ".......a..",
+      "..........",
+      "..........",
+      "..........",
+      "..........",
+    ],
+    a: "var(--palette-gomoku-stone-white)",
+  },
+  aeroplane: {
+    rows: [
+      "..........",
+      "...bb.....",
+      "..bbbb....",
+      ".##bb##...",
+      "..........",
+      "...aa.....",
+      "..aaaa....",
+      ".##aa##...",
+      "..........",
+      "..........",
+    ],
+    a: "var(--palette-aero-red)",
+    b: "var(--palette-aero-yellow)",
+  },
   checkers: {
     rows: [
       "..........",

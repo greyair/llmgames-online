@@ -1,6 +1,11 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { gameLogDocumentSchema, wireObjectSchema, type WireObject } from "@llmgames/game-catalog";
+import {
+  gameLogDocumentSchema,
+  isString,
+  wireObjectSchema,
+  type WireObject,
+} from "@llmgames/game-catalog";
 import { z } from "zod";
 
 import { describe, expect, it, vi } from "vitest";
@@ -14,6 +19,9 @@ import { CodenamesGameRoom } from "../../durable-objects/CodenamesGameRoom";
 import { ContextoRoom } from "../../durable-objects/ContextoRoom";
 import { PokerRoom } from "../../durable-objects/PokerRoom";
 import { PokemonRoom } from "../../durable-objects/PokemonRoom";
+import { GomokuRoom } from "../../durable-objects/GomokuRoom";
+import { AeroplaneRoom } from "../../durable-objects/AeroplaneRoom";
+import { planAeroplaneMove, type AeroplaneChoice } from "../../games/aeroplane/rules";
 import { contextoGuessFamily, contextoWord } from "../../lib/contextoRanks";
 import { migratedDb } from "../fixtures/migrated-db";
 import { MemoryR2Bucket } from "../fixtures/memory-r2";
@@ -93,6 +101,13 @@ const stateSchema = z
       )
       .optional(),
     board: z.unknown().optional(),
+    // Aeroplane publishes the whole table: there is nothing to hide, so the
+    // driver can ask the rules module what each of its planes would do.
+    colours: z.array(z.number()).optional(),
+    planes: z.array(z.array(z.number())).optional(),
+    takeoff: z.array(z.number()).optional(),
+    roll: z.number().nullable().optional(),
+    sixes: z.number().optional(),
   })
   .loose();
 
@@ -123,7 +138,9 @@ interface Journey {
     | "codenames"
     | "contexto"
     | "pokemon"
-    | "poker";
+    | "poker"
+    | "gomoku"
+    | "aeroplane";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -133,12 +150,16 @@ interface Journey {
     | "CODENAMES_ROOM"
     | "CONTEXTO_ROOM"
     | "POKEMON_ROOM"
-    | "POKER_ROOM";
+    | "POKER_ROOM"
+    | "GOMOKU_ROOM"
+    | "AEROPLANE_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
   /** Accepted actions allowed before the driver gives up (default 160). */
   budget?: number;
+  /** Vitest timeout for this journey (default 5s); a dice race needs minutes. */
+  timeout?: number;
   /** Lobby work that has to happen between the last join and the start. */
   prepare?: (send: Send, roomId: string, host: string) => Promise<void>;
   next: (state: RoomState, seatTurn: number, matchTurn: number) => Step | null;
@@ -160,6 +181,43 @@ const BATTLESHIP_FLEET = [
 
 /** Connect 4 plays a scripted line so the match ends in a known shape. */
 const CONNECT4_COLUMNS = [0, 0, 1, 1, 2, 2, 3];
+
+/**
+ * Gomoku plays a scripted match: black fills column 0 from the top while white
+ * builds a four on row 0, so black completes five on move nine. White never
+ * reaches five first, which keeps the archive's winner deterministic.
+ */
+const GOMOKU_SCRIPT: ReadonlyArray<{ row: number; col: number }> = [
+  { row: 0, col: 0 },
+  { row: 0, col: 1 },
+  { row: 1, col: 0 },
+  { row: 0, col: 2 },
+  { row: 2, col: 0 },
+  { row: 0, col: 3 },
+  { row: 3, col: 0 },
+  { row: 0, col: 4 },
+  { row: 4, col: 0 },
+];
+
+/**
+ * Aeroplane's move order: reach the centre, then capture, then fly furthest.
+ * A plane a third six would send home is worse than any of those.
+ */
+function beats(candidate: AeroplaneChoice, current: AeroplaneChoice): boolean {
+  if (candidate.sentBack !== current.sentBack) return current.sentBack;
+
+  if (candidate.home !== current.home) return candidate.home;
+
+  const taken = (choice: AeroplaneChoice) =>
+    choice.captures.reduce((total, victim) => total + victim.planes.length, 0);
+
+  const captures = taken(candidate);
+  const currentCaptures = taken(current);
+
+  if (captures !== currentCaptures) return captures > currentCaptures;
+
+  return candidate.to - candidate.from > current.to - current.from;
+}
 
 const journeys: Journey[] = [
   {
@@ -327,6 +385,82 @@ const journeys: Journey[] = [
       }
 
       return null;
+    },
+  },
+  {
+    gameType: "gomoku",
+    Room: GomokuRoom,
+    binding: "GOMOKU_ROOM",
+    players: 2,
+    minActions: GOMOKU_SCRIPT.length,
+    next: (_state, _seatTurn, turn) => {
+      const point = GOMOKU_SCRIPT[turn];
+
+      return point ? { actionType: "place_stone", data: point } : null;
+    },
+  },
+  {
+    gameType: "aeroplane",
+    Room: AeroplaneRoom,
+    binding: "AEROPLANE_ROOM",
+    players: 2,
+    // Four planes have to fly the whole loop into the home column, which takes
+    // a few hundred rolls even with a driver that always takes the best move;
+    // the budget and the timeout are both sized for that race, not for tactics.
+    minActions: 60,
+    budget: 700,
+    timeout: 240_000,
+    next: (state) => {
+      const { legalActions } = state.you;
+
+      if (legalActions.includes("roll")) return { actionType: "roll", data: {} };
+
+      // The agent view carries the seat map but not the viewer's own seat, so
+      // read it the way a model would: look yourself up in `seats`.
+      const seats = z.record(z.string(), z.number()).safeParse(state.seats).data ?? {};
+      const seat = seats[state.you.playerId];
+      const roll = state.roll;
+
+      if (seat === undefined || roll === null || roll === undefined) return null;
+
+      // Ask the real rules module what each plane would do, then take the
+      // biggest gain: a plane reaching the centre first, then one that captures,
+      // then one that simply flies furthest. Nothing is re-derived here, so a
+      // plane the board would refuse never reaches `send_action`.
+      const table = {
+        colours: state.colours ?? [],
+        planes: state.planes ?? [],
+        takeoff: state.takeoff ?? [6],
+        roll,
+        sixes: state.sixes ?? 0,
+      };
+
+      let best: { kind: "launch" | "move"; plane: number } | null = null;
+      let bestChoice: AeroplaneChoice | null = null;
+
+      for (let plane = 1; plane <= 4; plane += 1) {
+        const choice = planAeroplaneMove(table, seat, plane, roll);
+
+        if (isString(choice)) continue;
+
+        if (!bestChoice || beats(choice, bestChoice)) {
+          bestChoice = choice;
+          best = { kind: choice.kind, plane };
+        }
+      }
+
+      if (!best) return null;
+
+      return {
+        actionType: best.kind === "launch" ? "launch_plane" : "move_plane",
+        data: { plane: best.plane },
+      };
+    },
+    // The dice are server-side and the table is public, so a rival's view has
+    // to be the same board the mover sees.
+    assertRival: (rival) => {
+      expect(rival.planes?.length).toBeGreaterThan(0);
+      expect(rival.you.legalActions).not.toContain("roll");
     },
   },
   {
@@ -632,7 +766,8 @@ describe("MCP match journey", () => {
         await client.close();
       }
       // Battleship needs a few hundred round trips; the default 5s is tight
-      // once the whole suite shares two workers.
-    }, 30_000);
+      // once the whole suite shares two workers. Aeroplane is longer still —
+      // a dice race takes hundreds of rolls — so it sets its own timeout.
+    }, journey.timeout ?? 30_000);
   }
 });

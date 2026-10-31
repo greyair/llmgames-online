@@ -60,6 +60,14 @@
       {
         "name": "POKEMON_ROOM",
         "class_name": "PokemonRoom"
+      },
+      {
+        "name": "GOMOKU_ROOM",
+        "class_name": "GomokuRoom"
+      },
+      {
+        "name": "AEROPLANE_ROOM",
+        "class_name": "AeroplaneRoom"
       }
     ]
   },
@@ -76,6 +84,18 @@
         "PokerRoom",
         "ContextoRoom",
         "PokemonRoom"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "GomokuRoom"
+      ]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": [
+        "AeroplaneRoom"
       ]
     }
   ],

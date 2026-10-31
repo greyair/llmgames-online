@@ -1,0 +1,80 @@
+/* Aeroplane Chess: a pale paper cross, four inks, one die under the board. The
+   board keeps its own material while the room chrome stays monochrome; every
+   colour here comes from a palette token. */
+
+.aeroplane-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-16);
+  container-type: size;
+}
+
+.aeroplane-fit {
+  width: min(100cqw, 100cqh, 900px);
+}
+
+.aeroplane-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.aeroplane-plane {
+  cursor: default;
+}
+
+.aeroplane-svg[data-readonly="false"] .aeroplane-plane[data-offered="true"] {
+  cursor: pointer;
+}
+
+.aeroplane-plane[data-offered="true"]:hover circle:first-of-type {
+  stroke-width: 4;
+}
+
+.aeroplane-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin-top: var(--space-12);
+  min-height: var(--space-32);
+}
+
+.aeroplane-die {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--space-32);
+  height: var(--space-32);
+  font-size: var(--type-caption);
+  color: var(--palette-ink-55);
+  fill: var(--palette-ink);
+  background: var(--palette-aero-board);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 2px 0 var(--palette-aero-board-deep);
+}
+
+.aeroplane-die svg {
+  width: 100%;
+  height: 100%;
+}
+
+.aeroplane-die[data-rolled="true"] {
+  box-shadow: 0 2px 0 var(--palette-aero-yellow-deep);
+}
+
+.aeroplane-roll {
+  flex: none;
+}
+
+.aeroplane-hint {
+  margin: 0;
+  font-size: var(--type-caption);
+  color: var(--palette-ink-55);
+}

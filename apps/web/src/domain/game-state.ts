@@ -123,6 +123,18 @@ export type ClientView = {
   board?: z.output<typeof numericBoardSchema> | z.output<typeof wordBoardSchema>;
   seats?: z.output<typeof seatNumbersSchema> | z.output<typeof cardSeatsSchema>;
   lastMove?: z.output<typeof lastMoveSchema>;
+  /** Winning run set by the rule module when a match ends on a connected line. */
+  winLine?: Array<{ row: number; col: number }>;
+  /** Aeroplane: progress of every seat's planes, -1 hangar … 59 centre. */
+  planes?: number[][];
+  /** Aeroplane: board colour index of each seat. */
+  colours?: number[];
+  /** Aeroplane: dice values that clear a plane from the hangar. */
+  takeoff?: number[];
+  /** Aeroplane: the roll on the table, or null between turns. */
+  roll?: number | null;
+  /** Aeroplane: consecutive sixes rolled in this turn. */
+  sixes?: number;
   scores?: Partial<Record<1 | 2, number>>;
   legalMoves?: z.output<typeof discMovesSchema> | z.output<typeof checkerMovesSchema>;
   forcedPiece?: { row: number; col: number } | null;
@@ -307,6 +319,11 @@ const clientViewContract = z
     "board": z.union([numericBoardSchema, wordBoardSchema]).optional(),
     "seats": z.union([seatNumbersSchema, cardSeatsSchema]).optional(),
     "lastMove": lastMoveSchema.optional(),
+    "planes": z.array(z.array(z.number())).optional(),
+    "colours": z.array(z.number()).optional(),
+    "takeoff": z.array(z.number()).optional(),
+    "roll": z.union([z.number(), z.null()]).optional(),
+    "sixes": z.number().optional(),
     "scores": z.object({ "1": z.number().optional(), "2": z.number().optional() }).optional(),
     "legalMoves": z.union([checkerMovesSchema, discMovesSchema]).optional(),
     "forcedPiece": z

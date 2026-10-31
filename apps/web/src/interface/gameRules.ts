@@ -6,6 +6,22 @@ export const rules = {
     "Connect four. Four of your discs in a horizontal, vertical, or diagonal line wins the game.",
     "Fill the board. If neither player connects four before the board fills, the game is a draw.",
   ],
+  gomoku: [
+    "Take your seat. Two players share a 15×15 board. Black moves first.",
+    "Place one stone. Click any empty intersection. Stones never move once placed.",
+    "Build a line. Stones count in horizontal, vertical and both diagonal directions.",
+    "Connect five. Five or more of your stones in an unbroken line wins — six also counts.",
+    "Fill the board. If no line appears before all 225 points are taken, the game is a draw.",
+  ],
+  aeroplane: [
+    "Take a colour. Two to four players each fly four planes of one colour around a 52-square ring.",
+    "Roll the dice. Six clears a plane from its hangar onto your take-off square and earns another roll.",
+    "Move one plane. Choose any plane the roll can use: a launch from the hangar, or a step along the ring.",
+    "Take the shortcuts. Landing on your own colour jumps four more, and your step 20 flies across to step 32.",
+    "Send rivals home. Landing on a square held by another colour returns every plane standing there to its hangar.",
+    "Fly home. Reach your arm tip, climb the six home squares and land exactly on the centre. Three sixes in a row sends the plane you pick back instead.",
+    "Win the race. The first player to land all four planes on the centre wins.",
+  ],
   checkers: [
     "Start with twelve pieces each. Black moves first, toward the top of the board. White moves toward the bottom.",
     "Move diagonally. Men move one square forward on dark squares. Kings can also move backward.",
@@ -69,6 +85,26 @@ export const roomGuides = {
     notes: [
       ["Full columns", "Choose another column when all six spaces are occupied."],
       ["Turn timeout", "No disc is placed. Play passes to the other player."],
+    ],
+  },
+  gomoku: {
+    description:
+      "Place stones to line up five. Block your opponent's lines while extending your own.",
+    summary: "Two players · 15×15 freestyle · five or more in a row",
+    notesTitle: "Placement & clocks",
+    notes: [
+      ["Overlines", "Six or more in a row still counts as a win."],
+      ["Turn timeout", "No stone is placed and the turn passes to the other player."],
+    ],
+  },
+  aeroplane: {
+    description:
+      "Roll, launch and race four planes home. Land on your own colour to jump, and send rivals back to the hangar.",
+    summary: "2-4 players · dice race · first colour home wins",
+    notesTitle: "Dice & clocks",
+    notes: [
+      ["Taking off", "Only a 6 clears a plane from the hangar, and a 6 rolls again."],
+      ["Turn timeout", "The roll is lost. No plane moves and the turn passes on."],
     ],
   },
   checkers: {

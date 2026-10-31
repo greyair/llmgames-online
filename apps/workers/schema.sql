@@ -1,5 +1,5 @@
 -- Current empty-database bootstrap. Production upgrades use migrations/.
--- Generated from the complete migration sequence through 0046.
+-- Generated from the complete migration sequence through 0055.
 
 CREATE TABLE "active_rooms" (
   room_code TEXT PRIMARY KEY COLLATE NOCASE,
@@ -12,7 +12,9 @@ CREATE TABLE "active_rooms" (
       'codenames',
       'battleship',
       'poker',
-      'contexto'
+      'contexto',
+      'gomoku',
+      'aeroplane'
     )
   ),
   room_id TEXT NOT NULL UNIQUE,
