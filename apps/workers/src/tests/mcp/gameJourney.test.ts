@@ -12,6 +12,7 @@ import { CheckersRoom } from "../../durable-objects/CheckersRoom";
 import { BattleshipRoom } from "../../durable-objects/BattleshipRoom";
 import { CodenamesGameRoom } from "../../durable-objects/CodenamesGameRoom";
 import { ContextoRoom } from "../../durable-objects/ContextoRoom";
+import { PokemonRoom } from "../../durable-objects/PokemonRoom";
 import { contextoGuessFamily, contextoWord } from "../../lib/contextoRanks";
 import { migratedDb } from "../fixtures/migrated-db";
 import { MemoryR2Bucket } from "../fixtures/memory-r2";
@@ -54,6 +55,16 @@ const stateSchema = z
       .loose(),
     ownGrid: z.array(z.string()).optional(),
     targetGrid: z.array(z.string()).optional(),
+    decision: z
+      .object({
+        forceSwitch: z.boolean().optional(),
+        moves: z
+          .array(z.object({ slot: z.number(), disabled: z.boolean().optional() }).loose())
+          .optional(),
+        switches: z.array(z.object({ slot: z.number() }).loose()).optional(),
+      })
+      .loose()
+      .nullish(),
     progress: z
       .record(
         z.string(),
@@ -96,7 +107,14 @@ interface Step {
 }
 
 interface Journey {
-  gameType: "connect4" | "reversi" | "checkers" | "battleship" | "codenames" | "contexto";
+  gameType:
+    | "connect4"
+    | "reversi"
+    | "checkers"
+    | "battleship"
+    | "codenames"
+    | "contexto"
+    | "pokemon";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -104,7 +122,8 @@ interface Journey {
     | "CHECKERS_ROOM"
     | "BATTLESHIP_ROOM"
     | "CODENAMES_ROOM"
-    | "CONTEXTO_ROOM";
+    | "CONTEXTO_ROOM"
+    | "POKEMON_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
@@ -205,6 +224,38 @@ const journeys: Journey[] = [
     },
   },
   {
+    gameType: "pokemon",
+    Room: PokemonRoom,
+    binding: "POKEMON_ROOM",
+    players: 2,
+    // A Gen 1 random battle takes dozens of turns, and each turn is two
+    // sealed choices, so this is the one journey that needs a long budget.
+    minActions: 4,
+    budget: 400,
+    next: (state) => {
+      const mine = state.decision;
+
+      if (!mine) return null;
+
+      const switchSlot = mine.switches?.[0]?.slot;
+
+      if (mine.forceSwitch && switchSlot !== undefined)
+        return { actionType: "pokemon_switch", data: { slot: switchSlot } };
+
+      const move = mine.moves?.find((candidate) => !candidate.disabled);
+
+      if (move) return { actionType: "pokemon_move", data: { slot: move.slot } };
+
+      return switchSlot === undefined
+        ? null
+        : { actionType: "pokemon_switch", data: { slot: switchSlot } };
+    },
+    // The opponent's team, exact HP and pending choice stay hidden.
+    assertRival: (rival) => {
+      expect(JSON.stringify(rival)).not.toContain("battleSnapshot");
+    },
+  },
+  {
     gameType: "contexto",
     Room: ContextoRoom,
     binding: "CONTEXTO_ROOM",
@@ -239,7 +290,8 @@ const journeys: Journey[] = [
     Room: CodenamesGameRoom,
     binding: "CODENAMES_ROOM",
     players: 4,
-    minActions: 3,
+    // A first guess can be the assassin, so the match may end after one action.
+    minActions: 1,
     prepare: async (send, roomId, host) => {
       await send(host, "randomize_codenames_roles", {});
     },
