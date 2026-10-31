@@ -2,24 +2,39 @@ import { roomTestEnv } from "../../fixtures/room-env";
 import { MemoryRoomRuntime } from "../../fixtures/memory-runtime";
 
 import { describe, expect, it } from "vitest";
-import { PokerRoom } from "../../../durable-objects/PokerRoom";
+import { PokerTable } from "../../../games/poker/table";
 import type { Player, PokerGameState, PokerSeat } from "../../../durable-objects/types";
 
-class MultiplayerPokerRoom extends PokerRoom {
+/**
+ * The betting rules moved to `PokerTable` in M3.9, so this suite drives the
+ * table directly instead of reaching into the room. Every assertion is
+ * unchanged; only the harness that holds the state is.
+ */
+class MultiplayerPokerRoom {
+  private state!: PokerGameState;
+
   setState(state: PokerGameState) {
-    this.gameState = state;
+    this.state = state;
   }
+
+  private table() {
+    return new PokerTable(this.state);
+  }
+
   public startNewHand() {
-    return super.startNewHand();
+    return this.table().startNewHand();
   }
+
   public actCall(player: Player) {
-    return super.actCall(player);
+    return this.table().actCall(player.id);
   }
+
   public actCheck(player: Player) {
-    return super.actCheck(player);
+    return this.table().actCheck(player.id);
   }
+
   public settleSidePots(scores: Map<string, number>) {
-    return super.settleSidePots(scores);
+    return this.table().settleSidePots(scores);
   }
 }
 
@@ -93,7 +108,7 @@ function sixSeatState(): PokerGameState {
 
 async function roomWith(state: PokerGameState) {
   const runtime = new MemoryRoomRuntime();
-  const room = new MultiplayerPokerRoom(runtime, roomTestEnv());
+  const room = new MultiplayerPokerRoom();
   await runtime.initialized;
   room.setState(state);
 

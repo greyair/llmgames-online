@@ -5228,9 +5228,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     this.broadcastState();
   }
 
-  /** Games can hold MCP and hosted decisions until a server-owned transition is ready. */
+  /**
+   * Games can hold MCP and hosted decisions until a server-owned transition is
+   * ready. A migrated room inherits its game's answer from the plugin.
+   */
   protected agentDecisionReadyAt(): number {
-    return 0;
+    const rules = this.gameRules();
+
+    if (!rules?.decisionReadyAt || !this.gameState) return 0;
+
+    return rules.decisionReadyAt(this.gameState);
   }
 
   private isAgentTurnReady(playerId: string): boolean {

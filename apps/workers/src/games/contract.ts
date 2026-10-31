@@ -139,6 +139,16 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
    */
   mayActNow?(state: TState, playerId: string): boolean;
 
+  /**
+   * Wall-clock time from which a decision may be taken again.
+   *
+   * Poker shows the finished hand for five seconds before anyone can deal the
+   * next one. The platform waits for this instant before answering
+   * `wait_for_turn` and before offering legal actions; every other game returns
+   * 0 (immediately ready).
+   */
+  decisionReadyAt?(state: TState): number;
+
   /** Seat number and role shown to this player, or `{ seat: null, role: "spectator" }`. */
   seatIdentity(state: TState, playerId: string, viewer: GameViewerContext): GameSeatIdentity;
 

@@ -12,6 +12,7 @@ import { CheckersRoom } from "../../durable-objects/CheckersRoom";
 import { BattleshipRoom } from "../../durable-objects/BattleshipRoom";
 import { CodenamesGameRoom } from "../../durable-objects/CodenamesGameRoom";
 import { ContextoRoom } from "../../durable-objects/ContextoRoom";
+import { PokerRoom } from "../../durable-objects/PokerRoom";
 import { PokemonRoom } from "../../durable-objects/PokemonRoom";
 import { contextoGuessFamily, contextoWord } from "../../lib/contextoRanks";
 import { migratedDb } from "../fixtures/migrated-db";
@@ -55,6 +56,13 @@ const stateSchema = z
       .loose(),
     ownGrid: z.array(z.string()).optional(),
     targetGrid: z.array(z.string()).optional(),
+    // Reversi uses `seats` as a seat map and Poker as a seat list, so each
+    // journey parses the shape it needs.
+    seats: z.unknown().optional(),
+    actionPlayerId: z.string().nullish(),
+    currentBet: z.number().optional(),
+    toCall: z.number().optional(),
+    handNumber: z.number().optional(),
     decision: z
       .object({
         forceSwitch: z.boolean().optional(),
@@ -114,7 +122,8 @@ interface Journey {
     | "battleship"
     | "codenames"
     | "contexto"
-    | "pokemon";
+    | "pokemon"
+    | "poker";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -123,10 +132,16 @@ interface Journey {
     | "BATTLESHIP_ROOM"
     | "CODENAMES_ROOM"
     | "CONTEXTO_ROOM"
-    | "POKEMON_ROOM";
+    | "POKEMON_ROOM"
+    | "POKER_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
+  /**
+   * Poker only ends when a stack busts, which the driver cannot force inside a
+   * test budget. Everything else must reach `ended` and archive.
+   */
+  mustEnd?: boolean;
   /** Accepted actions allowed before the driver gives up (default 160). */
   budget?: number;
   /** Lobby work that has to happen between the last join and the start. */
@@ -221,6 +236,40 @@ const journeys: Journey[] = [
     // themselves: the target grid only ever holds unknown, miss or hit.
     assertRival: (rival) => {
       for (const row of rival.targetGrid ?? []) expect(row).toMatch(/^[.ox]+$/);
+    },
+  },
+  {
+    gameType: "poker",
+    Room: PokerRoom,
+    binding: "POKER_ROOM",
+    players: 2,
+    // Hands are short but a match is several of them; the driver folds, checks
+    // or calls and deals the next hand once the five-second window passes.
+    // Shoving every legal chance busts a stack within a hand or two, which is
+    // exactly the terminal state this journey needs to reach the archive.
+    minActions: 2,
+    budget: 300,
+    next: (state) => {
+      const mine = z
+        .array(z.object({ playerId: z.string(), folded: z.boolean() }).loose())
+        .safeParse(state.seats).data?.find((seat) => seat.playerId === state.you.playerId);
+
+      if (!mine || mine.folded) return null;
+
+      if (state.you.legalActions.includes("next_hand"))
+        return { actionType: "next_hand", data: {} };
+
+      // Shoving resolves a hand at once, so stacks move and the match can end.
+      if (state.you.legalActions.includes("all_in")) return { actionType: "all_in", data: {} };
+
+      if (!state.you.legalActions.includes("check") && !state.you.legalActions.includes("call"))
+        return state.you.legalActions.includes("fold")
+          ? { actionType: "fold", data: {} }
+          : null;
+
+      return (state.toCall ?? 0) === 0
+        ? { actionType: "check", data: {} }
+        : { actionType: "call", data: {} };
     },
   },
   {
@@ -453,6 +502,8 @@ describe("MCP match journey", () => {
         let state = await stateOf(hostController);
         let accepted = 0;
 
+        let idles = 0;
+
         for (let turn = 0; turn < budget && state.status === "playing"; turn += 1) {
           const current = state.turnState.currentPlayerId;
           const owned = current ? controllersBySeat.get(current) : undefined;
@@ -474,12 +525,31 @@ describe("MCP match journey", () => {
               }
             }
 
-          if (!actor) break;
+          if (!actor) {
+            // The server may hold decisions for a moment (Poker's result
+            // window); wait it out instead of calling the journey finished.
+            if (idles++ > 40) break;
+
+            await new Promise((done) => setTimeout(done, 200));
+            state = await stateOf(hostController);
+            turn -= 1;
+
+            continue;
+          }
 
           const own = await stateOf(actor);
           const step = journey.next(own, perSeat.get(actor) ?? 0, turn);
 
-          if (!step) break;
+          if (!step) {
+            // A seat may be "on turn" while the server still withholds its
+            // actions; wait rather than ending the journey early.
+            if (idles++ > 40) break;
+
+            await new Promise((done) => setTimeout(done, 200));
+            turn -= 1;
+
+            continue;
+          }
 
           await send(actor, step.actionType, step.data);
           accepted += 1;
@@ -489,7 +559,7 @@ describe("MCP match journey", () => {
 
         expect(accepted).toBeGreaterThanOrEqual(journey.minActions);
 
-        expect(state.status).toBe("ended");
+        if (journey.mustEnd !== false) expect(state.status).toBe("ended");
 
         // Private material never reaches another seat's projection.
         for (const controllerId of controllers) {
@@ -511,6 +581,13 @@ describe("MCP match journey", () => {
 
             expect(JSON.stringify(rivalState)).not.toContain(secret);
           }
+        }
+
+        if (journey.mustEnd === false) {
+          // A hand certainly finished even if no stack busted yet.
+          expect(harness.bucket.objects.size).toBeLessThanOrEqual(1);
+
+          return;
         }
 
         for (const controllerId of controllers)

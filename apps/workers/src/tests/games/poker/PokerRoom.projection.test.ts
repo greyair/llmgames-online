@@ -4,7 +4,7 @@ import { MemoryRoomRuntime } from "../../fixtures/memory-runtime";
 import { broadcastProjection } from "../../../lib/broadcastProjection";
 import { describe, expect, it } from "vitest";
 import { ROOM_LIFETIME_MS } from "@llmgames/game-catalog";
-import { PokerRoom } from "../../../durable-objects/PokerRoom";
+import { pokerPlugin } from "../../../games/poker/plugin";
 import type { PokerGameState, PokerSeat } from "../../../durable-objects/types";
 
 function seat(playerId: string, hole: PokerSeat["hole"]): PokerSeat {
@@ -85,13 +85,22 @@ type ProjectedSeat = {
 };
 
 describe("PokerRoom projection", () => {
-  class ProjectionPokerRoom extends PokerRoom {
+  // The projection moved to the plugin in M3.9; the assertions are unchanged.
+  class ProjectionPokerRoom {
     project(playerId: string, state: PokerGameState) {
-      return this.projectStateFor(playerId, state);
+      // SAFETY: the poker projection always carries `seats`; the plugin's return
+      // type is the generic `object` the contract publishes.
+      const view = pokerPlugin.projectState?.(state, playerId) as {
+        seats: ProjectedSeat[];
+        deck?: unknown;
+        deckRemaining?: unknown;
+      };
+
+      return view;
     }
   }
 
-  const projector = new ProjectionPokerRoom(new MemoryRoomRuntime(), roomTestEnv());
+  const projector = new ProjectionPokerRoom();
 
   it("keeps the other player's hole cards and the deck private during a duel", () => {
     const projected = projector.project("p1", gameState());
@@ -187,14 +196,8 @@ describe("PokerRoom projection", () => {
 it("broadcast strips private data after applying the anonymous spectator projection", () => {
   const state = gameState();
 
-  class SpectatorPokerRoom extends PokerRoom {
-    project(state: PokerGameState) {
-      return this.projectStateFor("", state);
-    }
-  }
-
-  const instance = new SpectatorPokerRoom(new MemoryRoomRuntime(), roomTestEnv());
-  const view = broadcastProjection(instance.project(state), state.players);
+  // The empty viewer id is the public broadcast path, as before the migration.
+  const view = broadcastProjection(pokerPlugin.projectState?.(state, "") ?? {}, state.players);
   const serialized = JSON.stringify(view);
 
   for (const field of [
