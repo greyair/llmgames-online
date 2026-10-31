@@ -26,6 +26,7 @@ import {
   spymasterFor,
   validateCodenamesAssignments,
 } from "./rules";
+import { codenamesAgentDecision } from "./agent";
 
 /**
  * Codenames as a game plugin (M3.6).
@@ -195,6 +196,8 @@ export const codenamesPlugin: GamePlugin<CodenamesGameState, "codenames"> = {
       lastReveal: projection.lastReveal,
     };
   },
+
+  agentDecision: codenamesAgentDecision,
 };
 
 /** Board size the lobby advertises; kept next to the plugin for readability. */

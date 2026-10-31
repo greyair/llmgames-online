@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { wireValueSchema } from "@llmgames/game-catalog";
+import { compactState } from "../../../games/agent-decision";
 import { roomTestEnv } from "../../fixtures/room-env";
 
 import { MemoryRoomRuntime } from "../../fixtures/memory-runtime";
@@ -142,7 +143,7 @@ describe("Gen 1 Pokémon room", () => {
       initial,
       spectatorBefore,
       room.replay(),
-      compactAgentDecisionState(initial),
+      compactState(initial),
     ]) {
       const text = JSON.stringify(result);
       expect(text).not.toContain("battleSnapshot");
@@ -151,7 +152,7 @@ describe("Gen 1 Pokémon room", () => {
       expect(text).not.toContain("choice");
     }
 
-    expect(compactAgentDecisionState(initial)).toMatchObject({
+    expect(compactState(initial)).toMatchObject({
       gameType: "pokemon",
       decision: initial.decision,
     });
@@ -205,7 +206,7 @@ describe("Gen 1 Pokémon room", () => {
       expect(JSON.stringify(projected.battleLog)).not.toContain("Substitute");
     }
 
-    const compact = compactAgentDecisionState({
+    const compact = compactState({
       type: "pokemon",
       ...battleView(restored, "p1"),
     });

@@ -9,7 +9,6 @@ import type { RoomRuntime, RoomStorage, RoomSql } from "./runtime";
 import { isBoolean, isFunction, isNumber, isObject, isString } from "@llmgames/game-catalog";
 
 import {
-  compactAgentDecisionState,
   gameLifecycle,
   ROOM_INACTIVITY_MS,
   TURN_TIME_MAX_MS,
@@ -70,6 +69,7 @@ import {
   type StartGameProblem,
 } from "./actionErrors";
 import type { GameEffect, GamePlugin } from "../games/contract";
+import { compactState } from "../games/agent-decision";
 import { gamePluginFor } from "../games/registry";
 
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -2125,7 +2125,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       timedOut,
       reason,
       revision: this.eventSeq,
-      state: this.gameState ? compactAgentDecisionState(this.buildAgentView(playerId)) : null,
+      state: this.gameState ? compactState(this.asProjectionPart(this.buildAgentView(playerId))) : null,
     };
   }
 
@@ -3596,62 +3596,9 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         ...this.pluginAgentFields(rules, projected),
       });
 
-    switch (projected.type) {
-      case "pokemon":
-        return this.definedAgentFields({
-          ...common,
-          format: projected.format,
-          yourSeat: projected.yourSeat,
-          sides: projected.sides,
-          decision: projected.decision,
-          battleLog: projected.battleLog,
-          battleTurn: projected.battleTurn,
-          winnerSeat: projected.winnerSeat,
-        });
-      case "contexto":
-        return this.definedAgentFields({
-          ...common,
-          progress: projected.progress,
-          guessLimit: projected.guessLimit,
-          vocabularySize: projected.vocabularySize,
-          totalGuesses: projected.totalGuesses,
-          secret: projected.secret,
-        });
-
-      case "poker": {
-        const handNumber = projected.handNumber;
-
-        const actionLog = Array.isArray(projected.actionLog)
-          ? projected.actionLog.filter((entry) => {
-              const action = this.asProjectionPart(entry);
-
-              return action?.handNumber === handNumber;
-            })
-          : [];
-
-        return this.definedAgentFields({
-          ...common,
-          seats: projected.seats,
-          community: projected.community,
-          pot: projected.pot,
-          currentBet: projected.currentBet,
-          minRaise: projected.minRaise,
-          handNumber,
-          actionPlayerId: projected.actionPlayerId,
-          toCall: projected.toCall,
-          canCheck: projected.canCheck,
-          blinds: projected.blinds,
-          buttonPlayerId: projected.buttonPlayerId,
-          smallBlindPlayerId: projected.smallBlindPlayerId,
-          bigBlindPlayerId: projected.bigBlindPlayerId,
-          actionLog,
-          lastHandResult: projected.lastHandResult,
-        });
-      }
-
-      default:
-        return this.definedAgentFields(common);
-    }
+    // A game with neither a rule module nor a registry entry has no decision
+    // fields of its own; the platform frame is the whole state it can offer.
+    return this.definedAgentFields(common);
   }
 
   /**
@@ -5259,7 +5206,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       return null;
 
     const decision = jevDecision(
-      parseJevView(compactAgentDecisionState(this.buildAgentView(seat.playerId))),
+      parseJevView(compactState(this.asProjectionPart(this.buildAgentView(seat.playerId)))),
       seat.fleets,
     );
 

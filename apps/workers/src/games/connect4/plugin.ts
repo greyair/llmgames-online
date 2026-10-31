@@ -5,6 +5,7 @@ import type { Connect4GameState } from "../../durable-objects/types";
 import type { GameEffect, GamePlugin } from "../contract";
 
 import { dropInColumn, emptyConnect4Board, hasConnect4, isConnect4BoardFull } from "./rules";
+import { connect4AgentDecision } from "./agent";
 
 const DEFAULT_MATCH_MS = 15 * 60 * 1000;
 
@@ -163,4 +164,6 @@ export const connect4Plugin: GamePlugin<Connect4GameState, "connect4"> = {
   agentFields(projection) {
     return { board: projection.board, seats: projection.seats, lastMove: projection.lastMove };
   },
+
+  agentDecision: connect4AgentDecision,
 };

@@ -4,6 +4,7 @@ import { randomId } from "../../lib/csprng";
 import type { GameRoomConfig, PokerGameState } from "../../durable-objects/types";
 import type { GameActionResult, GameIntent, GamePlugin, GameSeatIdentity } from "../contract";
 import { PokerTable } from "./table";
+import { pokerAgentDecision } from "./agent";
 
 /**
  * Poker as a game plugin (M3.9).
@@ -344,4 +345,6 @@ export const pokerPlugin: GamePlugin<PokerGameState, "poker"> = {
       lastHandResult: projection.lastHandResult,
     };
   },
+
+  agentDecision: pokerAgentDecision,
 };

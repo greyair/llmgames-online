@@ -3,6 +3,7 @@ import { parseJevView } from "../../agents/jev";
 import { z } from "zod";
 import { describe, expect, it, vi } from "vitest";
 import { compactAgentDecisionState, getGameToolSchema } from "@llmgames/game-catalog";
+import { compactState } from "../../games/agent-decision";
 import { otherGameExamples } from "../fixtures/game-spec";
 import { createGameRoomFixture } from "../fixtures/game-room";
 import { PokerRoom } from "../../durable-objects/PokerRoom";
@@ -22,14 +23,14 @@ describe("MCP game context and examples", () => {
       "poker",
       "contexto",
     ] as const) {
-      expect(compactAgentDecisionState(first[game]), game).toEqual(
-        compactAgentDecisionState(second[game]),
+      expect(compactState(first[game]), game).toEqual(
+        compactState(second[game]),
       );
     }
 
-    const checkers = compactAgentDecisionState(first.checkers)!;
+    const checkers = compactState(first.checkers)!;
     expect(checkers.legalMoves).toHaveLength(7);
-    expect(compactAgentDecisionState(first.reversi)!.legalMoves).toHaveLength(4);
+    expect(compactState(first.reversi)!.legalMoves).toHaveLength(4);
 
     const pokemon = z
       .object({
@@ -42,7 +43,7 @@ describe("MCP game context and examples", () => {
         ),
         decision: z.object({ moves: z.array(wireValueSchema) }).passthrough(),
       })
-      .parse(compactAgentDecisionState(first.pokemon));
+      .parse(compactState(first.pokemon));
 
     expect(pokemon.sides[0]!.pokemon).toHaveLength(6);
     expect(pokemon.sides[1]!.pokemon.filter((p) => p.hidden)).toHaveLength(5);
@@ -52,14 +53,14 @@ describe("MCP game context and examples", () => {
 
     const code = z
       .object({ cards: z.array(z.array(wireValueSchema)) })
-      .parse(compactAgentDecisionState(first.codenames));
+      .parse(compactState(first.codenames));
 
     expect(code.cards.every((card) => card[3] === null)).toBe(true);
 
     const poker = z
       .object({ seats: z.array(z.object({ isYou: z.boolean().optional() }).passthrough()) })
       .passthrough()
-      .parse(compactAgentDecisionState(first.poker));
+      .parse(compactState(first.poker));
 
     expect(poker.seats.find((seat) => !seat.isYou)).not.toHaveProperty("hole");
     expect(poker).not.toHaveProperty("deck");
@@ -67,7 +68,7 @@ describe("MCP game context and examples", () => {
     const contexto = z
       .object({ phase: z.string(), yourProgress: z.object({ guesses: z.array(wireValueSchema) }) })
       .passthrough()
-      .parse(compactAgentDecisionState(first.contexto));
+      .parse(compactState(first.contexto));
 
     expect(contexto.phase).toBe("guessing");
     expect(contexto).not.toHaveProperty("secret");
@@ -98,7 +99,7 @@ describe("MCP game context and examples", () => {
     const game = await createGameRoomFixture(PokerRoom, "bb-contract");
     await game.action(game.state().actionPlayerId!, "call");
     const player = game.state().actionPlayerId!;
-    const decision = jevDecision(parseJevView(compactAgentDecisionState(await game.view(player))))!;
+    const decision = jevDecision(parseJevView(compactState(await game.view(player))))!;
 
     const bets = Object.values(decision.options).filter(
       (option) => option.action.actionType === "bet",
@@ -126,7 +127,7 @@ describe("MCP game context and examples", () => {
         .parse(game.room.browser(player));
 
       expect(browser.you.legalActions).toContain("next_hand");
-      expect(compactAgentDecisionState(await game.view(player))!.legalActions).not.toContain(
+      expect(compactState(await game.view(player))!.legalActions).not.toContain(
         "next_hand",
       );
       let resolved = false;

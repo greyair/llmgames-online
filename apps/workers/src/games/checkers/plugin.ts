@@ -14,6 +14,7 @@ import {
   createInitialCheckersBoard,
   getCheckersLegalMoves,
 } from "./rules";
+import { checkersAgentDecision } from "./agent";
 
 const DEFAULT_MATCH_MS = 20 * 60 * 1000;
 
@@ -287,6 +288,8 @@ export const checkersPlugin: GamePlugin<CheckersGameState, "checkers"> = {
       quietTurns: projection.quietTurns,
     };
   },
+
+  agentDecision: checkersAgentDecision,
 };
 
 /** Event payload for one move, matching the fields the archive already recorded. */

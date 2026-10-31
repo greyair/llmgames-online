@@ -137,11 +137,6 @@ interface Journey {
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
-  /**
-   * Poker only ends when a stack busts, which the driver cannot force inside a
-   * test budget. Everything else must reach `ended` and archive.
-   */
-  mustEnd?: boolean;
   /** Accepted actions allowed before the driver gives up (default 160). */
   budget?: number;
   /** Lobby work that has to happen between the last join and the start. */
@@ -559,7 +554,10 @@ describe("MCP match journey", () => {
 
         expect(accepted).toBeGreaterThanOrEqual(journey.minActions);
 
-        if (journey.mustEnd !== false) expect(state.status).toBe("ended");
+        // Every script is written to finish: shoving in Poker busts a stack, a
+        // full board ends the board games and a wrong guess can end Codenames.
+        // A journey that cannot reach the archive has nothing to prove here.
+        expect(state.status).toBe("ended");
 
         // Private material never reaches another seat's projection.
         for (const controllerId of controllers) {
@@ -581,13 +579,6 @@ describe("MCP match journey", () => {
 
             expect(JSON.stringify(rivalState)).not.toContain(secret);
           }
-        }
-
-        if (journey.mustEnd === false) {
-          // A hand certainly finished even if no stack busted yet.
-          expect(harness.bucket.objects.size).toBeLessThanOrEqual(1);
-
-          return;
         }
 
         for (const controllerId of controllers)

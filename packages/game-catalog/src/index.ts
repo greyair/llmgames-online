@@ -8,7 +8,6 @@ export * from "./game-log-document.js";
 
 export { GAME_MANIFESTS, gameManifest, type GameManifest } from "./manifest.js";
 
-export { battleshipAgentState } from "./battleship-state.js";
 
 import { BATTLESHIP_FLEET_FORMAT } from "./fleet.js";
 
@@ -20,7 +19,21 @@ export { BATTLESHIP_FLEET, BATTLESHIP_FALLBACK_FLEET, BATTLESHIP_FLEET_FORMAT } 
  * Full per-action schemas live here so they are not dumped into tools/list context.
  */
 
-export { compactAgentDecisionState } from "./agent-state.js";
+export {
+  agentFields,
+  arrayValue,
+  compactAgentDecisionState,
+  defined,
+  encodeNumericBoard,
+  numberValue,
+  projectedEntries,
+  projectionPart,
+  seatFor,
+  stringValue,
+  winnerForSeats,
+  type AgentDecisionFields,
+  type ProjectionPart,
+} from "./agent-state.js";
 
 export type GameTypeId =
   | "connect4"

@@ -12,6 +12,7 @@ import type {
 import { battleView, createBattle, decision, type BattleSeat } from "./engine";
 import { parseBattle, seatOf, syncBattle } from "./rules";
 import type { PokemonGameState } from "./state";
+import { pokemonAgentDecision } from "./agent";
 
 /**
  * Pokémon as a game plugin (M3.8).
@@ -254,6 +255,8 @@ export const pokemonPlugin: GamePlugin<PokemonGameState, "pokemon"> = {
       winnerSeat: projection.winnerSeat,
     };
   },
+
+  agentDecision: pokemonAgentDecision,
 };
 
 /** Platform work a finished battle asks for: stop clocks, log the end, archive. */

@@ -1,41 +1,13 @@
 import { z } from "zod";
-import { isNumber, isObject } from "./value-contracts.js";
-
-import { BATTLESHIP_FLEET, BATTLESHIP_FLEET_FORMAT } from "./fleet.js";
-
-interface Part {
-  yourBoard?: unknown;
-  opponent?: unknown;
-  munitionEconomy?: unknown;
-  turnState?: unknown;
-  you?: unknown;
-  phase?: unknown;
-  boardSize?: unknown;
-  sunkShips?: unknown;
-  radarScans?: unknown;
-  ownGrid?: unknown;
-  targetGrid?: unknown;
-  ready?: unknown;
-  cells?: unknown;
-  mines?: unknown;
-  incomingHits?: unknown;
-  incomingMisses?: unknown;
-  hits?: unknown;
-  misses?: unknown;
-  row?: unknown;
-  col?: unknown;
-  id?: unknown;
-  rotation?: unknown;
-  shipCells?: unknown;
-  fleetReady?: unknown;
-  munitionPoints?: unknown;
-  yourPoints?: unknown;
-  costs?: unknown;
-  weaponCosts?: unknown;
-  turnReward?: unknown;
-  damageReward?: unknown;
-  winner?: unknown;
-}
+import {
+  agentFields,
+  BATTLESHIP_FLEET,
+  BATTLESHIP_FLEET_FORMAT,
+  defined,
+  isNumber,
+  type ProjectionPart,
+  type WireObject,
+} from "@llmgames/game-catalog";
 
 const object = z
   .object({
@@ -76,12 +48,6 @@ const object = z
 
 const rows = z.array(z.unknown()).catch([]).parse;
 
-// SAFETY: Removing entries with undefined values preserves every retained key and its original T value type.
-const defined = <T extends object>(value: T): Partial<T> =>
-  Object.fromEntries(
-    Object.entries(value).filter(([, entry]) => entry !== undefined),
-  ) as Partial<T>;
-
 const pointSchema = z.object({ row: z.number().int(), col: z.number().int() });
 
 const points = z
@@ -118,9 +84,13 @@ function grid(
   return board.map((row) => row.join(""));
 }
 
-/** Only accepts an already seat-projected view. Never pass authoritative boards here. */
-export const battleshipAgentState = z.unknown().transform((value) => {
-  const view = object(value) ?? {};
+/**
+ * Shrink a seat-projected battleship view to grids and counters.
+ *
+ * Only accepts an already seat-projected view. Never pass authoritative boards
+ * here: a grid built from the real fleet would hand the rival the layout.
+ */
+export function battleshipAgentDecision(view: ProjectionPart): WireObject {
   const own = object(view.yourBoard);
   const opponent = object(view.opponent);
   const economy = object(view.munitionEconomy);
@@ -145,7 +115,7 @@ export const battleshipAgentState = z.unknown().transform((value) => {
       return scan ? [defined({ row: scan.row, col: scan.col, shipCells: scan.shipCells })] : [];
     });
 
-  return defined({
+  return agentFields({
     boardSize: size,
     // One shape definition per ship. IDs are needed for placement and sunk-ship identity.
     fleet: BATTLESHIP_FLEET.map(({ id, "shape": silhouette }) => ({ id, "shape": silhouette })),
@@ -180,4 +150,4 @@ export const battleshipAgentState = z.unknown().transform((value) => {
     damageReward: economy?.damageReward ?? view.damageReward,
     winner: view.winner,
   });
-}).parse;
+}

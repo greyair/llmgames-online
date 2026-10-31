@@ -1,4 +1,9 @@
-import type { GameTypeId, WireObject, WireValue } from "@llmgames/game-catalog";
+import type {
+  AgentDecisionFields,
+  GameTypeId,
+  WireObject,
+  WireValue,
+} from "@llmgames/game-catalog";
 import type { BaseGameState, GameRoomConfig } from "../durable-objects/types";
 import type { StartGameProblem } from "../durable-objects/actionErrors";
 
@@ -186,4 +191,18 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
    * `winner`, `you`, `series`) are ignored if a plugin returns them.
    */
   agentFields?(projection: WireObject): WireObject;
+
+  /**
+   * The game-owned half of the compact MCP decision state.
+   *
+   * The platform owns the frame — `gameType`, status, phase, turn, clocks and
+   * the legal actions that are actually decisions — and this returns the rest,
+   * shrunk for a model: digit rows instead of nested number arrays, card tuples
+   * instead of card objects, no field a rival may not read.
+   *
+   * It lives beside `agentFields` on purpose: the rich view and the compact view
+   * of one game are written by the same author in the same file, so a new field
+   * cannot quietly reach one and miss the other.
+   */
+  agentDecision?: AgentDecisionFields;
 }

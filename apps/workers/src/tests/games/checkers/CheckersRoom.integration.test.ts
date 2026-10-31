@@ -17,6 +17,7 @@ import {
   getGameToolSchema,
   listGameToolsCatalog,
 } from "@llmgames/game-catalog";
+import { compactState } from "../../../games/agent-decision";
 import { broadcastProjection } from "../../../lib/broadcastProjection";
 import { jevDecision } from "../../../agents/jev";
 
@@ -139,7 +140,7 @@ describe("Checkers room transport and lifecycle", () => {
     const s = await view(room);
     const actor = s.turnState.currentPlayerId!;
     const projected = await view(room, actor);
-    const compact = compactAgentDecisionState(projected);
+    const compact = compactState(projected);
     expect(compact).toMatchObject({ gameType: "checkers", legalMoves: s.legalMoves });
     const jev = jevDecision(parseJevView(compact))!;
     expect(Object.keys(jev.options)).toHaveLength(7);

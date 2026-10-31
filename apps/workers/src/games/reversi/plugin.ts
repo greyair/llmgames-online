@@ -12,6 +12,7 @@ import {
   getReversiLegalMoves,
   isOnReversiBoard,
 } from "./rules";
+import { reversiAgentDecision } from "./agent";
 
 const DEFAULT_MATCH_MS = 20 * 60 * 1000;
 
@@ -280,6 +281,8 @@ export const reversiPlugin: GamePlugin<ReversiGameState, "reversi"> = {
       lastPass: projection.lastPass,
     };
   },
+
+  agentDecision: reversiAgentDecision,
 };
 
 export type { ReversiCell, ReversiMove };

@@ -1,5 +1,6 @@
 import { roomTestEnv } from "../../fixtures/room-env";
 import { wireValueSchema, wireObjectSchema } from "@llmgames/game-catalog";
+import { compactState } from "../../../games/agent-decision";
 import { parseJevView } from "../../../agents/jev";
 
 import { z } from "zod";
@@ -167,7 +168,7 @@ describe("Battleship public rules", () => {
       };
 
       const rich = await read(h.room);
-      const decision = compactAgentDecisionState(rich)!;
+      const decision = compactState(rich)!;
       expect(rich.ownGrid).toEqual(decision.ownGrid);
       expect(z.array(z.string()).parse(rich.ownGrid)[9]![9]).toBe("m");
       expect(rich).not.toHaveProperty("yourBoard");
@@ -182,7 +183,7 @@ describe("Battleship public rules", () => {
       const hidden = opponent.cells[0]![9];
       opponent.cells[0]![9] = opponent.cells[0]![0]!;
       opponent.cells[0]![0] = hidden!;
-      const after = compactAgentDecisionState(await read(h.room));
+      const after = compactState(await read(h.room));
       expect(JSON.stringify({ ...after, turnTimeRemaining: 0, gameTimeRemaining: 0 })).toBe(before);
       const restored = new TestBattleshipRoom(h.durableState, roomTestEnv());
       await vi.waitFor(async () => expect((await read(restored))?.ownGrid).toEqual(rich.ownGrid));

@@ -1,5 +1,6 @@
 import { compactAgentDecisionState, type WireObject } from "@llmgames/game-catalog";
 import { z } from "zod";
+import { compactState } from "../../../games/agent-decision";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -367,7 +368,7 @@ describe("Minimal plugin game", () => {
         legalActions: z.array(z.string()),
         turnNumber: z.number(),
       })
-      .parse(compactAgentDecisionState(await harness.view(current)));
+      .parse(compactState(await harness.view(current)));
 
     expect(decision.gameType).toBe("minimal");
     expect(decision.status).toBe("playing");

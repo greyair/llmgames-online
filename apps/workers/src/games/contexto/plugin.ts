@@ -17,6 +17,7 @@ import type {
 } from "../../durable-objects/types";
 import type { GameActionResult, GameEffect, GameIntent, GamePlugin } from "../contract";
 import { bestPlayer, emptyProgress, projectContexto, GUESS_LIMIT } from "./rules";
+import { contextoAgentDecision } from "./agent";
 
 /**
  * Contexto as a game plugin (M3.7).
@@ -229,6 +230,8 @@ export const contextoPlugin: GamePlugin<ContextoGameState, "contexto"> = {
       secret: projection.secret,
     };
   },
+
+  agentDecision: contextoAgentDecision,
 };
 
 /** Close the match: the platform stops the clocks, archives and broadcasts. */

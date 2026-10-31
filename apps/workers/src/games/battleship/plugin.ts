@@ -1,4 +1,4 @@
-import { battleshipAgentState, ROOM_LIFETIME_MS, type WireObject } from "@llmgames/game-catalog";
+import { ROOM_LIFETIME_MS, type WireObject } from "@llmgames/game-catalog";
 
 import {
   BATTLESHIP_STARTING_MUNITION_POINTS,
@@ -16,6 +16,7 @@ import type {
 } from "../contract";
 import { applyAction, onTurnTimeout } from "./actions";
 import { projectState, rewatchView } from "./projection";
+import { battleshipAgentDecision } from "./agent";
 import { BATTLESHIP_SIZE, maxUsesFromPoints, normalizeBoard } from "./rules";
 
 /**
@@ -195,10 +196,13 @@ export const battleshipPlugin: GamePlugin<BattleshipGameState, "battleship"> = {
     return rewatchView(state);
   },
 
-  /** The MCP decision state is generated from the recipient's own projection. */
+  /**
+   * The rich agent view is already grid-shaped: a battleship projection carries
+   * per-cell ship masks, and the compact form is the only one worth reading.
+   */
   agentFields(projection) {
-    // SAFETY: battleshipAgentState builds a flat JSON record from this projection
-    // and drops undefined entries, so every value is a WireValue.
-    return battleshipAgentState(projection) as WireObject;
+    return battleshipAgentDecision(projection);
   },
+
+  agentDecision: battleshipAgentDecision,
 };

@@ -1,11 +1,12 @@
 import {
-  wireValueSchema,
+  isString,
   jsonValueSchema,
+  projectionPart,
   wireObjectSchema,
+  wireValueSchema,
   type WireValue,
   type WireObject,
 } from "@llmgames/game-catalog";
-import { isString } from "@llmgames/game-catalog";
 
 /**
  * Remote MCP tool surface for llmgames (agent seats only).
@@ -41,7 +42,6 @@ import {
   type McpRoomPlayer,
 } from "../auth/mcpRoomPlayers";
 import {
-  compactAgentDecisionState,
   ENABLED_GAME_TYPES,
   gameRouteSlug,
   getGameToolSchema,
@@ -54,6 +54,7 @@ import {
   TURN_TIME_MAX_MS,
   TURN_TIME_MIN_MS,
 } from "@llmgames/game-catalog";
+import { compactState } from "../games/agent-decision";
 import {
   generateSecureRoomCode,
   getRoomNamespace,
@@ -194,7 +195,7 @@ export function mcpErrorData<T>(err: T) {
 
       return {
         ...rest,
-        state: compactAgentDecisionState(state),
+        state: compactState(projectionPart(state)),
       };
     }
 
@@ -1403,7 +1404,7 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
             replayed,
             acceptedRevision: payloadField(payload, "acceptedRevision"),
             reason: payloadField(payload, "endReason") ?? "ended",
-            finalState: compactAgentDecisionState(state),
+            finalState: compactState(projectionPart(state)),
 
             next: payloadField(projected, "series") ? "series_status" : "done",
           };

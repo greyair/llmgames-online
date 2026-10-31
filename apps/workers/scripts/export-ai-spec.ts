@@ -14,9 +14,10 @@ import {
   GAME_ACTIONS,
   GAME_INSTRUCTIONS,
   KNOWN_GAME_TYPES,
-  compactAgentDecisionState,
+  projectionPart,
 } from "../../../packages/game-catalog/src/index";
 import { createLlmgamesMcpServer } from "../src/mcp/createServer";
+import { compactState } from "../src/games/agent-decision";
 import { chooseJev, jevDecision, parseJevView, JEV_GAMES } from "../src/agents/jev";
 import { battleshipExamples, documentationFleets } from "../src/tests/fixtures/battleship";
 
@@ -131,8 +132,8 @@ async function main() {
   const games = [];
 
   for (const id of KNOWN_GAME_TYPES) {
-    const decisionExample = compactAgentDecisionState(
-      id === "battleship" ? battleship.battle : fixtures[id],
+    const decisionExample = compactState(
+      projectionPart(id === "battleship" ? battleship.battle : fixtures[id]),
     );
 
     const jev = JEV_GAMES.has(id) ? await jevExample(decisionExample) : null;
@@ -151,7 +152,7 @@ async function main() {
     });
   }
 
-  const placement = compactAgentDecisionState(battleship.placement);
+  const placement = compactState(projectionPart(battleship.placement));
 
   const spec = {
     title: "LLM Games AI application contract",

@@ -1,6 +1,7 @@
 import { parseJevView } from "../../agents/jev";
 import { describe, expect, it } from "vitest";
 import { compactAgentDecisionState } from "@llmgames/game-catalog";
+import { compactState } from "../../games/agent-decision";
 import { battleshipExamples, documentationFleets } from "../fixtures/battleship";
 import { BATTLESHIP_FLEET, cellsForShipSilhouette } from "../../durable-objects/types";
 import { jevDecision } from "../../agents/jev";
@@ -9,8 +10,8 @@ describe("Battleship documentation contract", () => {
   it("exports deterministic real projections with every affordable weapon and radar history", async () => {
     const first = await battleshipExamples();
     const second = await battleshipExamples();
-    const battle = compactAgentDecisionState(first.battle)!;
-    expect(battle).toEqual(compactAgentDecisionState(second.battle));
+    const battle = compactState(first.battle)!;
+    expect(battle).toEqual(compactState(second.battle));
     expect(battle).toMatchObject({
       munitionPoints: 7,
       radarScans: [{ row: 3, col: 3, shipCells: 2 }],
@@ -22,7 +23,7 @@ describe("Battleship documentation contract", () => {
       new Set(Object.values(decision.options).map((option) => option.action.actionType)),
     ).toEqual(new Set(["cannon", "mine", "radar", "bomb", "torpedo"]));
     expect(
-      jevDecision(parseJevView(compactAgentDecisionState(first.placement)), documentationFleets),
+      jevDecision(parseJevView(compactState(first.placement)), documentationFleets),
     ).not.toBeNull();
   });
 

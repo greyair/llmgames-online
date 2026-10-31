@@ -1,5 +1,6 @@
 import { wireValueSchema, wireObjectSchema } from "@llmgames/game-catalog";
 import type { WireObject } from "@llmgames/game-catalog";
+import { compactState } from "../../games/agent-decision";
 
 import { z } from "zod";
 import { describe, expect, it } from "vitest";
@@ -33,7 +34,7 @@ const common = (type: string, extra: WireObject): StateFixture => ({
 
 describe("MCP decision state", () => {
   it("encodes Connect 4 without roster or host controls", () => {
-    const decision = compactAgentDecisionState(
+    const decision = compactState(
       common("connect4", {
         board: [
           [0, 0, 0],
@@ -67,7 +68,7 @@ describe("MCP decision state", () => {
     });
 
     state.you = { playerId: "p1", legalActions: ["leave", "place_disc"] };
-    const decision = compactAgentDecisionState(state);
+    const decision = compactState(state);
 
     expect(decision).toMatchObject({
       board: ["01", "20"],
@@ -97,7 +98,7 @@ describe("MCP decision state", () => {
       legalActions: ["leave", "guess_word", "end_turn"],
     };
 
-    expect(compactAgentDecisionState(state)).toMatchObject({
+    expect(compactState(state)).toMatchObject({
       yourTeam: "red",
       yourRole: "operative",
       cards: [
@@ -125,7 +126,7 @@ describe("MCP decision state", () => {
     state.turnState.phase = "battle";
     state.you = { playerId: "p1", legalActions: ["leave", "cannon", "bomb"] };
 
-    expect(compactAgentDecisionState(state)).toMatchObject({
+    expect(compactState(state)).toMatchObject({
       targetGrid: [".x..", "....", "...o", "...."],
       radarScans: [{ row: 1, col: 2, shipCells: 2 }],
       munitionPoints: 5,
@@ -157,7 +158,7 @@ describe("MCP decision state", () => {
 
     state.turnState.phase = "flop";
     state.you = { playerId: "p1", legalActions: ["leave", "check", "bet"] };
-    const decision = compactAgentDecisionState(state)!;
+    const decision = compactState(state)!;
 
     const history = z
       .object({ entries: z.array(wireValueSchema), omitted: z.number() })

@@ -1,9 +1,21 @@
 import { z } from "zod";
-import { isNumber, isObject, isString } from "./value-contracts.js";
+import { isString, type WireObject } from "./value-contracts.js";
 
-import { battleshipAgentState } from "./battleship-state.js";
+/**
+ * Compact decision state for agents (M3.10).
+ *
+ * The platform owns the frame: series, type, status, phase, turn, clocks and
+ * the legal actions that are actually decisions. The game owns the fields,
+ * because only the game knows how to shrink its own projection — a board of
+ * numbers becomes rows of digits, a poker seat loses the cards its holder may
+ * not see, a card grid becomes tuples.
+ *
+ * `agentDecision` is therefore a plugin hook, not a branch in this file: a new
+ * game ships its compaction next to its rules and never edits the shared
+ * package.
+ */
 
-interface ProjectionPart {
+export interface ProjectionPart {
   rivalProgress?: unknown;
   yourProgress?: unknown;
   fleetFormat?: unknown;
@@ -74,6 +86,8 @@ interface ProjectionPart {
   incomingHits?: unknown;
   incomingMisses?: unknown;
   ready?: unknown;
+  fleetReady?: unknown;
+  weaponCosts?: unknown;
   munitionPoints?: unknown;
   yourPoints?: unknown;
   costs?: unknown;
@@ -251,32 +265,39 @@ const objectValue = z
   .nullable()
   .catch(null).parse;
 
-const arrayValue = z.array(z.unknown()).catch([]).parse;
+export const arrayValue = z.array(z.unknown()).catch([]).parse;
 
-function defined<T extends object>(value: T): Partial<T> {
+/** Drop undefined entries so an absent field costs nothing in the token budget. */
+export function defined<T extends object>(value: T): Partial<T> {
   // SAFETY: Only undefined entries are removed; all retained keys and their original T value types are unchanged.
   return Object.fromEntries(
     Object.entries(value).filter(([, field]) => field !== undefined),
   ) as Partial<T>;
 }
 
-const stringValue = z.string().optional().catch(undefined).parse;
+export const stringValue = z.string().optional().catch(undefined).parse;
 
-const numberValue = z.number().optional().catch(undefined).parse;
+export const numberValue = z.number().optional().catch(undefined).parse;
 
-const encodeNumericBoard = z
+/** Read a projected record, or null when the value is not one. */
+export const projectionPart = objectValue;
+
+export const encodeNumericBoard = z
   .array(z.array(z.number().int()))
   .optional()
   .catch(undefined)
   .transform((board) => board?.map((row) => row.join(""))).parse;
 
-const seatMap = z.record(z.string(), z.number()).catch({}).parse;
+export const seatMap = z.record(z.string(), z.number()).catch({}).parse;
 
-function seatFor(seats: ProjectionPart | null, playerId: string | undefined): number | undefined {
+export function seatFor(
+  seats: ProjectionPart | null,
+  playerId: string | undefined,
+): number | undefined {
   return isString(playerId) && seats ? seatMap(seats)[playerId] : undefined;
 }
 
-function winnerForSeats(
+export function winnerForSeats(
   state: ProjectionPart,
   seats: ProjectionPart | null,
 ): string | number | null | undefined {
@@ -287,66 +308,7 @@ function winnerForSeats(
   return winner === "draw" ? "draw" : seatFor(seats, stringValue(winner));
 }
 
-function compactPokerSeats(value: readonly ProjectionPart[], playerId: string | undefined) {
-  return value.flatMap((entry) => {
-    const seat = objectValue(entry);
-
-    if (!seat) return [];
-    const isYou = isString(playerId) && seat.playerId === playerId;
-    const hole = arrayValue(seat.hole);
-    const visibleHole = hole.some((card) => objectValue(card)?.rank !== "?");
-
-    return [
-      defined({
-        playerId: seat.playerId,
-        isYou,
-        stack: seat.stack,
-        streetBet: seat.streetBet,
-        contributed: seat.handContributed,
-        folded: seat.folded,
-        allIn: seat.allIn,
-        sittingOut: seat.sittingOut,
-        hole: isYou || visibleHole ? seat.hole : undefined,
-      }),
-    ];
-  });
-}
-
-function compactPokerActions(value: readonly ProjectionPart[], handNumber: number | undefined) {
-  const entries = value.filter((entry) => {
-    const actionHand = objectValue(entry)?.handNumber;
-
-    return handNumber === undefined || actionHand === undefined || actionHand === handNumber;
-  });
-
-  const kept = entries.slice(-24).flatMap((entry) => {
-    const action = objectValue(entry);
-
-    if (!action) return [];
-
-    return [
-      defined({
-        playerId: action.playerId,
-        action: action.action,
-        amount: action.amount,
-        street: action.street,
-      }),
-    ];
-  });
-
-  return {
-    entries: kept,
-    omitted: Math.max(0, entries.length - kept.length),
-  };
-}
-
-/**
- * Reduce a fog-of-war-safe game projection to the fields the model needs for
- * one decision. This deliberately excludes room rosters, display metadata,
- * static rules, and host table controls. `get_state` remains the explicit rich
- * inspection tool.
- */
-const projectedEntries = z
+export const projectedEntries = z
   .array(z.unknown())
   .catch([])
   .transform((entries) =>
@@ -357,14 +319,71 @@ const projectedEntries = z
     }),
   ).parse;
 
-export const compactAgentDecisionState = z.unknown().transform((value): ProjectionPart | null => {
-  const state = objectValue(value);
+/**
+ * Collect game fields into a wire object.
+ *
+ * Compactors read values straight out of a parsed projection, so every entry is
+ * already a wire value; typing each one as `unknown` would only force narrowing
+ * that buys nothing here.
+ */
+export function agentFields<T extends object>(fields: T): WireObject {
+  // SAFETY: every value is read from a JSON projection parsed by `projectionPart`.
+  return defined(fields) as WireObject;
+}
 
+/**
+ * Game-owned part of a compact decision state.
+ *
+ * `legalActions` is the platform's filtered list, so a game never has to repeat
+ * which lobby intents are not decisions.
+ */
+export type AgentDecisionFields = (
+  view: ProjectionPart,
+  legalActions: readonly string[],
+) => WireObject;
+
+/** Keys the platform frame restates, so a game never pays for them twice. */
+const RESTATED_VIEW_KEYS = new Set([
+  "type",
+  "players",
+  "roomMembers",
+  "turnState",
+  "gameTimeRemaining",
+  "series",
+]);
+
+/**
+ * Fallback for a caller that has a view but no rule module.
+ *
+ * The local stdio bridge relays the socket view and lives in its own package, so
+ * it cannot see the game plugins. It still gets the platform frame and the
+ * roster trimmed; the game's own fields pass through untouched rather than
+ * being silently dropped.
+ */
+function passthroughFields(state: ProjectionPart): WireObject {
+  // SAFETY: every entry comes from a JSON projection; only bookkeeping is dropped.
+  return Object.fromEntries(
+    Object.entries(state).filter(([key]) => !RESTATED_VIEW_KEYS.has(key)),
+  ) as WireObject;
+}
+
+/**
+ * Reduce a fog-of-war-safe game projection to the fields the model needs for
+ * one decision. This deliberately excludes room rosters, display metadata,
+ * static rules, and host table controls. `get_state` remains the explicit rich
+ * inspection tool.
+ *
+ * Without `fields` the game's own keys are passed through as they are: only a
+ * rule module knows how to shrink them.
+ */
+export function compactAgentDecisionState(
+  state: ProjectionPart | null,
+  fields?: AgentDecisionFields,
+): ProjectionPart | null {
   if (!state) return null;
+
   const you = objectValue(state.you);
   const turn = objectValue(state.turnState);
-  const playerId = stringValue(you?.playerId);
-  const gameType = stringValue(state.type) ?? "unknown";
 
   const legalActions = arrayValue(you?.legalActions)
     .filter((action): action is string => isString(action))
@@ -372,7 +391,7 @@ export const compactAgentDecisionState = z.unknown().transform((value): Projecti
 
   const common = defined({
     series: state.series,
-    gameType,
+    gameType: stringValue(state.type) ?? "unknown",
     status: state.status,
     phase: turn?.phase ?? you?.phase,
     turnNumber: turn?.turnNumber,
@@ -381,137 +400,8 @@ export const compactAgentDecisionState = z.unknown().transform((value): Projecti
     legalActions,
   });
 
-  if (gameType === "connect4" || gameType === "reversi" || gameType === "checkers") {
-    const seats = objectValue(state.seats);
-    const board = encodeNumericBoard(state.board);
-
-    const game = defined({
-      ...common,
-      board,
-      boardFormat: board
-        ? "zero-based rows top-to-bottom, columns left-to-right; 0 empty, 1 seat 1, 2 seat 2"
-        : undefined,
-      yourSeat: seatFor(seats, playerId),
-      currentSeat: seatFor(seats, stringValue(turn?.currentPlayerId)),
-      winnerSeat: winnerForSeats(state, seats),
-      lastMove: state.lastMove,
-    });
-
-    if (gameType === "checkers")
-      return defined({
-        ...game,
-        boardFormat:
-          "zero-based rows top-to-bottom, columns left-to-right; 0 empty, 1 black man, 2 white man, 3 black king, 4 white king; seat 1 black moves toward row 0, seat 2 white toward row 7; kings move both ways",
-        scores: state.scores,
-        forcedPiece: state.forcedPiece,
-        quietTurns: state.quietTurns,
-        legalMoves: legalActions.includes("move_checker") ? state.legalMoves : [],
-      });
-
-    if (gameType === "connect4") {
-      const top = board?.[0];
-
-      return defined({
-        ...game,
-        legalColumns:
-          top && legalActions.includes("drop_disc")
-            ? [...top].flatMap((cell, col) => (cell === "0" ? [col] : []))
-            : [],
-      });
-    }
-
-    return defined({
-      ...game,
-      scores: state.scores,
-      legalMoves: legalActions.includes("place_disc") ? state.legalMoves : [],
-      lastPass: state.lastPass,
-    });
-  }
-
-  if (gameType === "pokemon")
-    return defined({
-      ...common,
-      format: state.format,
-      yourSeat: state.yourSeat,
-      sides: state.sides,
-      decision: state.decision,
-      battleLog: state.battleLog,
-      winner: state.winnerSeat,
-    });
-
-  if (gameType === "contexto") {
-    const progress = objectValue(state.progress);
-
-    return defined({
-      ...common,
-      guessLimit: state.guessLimit,
-      vocabularySize: state.vocabularySize,
-      totalGuesses: state.totalGuesses,
-      yourProgress: objectValue(
-        progress && isString(playerId)
-          ? z.record(z.string(), z.unknown()).catch({}).parse(progress)[playerId]
-          : undefined,
-      ),
-      rivalProgress: progress
-        ? Object.values(progress).filter((entry) => objectValue(entry)?.playerId !== playerId)
-        : [],
-      secret: state.status === "ended" ? state.secret : undefined,
-      winner: state.winner,
-    });
-  }
-
-  if (gameType === "codenames") {
-    const cards = arrayValue(state.board).flatMap((entry) => {
-      const card = objectValue(entry);
-
-      if (!card) return [];
-
-      return [[card.index, card.word, card.revealed, card.affiliation ?? null]];
-    });
-
-    const clue = objectValue(state.clue);
-
-    return defined({
-      ...common,
-      yourTeam: you?.team,
-      yourRole: you?.role,
-      activeTeam: state.activeTeam,
-      cardFormat: ["index", "word", "revealed", "affiliation_or_null"],
-      cards,
-      clue: clue ? defined({ word: clue.word, count: clue.count }) : null,
-      guessesRemaining: state.guessesRemaining,
-      guessesMade: state.guessesMade,
-      remaining: state.remaining,
-      lastReveal: state.lastReveal,
-      winnerTeam: state.winnerTeam ?? state.winner,
-    });
-  }
-
-  if (gameType === "battleship") return { ...common, ...battleshipAgentState(state) };
-
-  if (gameType === "poker") {
-    return defined({
-      ...common,
-      handNumber: state.handNumber,
-      community: state.community,
-      pot: state.pot,
-      currentBet: state.currentBet,
-      minRaise: state.minRaise,
-      toCall: state.toCall,
-      canCheck: state.canCheck,
-      seats: compactPokerSeats(projectedEntries(state.seats), playerId),
-      buttonPlayerId: state.buttonPlayerId,
-      smallBlindPlayerId: state.smallBlindPlayerId,
-      bigBlindPlayerId: state.bigBlindPlayerId,
-      blinds: state.blinds,
-      actionHistory: compactPokerActions(
-        projectedEntries(state.actionLog),
-        numberValue(state.handNumber),
-      ),
-      lastHandResult: state.lastHandResult,
-      winner: state.winner,
-    });
-  }
-
-  return common;
-}).parse;
+  return defined({
+    ...common,
+    ...(fields ? fields(state, legalActions) : passthroughFields(state)),
+  });
+}
