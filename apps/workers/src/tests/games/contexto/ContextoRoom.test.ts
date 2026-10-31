@@ -438,4 +438,63 @@ describe("Contexto room", () => {
       ).status,
     ).toBe(422);
   });
+
+  it("ends the match the moment a player names the secret", async () => {
+    const room = await startedRoom();
+
+    expect(
+      (
+        await post(room, "/agent/action", {
+          playerId: "p1",
+          actionType: "guess_word",
+          data: { word: "ocean" },
+        })
+      ).status,
+    ).toBe(200);
+
+    const ended = await view(room, "p1");
+    expect(ended.state.status).toBe("ended");
+    expect(ended.state.turnState.phase).toBe("ended");
+    expect(ended.state.winner).toBe("p1");
+    expect(ended.state.you?.legalActions ?? []).not.toContain("guess_word");
+    expect(room.completedRewatch()).not.toBeNull();
+  });
+
+  it("ends the match once every player has spent the guess limit", async () => {
+    const room = await startedRoom();
+    const families = new Set<string>();
+
+    const guesses = rankData.vocabulary
+      .filter((word) => {
+        if (word === "ocean") return false;
+        const family = contextoGuessFamily(word);
+
+        if (families.has(family)) return false;
+        families.add(family);
+
+        return true;
+      })
+      .slice(0, 50);
+
+    for (const playerId of ["p1", "p2"]) {
+      for (const word of guesses) {
+        expect(
+          (
+            await post(room, "/agent/action", {
+              playerId,
+              actionType: "guess_word",
+              data: { word },
+            })
+          ).status,
+        ).toBe(200);
+      }
+    }
+
+    const ended = await view(room, "p1");
+    expect(ended.state.status).toBe("ended");
+    expect(ended.state.turnState.phase).toBe("ended");
+    expect(ended.state.turnState.currentPlayerId).toBeNull();
+    expect(ended.state.winner).toBeTruthy();
+    expect(room.completedRewatch()).not.toBeNull();
+  });
 });
