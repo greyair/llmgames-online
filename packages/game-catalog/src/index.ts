@@ -46,7 +46,8 @@ export type GameTypeId =
   | "contexto"
   | "gomoku"
   | "aeroplane"
-  | "paodekuai";
+  | "paodekuai"
+  | "doudizhu";
 
 /** Absolute lifetime of a game room, measured from room creation. */
 export const ROOM_LIFETIME_MINUTES = 45;
@@ -89,6 +90,7 @@ export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
   gomoku: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
   aeroplane: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
   paodekuai: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
+  doudizhu: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
 };
 
 /** Largest match length any game accepts; the real cap is per game. */
@@ -195,6 +197,15 @@ export const GAME_INSTRUCTIONS: Readonly<Record<GameTypeId, GameInstructionSpec>
       turnTimer: "The room's configured turn timer applies to each play or pass.",
       onTimeout:
         "A seat that is following passes. A seat that is leading cannot pass, so the server plays its cheapest legal card and play continues.",
+    },
+  },
+  doudizhu: {
+    briefing:
+      "Fight the Landlord (斗地主) for exactly 3 seats with a 54-card deck including the two jokers. Ranks run 3 4 5 6 7 8 9 T J Q K A 2, then j1 (small joker) and j2 (big joker). Every deal gives 17 cards each and turns 3 face down. First comes the auction: each seat in turn bids 1, 2 or 3 (higher than the current bid) or passes with 0; a bid of 3 ends it at once and a deal nobody bids on is thrown in and dealt again. The highest bidder becomes the landlord, takes the three bottom cards (now public in bottom) and leads. Shapes: single, pair, triple, triple with one or two, straight of five or more, three or more consecutive pairs, a plane of two or more consecutive triples with the same number of single or pair wings, four with two singles, four with two pairs, bomb (four of a kind) and rocket (both jokers, which cannot appear as wings). A rocket beats everything, a bomb beats any non-bomb, otherwise match the type and card count with a higher key. Pass while following, never while leading. The landlord wins alone; both farmers win together, which is reported as winnerSide and yourSide.",
+    timers: {
+      turnTimer: "The room's configured turn timer applies to each bid, play or pass.",
+      onTimeout:
+        "A seat that must bid passes. Following, it passes. Leading, the server plays its cheapest legal card.",
     },
   },
   reversi: {
@@ -521,13 +532,31 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
     },
   },
 
+  // ── Fight the Landlord ──────────────────────────────────────
+  {
+    actionType: "bid",
+    title: "Bid",
+    description:
+      "During the auction, bid 1, 2 or 3 — higher than the current bid — or pass with 0. A bid of 3 ends the auction immediately; the highest bidder becomes the landlord.",
+    games: ["doudizhu"],
+    data: {
+      value: {
+        type: "integer",
+        description: "1, 2 or 3 to bid, 0 to pass",
+        required: true,
+        minimum: 0,
+        maximum: 3,
+      },
+    },
+  },
+
   // ── Run Fast ────────────────────────────────────────────────
   {
     actionType: "play_cards",
     title: "Play cards",
     description:
       "Play a legal combination from your hand: a single, a pair, a triple (only as your last cards), triple with one or two, a straight of five or more, consecutive pairs, a plane with wings, or a bomb. While following you must match the type and card count with a higher key unless you play a bomb.",
-    games: ["paodekuai"],
+    games: ["paodekuai", "doudizhu"],
     aliases: ["play"],
     data: {
       cards: {
@@ -543,7 +572,7 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
     title: "Pass",
     description:
       "Pass while following a trick. Never legal while you are leading, because a leader must play.",
-    games: ["paodekuai"],
+    games: ["paodekuai", "doudizhu"],
     data: emptyData,
   },
 
@@ -914,6 +943,7 @@ export const KNOWN_GAME_TYPES: readonly GameTypeId[] = [
   "gomoku",
   "aeroplane",
   "paodekuai",
+  "doudizhu",
 ] as const;
 
 export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
@@ -928,6 +958,7 @@ export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
   gomoku: true,
   aeroplane: true,
   paodekuai: true,
+  doudizhu: true,
 };
 
 export const ENABLED_GAME_TYPES: readonly GameTypeId[] = KNOWN_GAME_TYPES.filter(
@@ -948,6 +979,10 @@ export function normalizeGameType(raw: string): GameTypeId | string {
     case "run-fast":
     case "pdk":
       return "paodekuai";
+    case "fight-the-landlord":
+    case "landlord":
+    case "ddz":
+      return "doudizhu";
     case "connect-4":
       return "connect4";
     case "draughts":

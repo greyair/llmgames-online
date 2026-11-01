@@ -30,6 +30,14 @@ export const rules = {
     "Lead when everyone passes. After the other seats pass, the last player to play starts a new trick with anything.",
     "Empty your hand first to win. A loser who never played a card is a spring.",
   ],
+  doudizhu: [
+    "Sit three at the table. A 54-card deck including two jokers, seventeen cards each and three face-down bottom cards.",
+    "Bid for the bottom. In turn, bid 1, 2 or 3 — higher than the current bid — or pass. A bid of 3 ends the auction at once; a deal nobody bids on is dealt again.",
+    "Take the bottom. The highest bidder becomes the landlord, adds the three bottom cards to a twenty-card hand and leads.",
+    "Play the shapes. Single, pair, triple, triple with one or two, straights of five or more, consecutive pairs, planes with wings, four with two, bombs and the two-joker rocket.",
+    "Beat or pass. Match the type and card count with a higher key, play a bomb or the rocket, or pass. A leader must play.",
+    "Win as a side. The landlord wins alone; both farmers win together as soon as either empties their hand.",
+  ],
   checkers: [
     "Start with twelve pieces each. Black moves first, toward the top of the board. White moves toward the bottom.",
     "Move diagonally. Men move one square forward on dark squares. Kings can also move backward.",
@@ -123,6 +131,16 @@ export const roomGuides = {
     notes: [
       ["Bare triples", "A triple may only be played as your last cards."],
       ["Turn timeout", "Following, you pass; leading, the server plays your cheapest card."],
+    ],
+  },
+  doudizhu: {
+    description:
+      "Bid for the bottom cards, then play one hand against two. First side out wins.",
+    summary: "3 players · 54 cards · landlord against farmers",
+    notesTitle: "Auction & clocks",
+    notes: [
+      ["Thrown-in deal", "If all three seats pass, the cards are dealt again and the next seat opens."],
+      ["Turn timeout", "Bidding, you pass; following, you pass; leading, the server plays your cheapest card."],
     ],
   },
   checkers: {

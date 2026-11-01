@@ -1,0 +1,31 @@
+/* 斗地主: the auction row and the landlord badge on top of the shared card
+   table. Colours come from the Run Fast palette — both games are the same felt
+   with the same cream stock. */
+
+.ddz-badge {
+  padding: 0 var(--space-6);
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--palette-white);
+  background: var(--palette-pdk-red);
+  border-radius: var(--radius-pill);
+}
+
+.ddz-bids {
+  min-width: var(--space-12);
+  font-family: var(--font-code);
+  font-size: var(--type-caption);
+  color: var(--palette-pdk-red);
+}
+
+.ddz-bottom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.ddz-bid-row {
+  display: flex;
+  gap: var(--space-6);
+}

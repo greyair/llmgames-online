@@ -22,6 +22,19 @@ import { useT, type Translate } from "@/i18n";
 import { FinalState } from "./FinalState";
 import { VictoryConfetti } from "./VictoryConfetti";
 
+/** Team names a game reports through `winnerTeam`; unknown values read as-is. */
+function teamLabel(team: string, t: Translate): string {
+  if (team === "red") return t("lobby.red");
+
+  if (team === "blue") return t("lobby.blue");
+
+  if (team === "landlord") return t("match.teamLandlord");
+
+  if (team === "farmers") return t("match.teamFarmers");
+
+  return team;
+}
+
 function outcome(state: ClientView, t: Translate) {
   const team = state.winnerTeam;
   const winner = state.players?.find((player) => player.id === state.winner);
@@ -37,7 +50,7 @@ function outcome(state: ClientView, t: Translate) {
     : won
       ? t("match.outcomeWin")
       : team
-        ? t("match.outcomeTeamWin", { team: t(team === "red" ? "lobby.red" : "lobby.blue") })
+        ? t("match.outcomeTeamWin", { team: teamLabel(team, t) })
         : winner
           ? t("match.outcomeWinnerWin", { name: playerPrimaryName(winner) })
           : t("match.outcomeComplete");

@@ -85,6 +85,49 @@ export function applyPreviewScenario(
   if (scenario === "opening" && screen === "gomoku")
     s.board = Array.from({ length: 15 }, () => Array(15).fill(0));
 
+  if (screen === "doudizhu") {
+    if (scenario === "opening") {
+      s.hand = ["S3", "H3", "S4", "H4", "C5", "S6", "H7", "C8", "D9", "ST", "HJ", "CQ", "DK", "SA", "S2", "j1", "j2"];
+      s.handCounts = [17, 17, 17];
+      s.bottom = [];
+      s.bottomCount = 3;
+      s.landlord = null;
+      s.bid = 0;
+      s.bids = [null, null, null];
+      s.toAct = 0;
+      s.trick = null;
+      s.lastTrick = null;
+      s.multiplier = 0;
+      turn.phase = "bid";
+      turn.currentPlayerId = "preview-0";
+      you.phase = "bid";
+      you.legalActions = ["bid"];
+    }
+
+    if (scenario === "midgame") {
+      s.hand = ["S3", "H3", "S4", "H4", "C5", "S6", "H7", "C8", "D9", "ST", "HJ", "CQ", "DK"];
+      s.handCounts = [13, 9, 12];
+      s.bottom = ["C3", "D4", "HT"];
+      s.bottomCount = 3;
+      s.landlord = 1;
+      s.bid = 2;
+      s.bids = [0, 2, 0];
+      s.toAct = 0;
+      s.multiplier = 1;
+      s.trick = {
+        seat: 2,
+        cards: ["S8", "H8"],
+        combo: { kind: "pair", size: 2, key: 5, len: 1 },
+        n: 9,
+      };
+      s.lastTrick = null;
+      turn.phase = "play";
+      turn.currentPlayerId = "preview-0";
+      you.phase = "play";
+      you.legalActions = ["play_cards", "pass"];
+    }
+  }
+
   if (screen === "paodekuai") {
     if (scenario === "opening") {
       s.hand = ["S3", "S4", "H4", "C5", "S6", "H7", "C8", "D9", "ST", "HJ", "CQ", "DK", "SA", "S2", "S5", "H6"];

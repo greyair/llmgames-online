@@ -924,3 +924,42 @@ export interface PaodekuaiGameState extends BaseGameState {
   played: number[];
   winner: string | null;
 }
+
+export interface DoudizhuGameState extends BaseGameState {
+  type: "doudizhu";
+  turnState: BaseTurnState & { phase: "waiting" | "bid" | "play" | "ended" };
+  /** playerId → seat index 0..2. */
+  seats: Record<string, number>;
+  /** One hand per seat, sorted weakest first. */
+  hands: string[][];
+  /** The three bottom cards; hidden until a landlord takes them. */
+  bottom: string[];
+  bottomRevealed: boolean;
+  landlord: number | null;
+  /** Highest bid so far, 0 while nobody has bid. */
+  bid: number;
+  bidder: number | null;
+  /** Per seat: null until it acts, 0 for a pass, 1-3 for a bid. */
+  bids: (number | null)[];
+  /** Seat to act, in either phase. */
+  toAct: number;
+  /** Seat that opens the bidding; rotates when a deal is thrown in. */
+  firstBidder: number;
+  trick: CardActionRecord | null;
+  lastTrick: CardActionRecord | null;
+  passes: number;
+  lastPass: number | null;
+  acts: (CardActionRecord | null)[];
+  plays: CardActionRecord[];
+  tricks: number;
+  /** Cards each seat has played, for the spring bonus. */
+  played: number[];
+  /** Doubling from bombs and rockets. */
+  multiplier: number;
+  /** Deals played, so a thrown-in deal is visible in the record. */
+  deals: number;
+  winner: string | null;
+  winnerSide: "landlord" | "farmers" | null;
+  /** Hand score: bid × 2^multiplier × spring. */
+  score: number;
+}

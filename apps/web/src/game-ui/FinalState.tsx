@@ -9,6 +9,7 @@ import { Checkers } from "./Checkers";
 import { Gomoku } from "./Gomoku";
 import { Aeroplane } from "./Aeroplane";
 import { Paodekuai } from "./Paodekuai";
+import { Doudizhu } from "./Doudizhu";
 import { Battleship } from "./Battleship";
 import { contextoRankStyle } from "./contextoRankStyle";
 import "./final-state.css";
@@ -319,6 +320,13 @@ export function FinalState({
     return (
       <section className="result-board" aria-label={t("match.finalBoard")}>
         <Paodekuai state={final} send={() => {}} />
+      </section>
+    );
+
+  if (state.type === "doudizhu")
+    return (
+      <section className="result-board" aria-label={t("match.finalBoard")}>
+        <Doudizhu state={final} send={() => {}} />
       </section>
     );
 

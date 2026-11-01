@@ -114,6 +114,54 @@ export function fixture(type: string): ClientView {
       you: { ...base.you, seat: 0, legalActions: ["play_cards"] },
     };
 
+  if (type === "doudizhu")
+    return {
+      ...base,
+      players: players.slice(0, 3),
+      seats: { "preview-0": 0, "preview-1": 1, "preview-2": 2 },
+      hand: [
+        "S3",
+        "H3",
+        "S4",
+        "H4",
+        "C5",
+        "S6",
+        "H7",
+        "C8",
+        "D9",
+        "ST",
+        "HJ",
+        "CQ",
+        "DK",
+        "SA",
+        "S2",
+        "S5",
+        "H6",
+        "C7",
+        "D8",
+        "S9",
+      ],
+      handCounts: [20, 17, 17],
+      handSeat: 0,
+      bottom: ["C3", "D4", "HT"],
+      bottomCount: 3,
+      landlord: 0,
+      bid: 3,
+      bids: [3, 0, 0],
+      toAct: 0,
+      multiplier: 0,
+      trick: null,
+      lastTrick: null,
+      winnerSide: null,
+      turnState: {
+        phase: "play",
+        turnNumber: 4,
+        currentPlayerId: "preview-0",
+        turnTimeRemaining: 45000,
+      },
+      you: { ...base.you, seat: 0, legalActions: ["play_cards"] },
+    };
+
   if (type === "checkers") {
     const board = Array.from({ length: 8 }, (_, r) =>
       Array.from({ length: 8 }, (_, c) => ((r + c) % 2 === 0 ? 0 : r < 3 ? 2 : r > 4 ? 1 : 0)),

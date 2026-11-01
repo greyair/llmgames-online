@@ -38,6 +38,10 @@ const Paodekuai = lazy(() =>
   import("./Paodekuai").then(({ Paodekuai }) => ({ default: Paodekuai })),
 );
 
+const Doudizhu = lazy(() =>
+  import("./Doudizhu").then(({ Doudizhu }) => ({ default: Doudizhu })),
+);
+
 /**
  * Game id → board renderer.
  *
@@ -57,6 +61,7 @@ const BOARDS: Readonly<Record<GameTypeId, LazyBoard>> = {
   gomoku: Gomoku,
   aeroplane: Aeroplane,
   paodekuai: Paodekuai,
+  doudizhu: Doudizhu,
 };
 
 /** Renderer for a game, or null when this build does not ship that board. */

@@ -116,6 +116,14 @@ export const GAME_MANIFESTS = {
     detail: "Shed sixteen cards first. Beat the shape on the table.",
     i18n: { game: "game.paodekuai" },
   },
+  doudizhu: {
+    id: "doudizhu",
+    title: "Fight the Landlord",
+    players: "3",
+    category: "Cards",
+    detail: "Bid for the bottom cards, then play one against two.",
+    i18n: { game: "game.doudizhu" },
+  },
   contexto: {
     id: "contexto",
     title: "Contexto",

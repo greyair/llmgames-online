@@ -19,6 +19,7 @@ export const previewScreens = [
   { id: "gomoku", name: "Gomoku" },
   { id: "aeroplane", name: "Aeroplane Chess" },
   { id: "paodekuai", name: "Run Fast" },
+  { id: "doudizhu", name: "Fight the Landlord" },
 ] as const;
 
 const sharedStates = [
@@ -52,6 +53,7 @@ const gameStates = {
   gomoku: ["opening", "midgame", "win"],
   aeroplane: ["opening", "midgame", "win"],
   paodekuai: ["opening", "midgame", "leading"],
+  doudizhu: ["opening", "midgame", "win"],
   reversi: ["opening", "forced-pass", "endgame"],
   codenames: [
     "clue",

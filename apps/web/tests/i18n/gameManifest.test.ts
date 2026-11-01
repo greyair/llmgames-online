@@ -40,6 +40,7 @@ describe("game manifests", () => {
       "gomoku",
       "aeroplane",
       "paodekuai",
+      "doudizhu",
     ]);
     expect(visibleGames.every((game) => GAME_MANIFESTS[game.id] === game)).toBe(true);
     expect(getGame("connect-4")?.id).toBe("connect4");

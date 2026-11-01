@@ -67,6 +67,22 @@ const glyphs = {
     a: "var(--palette-pdk-red)",
     b: "var(--palette-pdk-ink)",
   },
+  doudizhu: {
+    rows: [
+      "..........",
+      "..........",
+      ".###......",
+      ".#a#..###.",
+      ".#a#..#b#.",
+      ".###..###.",
+      "..........",
+      "..........",
+      "..........",
+      "..........",
+    ],
+    a: "var(--palette-pdk-red)",
+    b: "var(--palette-pdk-ink)",
+  },
   checkers: {
     rows: [
       "..........",

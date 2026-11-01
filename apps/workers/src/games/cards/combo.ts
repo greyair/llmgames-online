@@ -19,18 +19,22 @@ export interface ComboRules {
   fourWithWings: boolean;
   /** Shortest consecutive-pair run: 2 for 跑得快, 3 for 斗地主. */
   minPairRun: number;
+  /** 跑得快 only lets a bare triple finish a hand. */
+  bareTripleFinishes: boolean;
 }
 
 export const PAODEKUAI_COMBOS: ComboRules = {
   rocket: false,
   fourWithWings: false,
   minPairRun: 2,
+  bareTripleFinishes: true,
 };
 
 export const DOUDIZHU_COMBOS: ComboRules = {
   rocket: true,
   fourWithWings: true,
   minPairRun: 3,
+  bareTripleFinishes: false,
 };
 
 /** Highest rank a chain may contain: a run stops at the ace. */
@@ -110,6 +114,15 @@ export function classify(cards: readonly string[], rules: ComboRules): Combo | s
     counts.get(RANK_BIG_JOKER) === 1
   )
     return { kind: "rocket", size, key: RANK_BIG_JOKER, len: 1 };
+
+  // The two jokers are only ever a rocket, so no shape may carry them as wings.
+  if (
+    rules.rocket &&
+    counts.has(RANK_SMALL_JOKER) &&
+    counts.has(RANK_BIG_JOKER) &&
+    size !== 2
+  )
+    return "The two jokers can only be played as a rocket";
 
   if (quads.length === 1) {
     const quad = quads[0] ?? 0;

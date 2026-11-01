@@ -805,6 +805,37 @@ function Paodekuai() {
   );
 }
 
+function Doudizhu() {
+  const bx = 10,
+    by = 8;
+
+  // The same five-card fan, on the landlord's red table and under a crown.
+  const faces = [
+    { x: bx, y: by + 8, red: false },
+    { x: bx + 12, y: by + 2, red: true },
+    { x: bx + 24, y: by + 7, red: false },
+    { x: bx + 36, y: by, red: true },
+    { x: bx + 48, y: by + 6, red: false },
+  ];
+
+  return (
+    <>
+      <Glow fill={c("pdk-red")} />
+      <F d={R(bx - 4, by - 2, 72, 58)} fill={c("pdk-card-edge")} />
+      <T d={R(bx - 4, by - 4, 72, 56)} fill={c("pdk-red")} level={4} />
+      {faces.map(({ x, y, red }, index) => (
+        <g key={index}>
+          <F d={R(x + 1, y + 1, 14, 40)} fill={c("pdk-card-edge")} />
+          <F d={R(x, y, 14, 40)} fill={c("pdk-card")} />
+          <T d={R(x + 3, y + 4, 4, 6)} fill={c(red ? "pdk-red" : "pdk-ink")} level={12} />
+          <T d={R(x + 3, y + 30, 8, 6)} fill={c(red ? "pdk-red" : "pdk-ink")} level={8} />
+        </g>
+      ))}
+      <F d={R(78, 8, 4, 3) + R(78, 11, 12, 3) + R(84, 14, 1, 3) + R(78, 14, 3, 3) + R(88, 14, 2, 3)} fill={c("pdk-red")} />
+    </>
+  );
+}
+
 const scenes = {
   connect4: Connect4,
   checkers: Checkers,
@@ -817,6 +848,7 @@ const scenes = {
   gomoku: Gomoku,
   aeroplane: Aeroplane,
   paodekuai: Paodekuai,
+  doudizhu: Doudizhu,
 } satisfies Record<string, () => ReactElement>;
 
 export function GameScene({ id, className }: { id: string; className?: string }) {

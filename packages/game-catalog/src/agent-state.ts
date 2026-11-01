@@ -68,6 +68,14 @@ export interface ProjectionPart {
   passes?: unknown;
   acts?: unknown;
   tricks?: unknown;
+  bids?: unknown;
+  toAct?: unknown;
+  bottom?: unknown;
+  bottomCount?: unknown;
+  landlord?: unknown;
+  bid?: unknown;
+  multiplier?: unknown;
+  winnerSide?: unknown;
   scores?: unknown;
   legalMoves?: unknown;
   forcedPiece?: unknown;
@@ -292,6 +300,14 @@ const objectValue = z
     passes: z.unknown().optional(),
     acts: z.unknown().optional(),
     tricks: z.unknown().optional(),
+    bids: z.unknown().optional(),
+    toAct: z.unknown().optional(),
+    bottom: z.unknown().optional(),
+    bottomCount: z.unknown().optional(),
+    landlord: z.unknown().optional(),
+    bid: z.unknown().optional(),
+    multiplier: z.unknown().optional(),
+    winnerSide: z.unknown().optional(),
     secret: z.unknown().optional(),
   })
   .loose()

@@ -72,6 +72,10 @@
       {
         "name": "PAODEKUAI_ROOM",
         "class_name": "PaodekuaiRoom"
+      },
+      {
+        "name": "DOUDIZHU_ROOM",
+        "class_name": "DoudizhuRoom"
       }
     ]
   },
@@ -106,6 +110,12 @@
       "tag": "v4",
       "new_sqlite_classes": [
         "PaodekuaiRoom"
+      ]
+    },
+    {
+      "tag": "v5",
+      "new_sqlite_classes": [
+        "DoudizhuRoom"
       ]
     }
   ],

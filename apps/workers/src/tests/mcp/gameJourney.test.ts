@@ -22,8 +22,10 @@ import { PokemonRoom } from "../../durable-objects/PokemonRoom";
 import { GomokuRoom } from "../../durable-objects/GomokuRoom";
 import { AeroplaneRoom } from "../../durable-objects/AeroplaneRoom";
 import { PaodekuaiRoom } from "../../durable-objects/PaodekuaiRoom";
+import { DoudizhuRoom } from "../../durable-objects/DoudizhuRoom";
 import { planAeroplaneMove, type AeroplaneChoice } from "../../games/aeroplane/rules";
 import { pdkMoves } from "../../games/paodekuai/rules";
+import { ddzMoves } from "../../games/doudizhu/rules";
 import { contextoGuessFamily, contextoWord } from "../../lib/contextoRanks";
 import { migratedDb } from "../fixtures/migrated-db";
 import { MemoryR2Bucket } from "../fixtures/memory-r2";
@@ -176,7 +178,8 @@ interface Journey {
     | "poker"
     | "gomoku"
     | "aeroplane"
-    | "paodekuai";
+    | "paodekuai"
+    | "doudizhu";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -189,7 +192,8 @@ interface Journey {
     | "POKER_ROOM"
     | "GOMOKU_ROOM"
     | "AEROPLANE_ROOM"
-    | "PAODEKUAI_ROOM";
+    | "PAODEKUAI_ROOM"
+    | "DOUDIZHU_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
@@ -531,6 +535,35 @@ const journeys: Journey[] = [
     },
   },
   paodekuaiJourney,
+  {
+    gameType: "doudizhu",
+    Room: DoudizhuRoom,
+    binding: "DOUDIZHU_ROOM",
+    players: 3,
+    minActions: 20,
+    budget: 240,
+    next: (state) => {
+      const legal = state.you.legalActions;
+
+      // Bid the maximum: it ends the auction at once, so the journey reaches the
+      // table without depending on what the other seats happen to bid.
+      if (legal.includes("bid")) return { actionType: "bid", data: { value: 3 } };
+
+      if (!legal.includes("play_cards")) return null;
+
+      const [cheapest] = ddzMoves(state.hand ?? [], state.trick?.combo ?? null);
+
+      if (cheapest) return { actionType: "play_cards", data: { cards: cheapest } };
+
+      return legal.includes("pass") ? { actionType: "pass", data: {} } : null;
+    },
+    // Hands and an unrevealed bottom never leave the server; once the landlord
+    // is known the three bottom cards are public.
+    assertRival: (rival) => {
+      expect(rival).not.toHaveProperty("hands");
+      expect(rival.handCounts?.length).toBe(3);
+    },
+  },
   {
     gameType: "codenames",
     Room: CodenamesGameRoom,

@@ -100,7 +100,7 @@ export type ClientView = {
     stack?: number | null;
     toCall?: number;
     weaponCosts?: { bomb?: number; radar?: number; torpedo?: number };
-    team?: "red" | "blue" | null;
+    team?: string | null;
     role?: z.output<typeof viewerRoleSchema> | null;
     canSeeKey?: boolean;
   };
@@ -152,6 +152,15 @@ export type ClientView = {
   lastTrick?: CardRecord | null;
   mustLead?: string | null;
   tricks?: number;
+  /** Fight the Landlord: the auction, and the bottom cards once they are public. */
+  bottom?: string[];
+  bottomCount?: number;
+  landlord?: number | null;
+  bid?: number;
+  bids?: (number | null)[];
+  toAct?: number;
+  multiplier?: number;
+  winnerSide?: "landlord" | "farmers" | null;
   scores?: Partial<Record<1 | 2, number>>;
   legalMoves?: z.output<typeof discMovesSchema> | z.output<typeof checkerMovesSchema>;
   forcedPiece?: { row: number; col: number } | null;
@@ -163,7 +172,7 @@ export type ClientView = {
   guessesRemaining?: number | null;
   guessesMade?: number;
   remaining?: z.output<typeof remainingSchema>;
-  winnerTeam?: "red" | "blue" | null;
+  winnerTeam?: string | null;
   activityLog?: WireValue;
   lastReveal?: WireValue;
   currentBet?: number;
@@ -302,7 +311,7 @@ const clientViewContract = z
             "torpedo": z.number().optional(),
           })
           .optional(),
-        "team": z.union([z.literal("red"), z.literal("blue"), z.null()]).optional(),
+        "team": z.union([z.string(), z.null()]).optional(),
         "role": viewerRoleSchema.nullable().optional(),
         "canSeeKey": z.boolean().optional(),
       })
@@ -359,6 +368,14 @@ const clientViewContract = z
     "lastTrick": cardRecordContract.optional(),
     "mustLead": z.union([z.string(), z.null()]).optional(),
     "tricks": z.number().optional(),
+    "bottom": z.array(z.string()).optional(),
+    "bottomCount": z.number().optional(),
+    "landlord": z.union([z.number(), z.null()]).optional(),
+    "bid": z.number().optional(),
+    "bids": z.array(z.union([z.number(), z.null()])).optional(),
+    "toAct": z.number().optional(),
+    "multiplier": z.number().optional(),
+    "winnerSide": z.union([z.literal("landlord"), z.literal("farmers"), z.null()]).optional(),
     "scores": z.object({ "1": z.number().optional(), "2": z.number().optional() }).optional(),
     "legalMoves": z.union([checkerMovesSchema, discMovesSchema]).optional(),
     "forcedPiece": z
@@ -372,7 +389,7 @@ const clientViewContract = z
     "guessesRemaining": z.union([z.number(), z.null()]).optional(),
     "guessesMade": z.number().optional(),
     "remaining": remainingSchema.optional(),
-    "winnerTeam": z.union([z.literal("red"), z.literal("blue"), z.null()]).optional(),
+    "winnerTeam": z.union([z.string(), z.null()]).optional(),
     "activityLog": wireValueSchema.optional(),
     "lastReveal": wireValueSchema.optional(),
     "currentBet": z.number().optional(),

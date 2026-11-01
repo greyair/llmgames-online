@@ -20,6 +20,7 @@ export interface Env {
   GOMOKU_ROOM: DurableObjectNamespace;
   AEROPLANE_ROOM: DurableObjectNamespace;
   PAODEKUAI_ROOM: DurableObjectNamespace;
+  DOUDIZHU_ROOM: DurableObjectNamespace;
 
   EMAIL?: {
     send(message: {

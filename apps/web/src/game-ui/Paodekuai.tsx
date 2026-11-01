@@ -6,7 +6,8 @@ import type { ClientView } from "@/domain/game-state";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n";
 import { play } from "@/lib/sound";
-import "./paodekuai.css";
+import { PlayingCard } from "./PlayingCard";
+import "./card-table.css";
 
 /**
  * 跑得快 (Run Fast) table.
@@ -19,10 +20,6 @@ import "./paodekuai.css";
  * Card ids are `<suit><rank>` — `S3`, `HT`, `DJ` — which is exactly what the
  * action accepts, so a click needs no translation layer.
  */
-
-const JOKER_SMALL = "j1";
-
-const JOKER_BIG = "j2";
 
 const handSchema = z.array(z.string()).catch([]);
 
@@ -41,64 +38,6 @@ const recordSchema = z
   })
   .nullable()
   .catch(null);
-
-function isRed(card: string): boolean {
-  return card.startsWith("H") || card.startsWith("D");
-}
-
-function rankOf(card: string): string {
-  if (card === JOKER_SMALL) return "J1";
-
-  if (card === JOKER_BIG) return "J2";
-
-  const rank = card.slice(1);
-
-  return rank === "T" ? "10" : rank;
-}
-
-function suitOf(card: string): string {
-  if (card === JOKER_SMALL || card === JOKER_BIG) return "★";
-
-  const suit = card.slice(0, 1);
-
-  if (suit === "S") return "♠";
-
-  if (suit === "H") return "♥";
-
-  return suit === "C" ? "♣" : "♦";
-}
-
-/** One card face. Jokers get a star and the shared red/black ink. */
-function Card({
-  card,
-  selected,
-  onToggle,
-  disabled,
-}: {
-  card: string;
-  selected: boolean;
-  onToggle?: () => void;
-  disabled: boolean;
-}) {
-  const label = `${rankOf(card)}${suitOf(card)}`;
-
-  return (
-    <button
-      type="button"
-      className="pdk-card"
-      data-red={isRed(card) ? "true" : "false"}
-      data-selected={selected ? "true" : "false"}
-      data-joker={card === JOKER_SMALL || card === JOKER_BIG ? "true" : "false"}
-      disabled={disabled || !onToggle}
-      aria-pressed={onToggle ? selected : undefined}
-      aria-label={label}
-      onClick={onToggle}
-    >
-      <span className="pdk-card-rank">{rankOf(card)}</span>
-      <span className="pdk-card-suit">{suitOf(card)}</span>
-    </button>
-  );
-}
 
 export function Paodekuai({
   state,
@@ -167,59 +106,58 @@ export function Paodekuai({
           : "";
 
   return (
-    <div className="pdk-stage">
-      <div className="pdk-fit">
-        <div className="pdk-rivals">
+    <div className="ct-stage">
+      <div className="ct-fit">
+        <div className="ct-rivals">
           {counts.map((count, index) =>
             index === mySeat ? null : (
-              <span key={index} className="pdk-rival" data-turn={index === currentSeat}>
-                <span className="pdk-rival-name">{nameOf(index)}</span>
-                <span className="pdk-rival-count">{t("board.paodekuaiLeft", { count })}</span>
+              <span key={index} className="ct-rival" data-turn={index === currentSeat}>
+                <span className="ct-rival-name">{nameOf(index)}</span>
+                <span className="ct-rival-count">{t("board.cardsLeft", { count })}</span>
               </span>
             ),
           )}
         </div>
 
-        <div className="pdk-table" data-empty={table ? "false" : "true"}>
+        <div className="ct-table" data-empty={table ? "false" : "true"}>
           {table ? (
             <>
-              <span className="pdk-table-label">
-                {t(trick ? "board.paodekuaiOnTable" : "board.paodekuaiLastTrick")} ·{" "}
+              <span className="ct-table-label">
+                {t(trick ? "board.cardsOnTable" : "board.cardsLastTrick")} ·{" "}
                 {nameOf(table.seat)}
               </span>
-              <div className="pdk-table-cards">
+              <div className="ct-table-cards">
                 {table.cards.length === 0 ? (
-                  <span className="pdk-table-pass">{t("board.paodekuaiPassed")}</span>
+                  <span className="ct-table-pass">{t("board.cardsPassed")}</span>
                 ) : (
                   table.cards.map((card, index) => (
-                    <Card key={`${card}-${index}`} card={card} selected={false} disabled />
+                    <PlayingCard key={`${card}-${index}`} card={card} />
                   ))
                 )}
               </div>
             </>
           ) : (
-            <span className="pdk-table-label">{t("board.paodekuaiEmptyTable")}</span>
+            <span className="ct-table-label">{t("board.cardsEmptyTable")}</span>
           )}
         </div>
 
-        <div className="pdk-hand" data-count={hand.length}>
+        <div className="ct-hand" data-count={hand.length}>
           {hand.map((card) => (
-            <Card
+            <PlayingCard
               key={card}
               card={card}
               selected={picked.has(card)}
-              disabled={!canPlay}
               onToggle={canPlay ? () => toggle(card) : undefined}
             />
           ))}
         </div>
 
-        <div className="pdk-bar">
-          <p className="pdk-hint">{hint}</p>
-          <span className="pdk-selected">
-            {selected.length > 0 ? t("board.paodekuaiSelected", { count: selected.length }) : ""}
+        <div className="ct-bar">
+          <p className="ct-hint">{hint}</p>
+          <span className="ct-selected">
+            {selected.length > 0 ? t("board.cardsSelected", { count: selected.length }) : ""}
           </span>
-          <div className="pdk-actions">
+          <div className="ct-actions">
             <Button
               type="button"
               size="sm"
@@ -229,7 +167,7 @@ export function Paodekuai({
                 send("play_cards", { cards: selected });
               }}
             >
-              {t("board.paodekuaiPlay")}
+              {t("board.cardsPlay")}
             </Button>
             <Button
               type="button"
@@ -241,7 +179,7 @@ export function Paodekuai({
                 send("pass", {});
               }}
             >
-              {t("board.paodekuaiPass")}
+              {t("board.cardsPass")}
             </Button>
           </div>
         </div>

@@ -31,6 +31,12 @@
   --game-ink: var(--palette-pdk-ink);
   --game-2: var(--palette-pdk-red);
 }
+[data-game="doudizhu"] {
+  /* The landlord's table reads red, so the two card games never share a tile. */
+  --game: var(--palette-pdk-red);
+  --game-ink: var(--palette-white);
+  --game-2: var(--palette-pdk-ink);
+}
 [data-game="checkers"] {
   --game: var(--palette-walnut);
   --game-ink: var(--palette-ivory);
