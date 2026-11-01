@@ -24,7 +24,7 @@ import { getCurrentUser, refreshCurrentUser, type User } from "@/services/auth";
 import { go, useBrowserHref } from "@/lib/navigate";
 import { play } from "@/lib/sound";
 import { GameSocket, createGameRoom, joinGameRoom } from "@/services/gameSocket";
-import { clientViewSchema, type ClientView } from "@/domain/game-state";
+import { clientViewContract, clientViewSchema, type ClientView } from "@/domain/game-state";
 import {
   parseRewatch,
   readOnlyReplayState,
@@ -202,7 +202,8 @@ export function Room({
     : Math.max(...minuteChoices, 10);
 
   const leaving = useRef(false),
-    terminalReceived = useRef(false);
+    terminalReceived = useRef(false),
+    rejectedViewReported = useRef(false);
 
   useEffect(() => {
     if (roomCode) setCode(roomCode);
@@ -289,8 +290,26 @@ export function Room({
         `${gameRoute(room.gameType)}?roomCode=${encodeURIComponent(room.roomCode)}`,
       );
 
+    // A frame the contract rejects is dropped, and a dropped frame looks exactly
+    // like a room that never starts. Name the offending field path once per
+    // connection; never the frame itself, which can carry private state.
+    const reportRejectedView = (value: WireValue) => {
+      if (rejectedViewReported.current) return;
+
+      rejectedViewReported.current = true;
+
+      const issues = clientViewContract.safeParse(value).error?.issues ?? [];
+
+      console.warn(
+        "Dropped a game state frame the client contract does not model:",
+        issues.map((issue) => `${issue.path.join(".") || "<root>"} (${issue.code})`).join(", "),
+      );
+    };
+
     const receive = (value: WireValue) => {
       const incoming = clientViewSchema.safeParse(value).data;
+
+      if (!incoming) reportRejectedView(value);
 
       if (leaving.current || !incoming || (terminalReceived.current && incoming.status !== "ended"))
         return;

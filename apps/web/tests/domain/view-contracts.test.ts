@@ -23,6 +23,11 @@ describe("projected state contracts", () => {
       ["codenames", "spymaster"],
       ["codenames", "operative"],
       ["checkers", "spectator"],
+      ["aeroplane", "seat0"],
+      ["paodekuai", "seat1"],
+      ["doudizhu", "seat2"],
+      ["monopoly", "seat0"],
+      ["xiangqi", "red"],
       ["connect4", null],
     ];
 
@@ -31,7 +36,18 @@ describe("projected state contracts", () => {
       expect(clientViewSchema.parse(projection)).toBe(projection);
     }
 
-    expect(clientViewSchema.safeParse({ you: { role: "administrator" } }).success).toBe(false);
+    for (const role of ["administrator", "seat12", "reds"])
+      expect(clientViewSchema.safeParse({ you: { role } }).success).toBe(false);
+  });
+
+  it("accepts the chess string board and the xiangqi cell board, and nothing else", () => {
+    const fen = "rnbqkbnrpppppppp................................PPPPPPPPRNBQKBNR";
+
+    for (const board of [fen, Array(90).fill(".")])
+      expect(clientViewSchema.safeParse({ type: "chess", board }).success).toBe(true);
+
+    for (const board of ["r n b q", Array(89).fill("."), [1, 2, 3]])
+      expect(clientViewSchema.safeParse({ type: "chess", board }).success).toBe(false);
   });
 
   it("retains the source square and capture coordinates of a checker decision", () => {

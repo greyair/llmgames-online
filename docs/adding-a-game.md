@@ -188,6 +188,16 @@ runtime and storage fixtures under `apps/workers/src/tests/fixtures`.
 
 Add browser tests for a two-seat game, mobile board, agent turn, and finished
 replay. Games with concurrent decisions need tests for both pending seats.
+
+Add the game to `apps/workers/src/tests/contracts/browserViewContract.test.ts`.
+That suite takes the real `buildClientView()` output for every seat and parses
+it with the browser's `clientViewSchema`; a role or board shape the frontend
+does not model makes the room look frozen at the lobby, because `Room.tsx`
+drops rejected frames. The schema is hand-written, so this test is the only
+thing tying it to what the server actually sends. When you add a field with a
+new shape, widen the schema in `apps/web/src/domain/game-state.ts` in the same
+commit.
+
 Then run:
 
 ```sh

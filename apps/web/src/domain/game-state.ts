@@ -21,16 +21,24 @@ import { z } from "zod";
 import { wireValueSchema, type WireValue } from "@llmgames/game-catalog";
 import type { GamePlayer } from "../features/shared/gameOverCopy";
 
-const viewerRoleSchema = z.enum([
-  "player1",
-  "player2",
-  "black",
-  "white",
-  "player",
-  "captain",
-  "spymaster",
-  "operative",
-  "spectator",
+/**
+ * Seat-numbered roles (`seat0`…`seat11`) are what the M4 games send; the named
+ * roles are the older games. Both reach the browser, so both belong here.
+ */
+const viewerRoleSchema = z.union([
+  z.enum([
+    "player1",
+    "player2",
+    "black",
+    "white",
+    "red",
+    "player",
+    "captain",
+    "spymaster",
+    "operative",
+    "spectator",
+  ]),
+  z.string().regex(/^seat(?:[0-9]|1[0-1])$/),
 ]);
 
 /** One play or pass in a card trick. `combo` is null for a pass. */
@@ -297,7 +305,11 @@ const gamePlayerSchema = z
   })
   .catchall(wireValueSchema);
 
-const clientViewContract = z
+/**
+ * The strict object behind {@link clientViewSchema}. Exported so a rejected
+ * frame can be diagnosed by field path instead of disappearing silently.
+ */
+export const clientViewContract = z
   .object({
     "jev": z
       .object({
@@ -421,7 +433,16 @@ const clientViewContract = z
       ])
       .optional(),
     "maxPlayers": z.number().optional(),
-    "board": z.union([numericBoardSchema, wordBoardSchema]).optional(),
+    "board": z
+      .union([
+        numericBoardSchema,
+        wordBoardSchema,
+        // Chess: one 64-character string in FEN order.
+        z.string().length(64),
+        // Chinese chess: 90 cells, one piece letter or "." each.
+        z.array(z.string()).length(90),
+      ])
+      .optional(),
     "seats": z.union([seatNumbersSchema, cardSeatsSchema]).optional(),
     "lastMove": lastMoveSchema.optional(),
     "planes": z.array(z.array(z.number())).optional(),
