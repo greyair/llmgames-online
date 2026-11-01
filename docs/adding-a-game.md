@@ -107,6 +107,11 @@ Do not rewrite applied D1 or Durable Object migrations. For example, append
 lineage. Existing tables such as active rooms and series tables may restrict
 game IDs. Search all migration constraints before adding a new type.
 
+The deployed copies, `wrangler-prod.json` and `wrangler-staging.json`, are
+git-ignored and do not update themselves. Add the binding and the migration tag
+there as well; a stale copy deploys a Worker whose new game routes have no
+Durable Object class behind them. M4 nearly shipped three games that way.
+
 ## 4. Add agent support
 
 Two views serve an agent, and the game owns both:
