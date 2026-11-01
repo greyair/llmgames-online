@@ -150,6 +150,14 @@ pnpm lint                               # oxlint / eslint / CSS 令牌 / AI spec
 3. 浏览器打开 `/monopoly`，选择「20 轮」→ 大厅设置区显示「对局长度 20 轮」，`state.roundLimit === 20`。
 4. 反例：`room_create { gameType: "go", options: { size: "11" } }` → 报错 `size must be one of 9, 13, 19`，不会创建房间。
 
+### 5.1 推送前复审：13/19 路原本画不出来
+
+第 5 节第 1 条当时只是"应该成立"，实际不成立：`Go.tsx` 的 `VIEW` 写死为 `8 * CELL + MARGIN * 2`（380），星位表也只列了 9 路的五点。服务端把 `boardSize` 改成 13/19 后，`at(18) = 750` 已经远超 380 —— 第 9 列之后的交叉点全部画在画布外，既看不见也点不到。
+
+修法：几何抽到 `apps/web/src/game-ui/goGeometry.ts`（`goExtent` 按尺寸推导 viewBox、`goStars` 按尺寸给星位），`Go.tsx` 只读 `state.boardSize`。新增 `apps/web/tests/game-ui/goGeometry.test.ts`（4 条）钉住 9 路的 380、19 路的 780 与三套星位。
+
+这属于"服务端能力已测、浏览器表现没人看"的老问题，和 M4.6.1 同源；sandbox 页面正好能在本地开一局 19 路做目视核对。
+
 ## 6. 性能影响（实测）
 
 | 指标 | C1 后 | C2 后 | 差 |

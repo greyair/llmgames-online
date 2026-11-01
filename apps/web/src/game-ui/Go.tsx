@@ -6,33 +6,21 @@ import type { ClientView } from "@/domain/game-state";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/i18n";
 import { play } from "@/lib/sound";
+import { GO_CELL, goExtent, goPointAt, goStars } from "./goGeometry";
 import "./go.css";
 
 /**
  * Go board.
  *
- * Stones sit on the 81 intersections of a 9×9 grid. The server sends the
- * legality of every empty point as GTP names, so this file never decides
- * whether a move would be suicide or would repeat a position — it draws a dot
- * where the server allows one. What it does own is the geometry.
+ * Stones sit on the intersections of a 9×9, 13×13 or 19×19 grid — the size
+ * comes from `state.boardSize`, because `go.size` is a room option. The server
+ * sends the legality of every empty point as GTP names, so this file never
+ * decides whether a move would be suicide or would repeat a position — it
+ * draws a dot where the server allows one. What it does own is the geometry:
+ * the viewBox and the star points both follow the size.
  */
 
-const CELL = 40;
-
-const MARGIN = 30;
-
-const VIEW = 8 * CELL + MARGIN * 2;
-
 const COLUMNS = "ABCDEFGHJKLMNOPQRST";
-
-/** Star points of a 9×9 board, in grid coordinates. */
-const STARS: ReadonlyArray<readonly [number, number]> = [
-  [2, 2],
-  [6, 2],
-  [4, 4],
-  [2, 6],
-  [6, 6],
-];
 
 const cellsSchema = z.array(z.number()).catch([]);
 
@@ -40,7 +28,7 @@ const numbersSchema = z.array(z.number()).catch([]);
 
 const legalSchema = z.array(z.string()).catch([]);
 
-const at = (index: number) => MARGIN + index * CELL;
+const at = goPointAt;
 
 const gtpOf = (point: number, size: number): string =>
   `${COLUMNS.charAt(point % size)}${size - Math.floor(point / size)}`;
@@ -55,6 +43,8 @@ export function Go({ state, send }: { state: ClientView; send: (name: string, da
   const captures = numbersSchema.parse(state.captures);
 
   const size = isNumber(state.boardSize) ? state.boardSize : 9;
+  const view = goExtent(size);
+  const stars = goStars(size);
   const stage = state.stage ?? "playing";
 
   const [hover, setHover] = useState<number | null>(null);
@@ -124,7 +114,7 @@ export function Go({ state, send }: { state: ClientView; send: (name: string, da
         onMouseEnter={() => setHover(point)}
         onMouseLeave={() => setHover(null)}
       >
-        <circle className="go-hit" cx={x} cy={y} r={CELL / 2} />
+        <circle className="go-hit" cx={x} cy={y} r={GO_CELL / 2} />
         {showGhost ? (
           <circle className="go-ghost" cx={x} cy={y} r={16} data-color={yourColor ?? 1} />
         ) : null}
@@ -146,8 +136,8 @@ export function Go({ state, send }: { state: ClientView; send: (name: string, da
   return (
     <div className="go-stage">
       <div className="go-fit">
-        <svg className="go-board" viewBox={`0 0 ${VIEW} ${VIEW}`} role="img" aria-label={t("board.goBoard")}>
-          <rect className="go-field" x={4} y={4} width={VIEW - 8} height={VIEW - 8} rx={6} />
+        <svg className="go-board" viewBox={`0 0 ${view} ${view}`} role="img" aria-label={t("board.goBoard")}>
+          <rect className="go-field" x={4} y={4} width={view - 8} height={view - 8} rx={6} />
           <g className="go-lines">
             {Array.from({ length: size }, (_, index) => (
               <g key={index}>
@@ -156,7 +146,7 @@ export function Go({ state, send }: { state: ClientView; send: (name: string, da
               </g>
             ))}
           </g>
-          {STARS.map(([x, y]) => (
+          {stars.map(([x, y]) => (
             <circle key={`${x}-${y}`} className="go-star" cx={at(x)} cy={at(y)} r={2.6} />
           ))}
           {stones}
