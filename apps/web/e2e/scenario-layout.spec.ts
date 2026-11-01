@@ -13,6 +13,7 @@ const games = [
   "battleship",
   "gomoku",
   "aeroplane",
+  "paodekuai",
 ];
 
 for (const viewport of [

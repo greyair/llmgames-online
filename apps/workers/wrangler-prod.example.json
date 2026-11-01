@@ -68,6 +68,10 @@
       {
         "name": "AEROPLANE_ROOM",
         "class_name": "AeroplaneRoom"
+      },
+      {
+        "name": "PAODEKUAI_ROOM",
+        "class_name": "PaodekuaiRoom"
       }
     ]
   },
@@ -96,6 +100,12 @@
       "tag": "v3",
       "new_sqlite_classes": [
         "AeroplaneRoom"
+      ]
+    },
+    {
+      "tag": "v4",
+      "new_sqlite_classes": [
+        "PaodekuaiRoom"
       ]
     }
   ],

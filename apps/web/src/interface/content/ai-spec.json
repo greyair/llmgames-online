@@ -367,7 +367,7 @@
             },
             "gameType": {
               "default": "connect4",
-              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane",
+              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai",
               "type": "string",
               "minLength": 1,
               "maxLength": 40
@@ -559,7 +559,7 @@
           "type": "object",
           "properties": {
             "gameType": {
-              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane. Omit for all games.",
+              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai. Omit for all games.",
               "type": "string",
               "minLength": 1,
               "maxLength": 40
@@ -1394,7 +1394,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -1411,7 +1412,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -1429,7 +1431,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -1453,7 +1456,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -1477,7 +1481,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -1501,7 +1506,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -1755,7 +1761,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -1772,7 +1779,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -1790,7 +1798,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -1814,7 +1823,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -1838,7 +1848,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -1862,7 +1873,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         }
@@ -2818,7 +2830,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -2835,7 +2848,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -2853,7 +2867,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -2877,7 +2892,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -2901,7 +2917,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -2925,7 +2942,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -3142,7 +3160,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -3159,7 +3178,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -3177,7 +3197,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -3201,7 +3222,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -3225,7 +3247,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -3249,7 +3272,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         }
@@ -3438,7 +3462,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -3462,7 +3487,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -3486,7 +3512,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -3510,7 +3537,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -3833,7 +3861,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -3850,7 +3879,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -3868,7 +3898,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -3892,7 +3923,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -3916,7 +3948,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -3940,7 +3973,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -4746,7 +4780,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -4763,7 +4798,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -4781,7 +4817,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -4805,7 +4842,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -4829,7 +4867,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -4853,7 +4892,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5179,7 +5219,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5196,7 +5237,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5214,7 +5256,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -5238,7 +5281,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -5262,7 +5306,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -5286,7 +5331,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5592,7 +5638,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5609,7 +5656,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5627,7 +5675,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -5651,7 +5700,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -5675,7 +5725,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -5699,7 +5750,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5805,7 +5857,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5822,7 +5875,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5840,7 +5894,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerId": {
@@ -5864,7 +5919,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "spectating": {
@@ -5888,7 +5944,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {
             "playerIds": {
@@ -5912,7 +5969,8 @@
             "poker",
             "contexto",
             "gomoku",
-            "aeroplane"
+            "aeroplane",
+            "paodekuai"
           ],
           "data": {}
         },
@@ -5974,6 +6032,186 @@
         "controllerId": "00000000-0000-4000-8000-000000000001",
         "roomId": "aeroplane-ABC234",
         "gameType": "aeroplane",
+        "actionType": "guess_word",
+        "data": {
+          "index": 1
+        }
+      },
+      "jev": null
+    },
+    {
+      "id": "paodekuai",
+      "instructions": {
+        "briefing": "Run Fast (跑得快) for 2-3 seats with a 48-card deck (no jokers, no heart/club/diamond 2, no spade ace). Three seats hold 16 cards each and the holder of the spade three leads a first play that must include it; with two seats 16 cards are set aside unseen and seat 0 leads. Ranks run 3 4 5 6 7 8 9 T J Q K A 2 and suits never matter. Your hand ships as card ids like S3 or HT; play with play_cards { cards: [...] } and those same ids, or pass. Shapes: single, pair, triple (only as your last cards), triple with one or two, straight of five or more, two or more consecutive pairs, plane of two or more consecutive triples with the same number of single or pair wings, and bomb (four of a kind). A bomb beats any non-bomb; otherwise you must match the type and card count with a higher key. Passing is always allowed while following and never while leading. The first seat to empty its hand wins.",
+        "timers": {
+          "turnTimer": "The room's configured turn timer applies to each play or pass.",
+          "onTimeout": "A seat that is following passes. A seat that is leading cannot pass, so the server plays its cheapest legal card and play continues."
+        }
+      },
+      "actions": [
+        {
+          "actionType": "add_jev",
+          "title": "Add Jev",
+          "description": "Host only, private lobby: add one hosted Jev player to an open seat when the server offers add_jev in legalActions. At most one Jev per room.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane",
+            "paodekuai"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "remove_jev",
+          "title": "Remove Jev",
+          "description": "Host only, private lobby: remove the hosted Jev player before the game starts.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane",
+            "paodekuai"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "move_player_to_spectator",
+          "title": "Move player to spectators",
+          "description": "Host only, before the game starts: move any human or MCP agent seat, including the host's own seat, to the watch-only spectator list without disconnecting it.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane",
+            "paodekuai"
+          ],
+          "data": {
+            "playerId": {
+              "type": "string",
+              "description": "Player/agent seat id to move, including the host's own seat",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "set_host_spectating",
+          "title": "Set host participation",
+          "description": "Host only, before the game starts: switch between occupying a player seat and organizing from the spectator list. A spectator-host keeps lobby and table controls but receives no game-turn actions.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane",
+            "paodekuai"
+          ],
+          "data": {
+            "spectating": {
+              "type": "boolean",
+              "description": "true to host without playing; false to take an available player seat",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "set_player_seats",
+          "title": "Set player seats",
+          "description": "Host only, before the game starts: atomically make the listed room-member IDs players and move every other member to spectators. A playing host is retained implicitly; a spectator-host stays watch-only unless listed. Use roomMembers from get_state to resolve usernames, agent names, and environments to stable playerIds.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane",
+            "paodekuai"
+          ],
+          "data": {
+            "playerIds": {
+              "type": "array",
+              "description": "Exact room-member IDs that should occupy player seats. Spectators in this list are promoted and unlisted players are moved to spectators. A playing host is implicit; list a spectator-host only when they should rejoin as a player.",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "end_game",
+          "title": "End game",
+          "description": "Host only: end the room for every player. The server delivers each connection's projected final state before it archives and purges the Durable Object, with a 30-second fallback for unavailable clients.",
+          "games": [
+            "connect4",
+            "pokemon",
+            "reversi",
+            "checkers",
+            "codenames",
+            "battleship",
+            "poker",
+            "contexto",
+            "gomoku",
+            "aeroplane",
+            "paodekuai"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "play_cards",
+          "title": "Play cards",
+          "description": "Play a legal combination from your hand: a single, a pair, a triple (only as your last cards), triple with one or two, a straight of five or more, consecutive pairs, a plane with wings, or a bomb. While following you must match the type and card count with a higher key unless you play a bomb.",
+          "games": [
+            "paodekuai"
+          ],
+          "aliases": [
+            "play"
+          ],
+          "data": {
+            "cards": {
+              "type": "array",
+              "description": "Card ids from your hand, e.g. [\"S3\",\"H3\"]; a bare rank such as [\"3\",\"3\"] is also accepted and the server picks the lowest suits",
+              "required": true
+            }
+          }
+        },
+        {
+          "actionType": "pass",
+          "title": "Pass",
+          "description": "Pass while following a trick. Never legal while you are leading, because a leader must play.",
+          "games": [
+            "paodekuai"
+          ],
+          "data": {}
+        }
+      ],
+      "decisionExample": null,
+      "sendActionExample": {
+        "controllerId": "00000000-0000-4000-8000-000000000001",
+        "roomId": "paodekuai-ABC234",
+        "gameType": "paodekuai",
         "actionType": "guess_word",
         "data": {
           "index": 1

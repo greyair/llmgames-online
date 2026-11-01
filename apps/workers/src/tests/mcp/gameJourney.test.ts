@@ -21,7 +21,9 @@ import { PokerRoom } from "../../durable-objects/PokerRoom";
 import { PokemonRoom } from "../../durable-objects/PokemonRoom";
 import { GomokuRoom } from "../../durable-objects/GomokuRoom";
 import { AeroplaneRoom } from "../../durable-objects/AeroplaneRoom";
+import { PaodekuaiRoom } from "../../durable-objects/PaodekuaiRoom";
 import { planAeroplaneMove, type AeroplaneChoice } from "../../games/aeroplane/rules";
+import { pdkMoves } from "../../games/paodekuai/rules";
 import { contextoGuessFamily, contextoWord } from "../../lib/contextoRanks";
 import { migratedDb } from "../fixtures/migrated-db";
 import { MemoryR2Bucket } from "../fixtures/memory-r2";
@@ -108,6 +110,39 @@ const stateSchema = z
     takeoff: z.array(z.number()).optional(),
     roll: z.number().nullable().optional(),
     sixes: z.number().optional(),
+    // Run Fast projects only the viewer's hand; rival hands stay server-side.
+    hand: z.array(z.string()).optional(),
+    handCounts: z.array(z.number()).optional(),
+    trick: z
+      .object({
+        seat: z.number(),
+        cards: z.array(z.string()),
+        combo: z
+          .object({
+            kind: z.enum([
+              "single",
+              "pair",
+              "triple",
+              "triple_one",
+              "triple_pair",
+              "straight",
+              "pair_run",
+              "plane",
+              "plane_one",
+              "plane_pair",
+              "four_two",
+              "four_two_pair",
+              "bomb",
+              "rocket",
+            ]),
+            size: z.number(),
+            key: z.number(),
+            len: z.number(),
+          })
+          .nullable(),
+        n: z.number(),
+      })
+      .nullish(),
   })
   .loose();
 
@@ -140,7 +175,8 @@ interface Journey {
     | "pokemon"
     | "poker"
     | "gomoku"
-    | "aeroplane";
+    | "aeroplane"
+    | "paodekuai";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -152,7 +188,8 @@ interface Journey {
     | "POKEMON_ROOM"
     | "POKER_ROOM"
     | "GOMOKU_ROOM"
-    | "AEROPLANE_ROOM";
+    | "AEROPLANE_ROOM"
+    | "PAODEKUAI_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
@@ -218,6 +255,36 @@ function beats(candidate: AeroplaneChoice, current: AeroplaneChoice): boolean {
 
   return candidate.to - candidate.from > current.to - current.from;
 }
+
+/**
+ * Run Fast plays the cheapest legal answer every time, so the hand shrinks on
+ * every action and the table always moves on to an empty hand.
+ */
+const paodekuaiJourney: Journey = {
+  gameType: "paodekuai",
+  Room: PaodekuaiRoom,
+  binding: "PAODEKUAI_ROOM",
+  players: 2,
+  minActions: 24,
+  budget: 240,
+  next: (state) => {
+    const hand = state.hand ?? [];
+    const legal = state.you.legalActions;
+
+    if (!legal.includes("play_cards")) return null;
+
+    const [cheapest] = pdkMoves(hand, state.trick?.combo ?? null);
+
+    if (cheapest) return { actionType: "play_cards", data: { cards: cheapest } };
+
+    return legal.includes("pass") ? { actionType: "pass", data: {} } : null;
+  },
+  // A rival must never be handed the server-side hands array.
+  assertRival: (rival) => {
+    expect(rival).not.toHaveProperty("hands");
+    expect(rival.handCounts?.length).toBe(2);
+  },
+};
 
 const journeys: Journey[] = [
   {
@@ -463,6 +530,7 @@ const journeys: Journey[] = [
       expect(rival.you.legalActions).not.toContain("roll");
     },
   },
+  paodekuaiJourney,
   {
     gameType: "codenames",
     Room: CodenamesGameRoom,

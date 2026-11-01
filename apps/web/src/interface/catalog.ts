@@ -23,6 +23,7 @@ const LIBRARY_ORDER = [
   "contexto",
   "gomoku",
   "aeroplane",
+  "paodekuai",
 ] as const;
 
 export const gameCatalog = LIBRARY_ORDER.map((id) => GAME_MANIFESTS[id]);

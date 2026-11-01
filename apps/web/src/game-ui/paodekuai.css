@@ -1,0 +1,204 @@
+/* Run Fast: a pale card table, cream card faces and one warm red ink. The
+   chrome stays monochrome; the cards carry the game's colour. */
+
+.pdk-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-16);
+  container-type: size;
+}
+
+.pdk-fit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  width: min(100cqw, 100cqh, 760px);
+  height: 100%;
+  min-height: 0;
+}
+
+.pdk-rivals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  min-height: var(--space-24);
+}
+
+.pdk-rival {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-10);
+  font-size: var(--type-caption);
+  color: var(--palette-ink-55);
+  background: var(--palette-pdk-table);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 1px 0 var(--palette-pdk-table-deep);
+}
+
+.pdk-rival[data-turn="true"] {
+  color: var(--palette-ink);
+  box-shadow: 0 0 0 2px var(--palette-ink);
+}
+
+.pdk-rival-name {
+  font-weight: 600;
+}
+
+.pdk-table {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: var(--space-96);
+  padding: var(--space-12);
+  background: var(--palette-pdk-table);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 0 1px var(--palette-pdk-table-deep);
+  container-type: size;
+}
+
+.pdk-table[data-empty="true"] {
+  opacity: 0.75;
+}
+
+.pdk-table-label {
+  font-size: var(--type-caption);
+  color: var(--palette-ink-55);
+}
+
+.pdk-table-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-6);
+}
+
+.pdk-table-pass {
+  font-size: var(--type-small);
+  color: var(--palette-ink-55);
+}
+
+/* One row, always: sixteen cards never wrap, so the rank of every card stays
+   where the eye expects it. A hand too wide for the board scrolls sideways
+   instead of shrinking the faces. */
+.pdk-hand {
+  display: flex;
+  justify-content: safe center;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: var(--space-4);
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-4);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pdk-hand::-webkit-scrollbar {
+  display: none;
+}
+
+.pdk-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: var(--space-40);
+  height: var(--space-56);
+  padding: var(--space-4) var(--space-6);
+  font-family: var(--font-code);
+  color: var(--palette-pdk-ink);
+  background: var(--palette-pdk-card);
+  border: 1px solid var(--palette-pdk-card-edge);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 2px 0 var(--palette-pdk-card-edge);
+  cursor: default;
+}
+
+.pdk-card[data-red="true"] {
+  color: var(--palette-pdk-red);
+}
+
+.pdk-card:disabled {
+  opacity: 1;
+}
+
+.pdk-hand .pdk-card:not(:disabled) {
+  cursor: pointer;
+}
+
+.pdk-card[data-selected="true"] {
+  transform: translateY(calc(-1 * var(--space-12)));
+  border-color: var(--palette-pdk-ink);
+  box-shadow: 0 0 0 2px var(--palette-pdk-ink), 0 2px 0 var(--palette-pdk-card-edge);
+}
+
+.pdk-card-rank {
+  font-size: var(--type-title);
+  font-weight: 700;
+  line-height: var(--leading-none);
+}
+
+.pdk-card-suit {
+  align-self: flex-end;
+  font-size: var(--type-lead);
+  line-height: var(--leading-none);
+}
+
+.pdk-card[data-joker="true"] {
+  color: var(--palette-pdk-red);
+}
+
+.pdk-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--space-32);
+}
+
+.pdk-hint {
+  flex: 1;
+  margin: 0;
+  font-size: var(--type-caption);
+  color: var(--palette-ink-55);
+}
+
+.pdk-selected {
+  font-size: var(--type-caption);
+  color: var(--palette-ink-55);
+}
+
+.pdk-actions {
+  display: flex;
+  gap: var(--space-8);
+}
+
+/* On a phone the hand wraps to two rows of smaller cards instead of scrolling:
+   sixteen faces never fit one row at 390px, and a hidden card is a card the
+   player forgets they hold. */
+@container (max-width: 560px) {
+  .pdk-hand {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .pdk-card {
+    width: var(--space-32);
+    height: var(--space-48);
+  }
+
+  .pdk-card-rank {
+    font-size: var(--type-small);
+  }
+
+  .pdk-card-suit {
+    font-size: var(--type-small);
+  }
+}

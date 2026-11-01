@@ -14,7 +14,8 @@ CREATE TABLE "active_rooms" (
       'poker',
       'contexto',
       'gomoku',
-      'aeroplane'
+      'aeroplane',
+      'paodekuai'
     )
   ),
   room_id TEXT NOT NULL UNIQUE,

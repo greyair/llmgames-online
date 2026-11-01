@@ -85,6 +85,49 @@ export function applyPreviewScenario(
   if (scenario === "opening" && screen === "gomoku")
     s.board = Array.from({ length: 15 }, () => Array(15).fill(0));
 
+  if (screen === "paodekuai") {
+    if (scenario === "opening") {
+      s.hand = ["S3", "S4", "H4", "C5", "S6", "H7", "C8", "D9", "ST", "HJ", "CQ", "DK", "SA", "S2", "S5", "H6"];
+      s.handCounts = [16, 16];
+      s.trick = null;
+      s.lastTrick = null;
+      s.mustLead = "S3";
+      s.tricks = 0;
+      you.legalActions = ["play_cards"];
+    }
+
+    if (scenario === "midgame") {
+      s.hand = ["S3", "H3", "S4", "H4", "C5", "S6", "H7", "C8", "D9", "ST", "HJ", "CQ", "DK", "SA", "S2", "S5"];
+      s.handCounts = [16, 11];
+      s.mustLead = null;
+      s.trick = {
+        seat: 1,
+        cards: ["S8", "H8"],
+        combo: { kind: "pair", size: 2, key: 5, len: 1 },
+        n: 7,
+      };
+      s.lastTrick = null;
+      s.tricks = 3;
+      you.legalActions = ["play_cards", "pass"];
+    }
+
+    if (scenario === "leading") {
+      s.hand = ["S3", "H3", "S4", "H4", "C5", "S6", "H7", "C8", "D9", "ST", "HJ", "CQ", "DK", "SA", "S2", "S5"];
+      s.handCounts = [16, 9];
+      s.mustLead = null;
+      s.trick = null;
+      s.lastTrick = {
+        seat: 0,
+        cards: ["SK"],
+        combo: { kind: "single", size: 1, key: 10, len: 1 },
+        n: 12,
+      };
+      s.tricks = 5;
+      s.turnState = { ...turn, phase: "play", currentPlayerId: "preview-0" };
+      you.legalActions = ["play_cards"];
+    }
+  }
+
   if (screen === "aeroplane") {
     if (scenario === "opening") {
       s.planes = [

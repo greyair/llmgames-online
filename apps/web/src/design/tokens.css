@@ -90,6 +90,14 @@
   --palette-aero-green: #79bf86;
   --palette-aero-green-deep: #3f8750;
 
+  /* Run Fast: a pale card table, cream faces and one warm red ink */
+  --palette-pdk-table: #e7e0cf;
+  --palette-pdk-table-deep: #c9c0aa;
+  --palette-pdk-card: #fdfbf4;
+  --palette-pdk-card-edge: #c6bb9f;
+  --palette-pdk-ink: #23201b;
+  --palette-pdk-red: #c04a3a;
+
   /* Reversi: pastel felt, black and white discs */
   --palette-reversi-felt: #7cc79b;
   --palette-reversi-felt-deep: #4da172;

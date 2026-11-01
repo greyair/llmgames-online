@@ -25,6 +25,12 @@
   --game-ink: var(--palette-white);
   --game-2: var(--palette-aero-yellow);
 }
+[data-game="paodekuai"] {
+  /* Card stock is light, so the mark reads as dark pips on it. */
+  --game: var(--palette-pdk-table);
+  --game-ink: var(--palette-pdk-ink);
+  --game-2: var(--palette-pdk-red);
+}
 [data-game="checkers"] {
   --game: var(--palette-walnut);
   --game-ink: var(--palette-ivory);

@@ -94,6 +94,26 @@ export function fixture(type: string): ClientView {
       you: { ...base.you, seat: 0, legalActions: ["roll"] },
     };
 
+  if (type === "paodekuai")
+    return {
+      ...base,
+      seats: { "preview-0": 0, "preview-1": 1 },
+      hand: ["S3", "H3", "S4", "H4", "C5", "S6", "H7", "C8", "D9", "ST", "HJ", "CQ", "DK", "SA", "S2", "S5"],
+      handCounts: [16, 11],
+      handSeat: 0,
+      trick: null,
+      lastTrick: null,
+      mustLead: null,
+      tricks: 3,
+      turnState: {
+        phase: "play",
+        turnNumber: 9,
+        currentPlayerId: "preview-0",
+        turnTimeRemaining: 45000,
+      },
+      you: { ...base.you, seat: 0, legalActions: ["play_cards"] },
+    };
+
   if (type === "checkers") {
     const board = Array.from({ length: 8 }, (_, r) =>
       Array.from({ length: 8 }, (_, c) => ((r + c) % 2 === 0 ? 0 : r < 3 ? 2 : r > 4 ? 1 : 0)),

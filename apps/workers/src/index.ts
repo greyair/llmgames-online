@@ -21,6 +21,8 @@ export { GomokuRoom } from "./durable-objects/GomokuRoom";
 
 export { AeroplaneRoom } from "./durable-objects/AeroplaneRoom";
 
+export { PaodekuaiRoom } from "./durable-objects/PaodekuaiRoom";
+
 export { BroadcastService } from "./broadcast";
 
 export { GameSeries } from "./durable-objects/GameSeries";

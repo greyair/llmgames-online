@@ -9,6 +9,7 @@ import { codenamesPlugin } from "./codenames/plugin";
 import { contextoPlugin } from "./contexto/plugin";
 import { gomokuPlugin } from "./gomoku/plugin";
 import { aeroplanePlugin } from "./aeroplane/plugin";
+import { paodekuaiPlugin } from "./paodekuai/plugin";
 import { pokerPlugin } from "./poker/plugin";
 import { pokemonPlugin } from "./pokemon/plugin";
 import { reversiPlugin } from "./reversi/plugin";
@@ -35,6 +36,7 @@ const PRODUCTION_PLUGINS: readonly ProductionGamePlugin[] = [
   contextoPlugin,
   gomokuPlugin,
   aeroplanePlugin,
+  paodekuaiPlugin,
   pokerPlugin,
   pokemonPlugin,
   reversiPlugin,

@@ -33,6 +33,14 @@ const viewerRoleSchema = z.enum([
   "spectator",
 ]);
 
+/** One play or pass in a card trick. `combo` is null for a pass. */
+export type CardRecord = {
+  seat: number;
+  cards: string[];
+  combo: { kind: string; size: number; key: number; len: number } | null;
+  n: number;
+};
+
 export type ClientView = {
   jev?: {
     available: boolean;
@@ -135,6 +143,15 @@ export type ClientView = {
   roll?: number | null;
   /** Aeroplane: consecutive sixes rolled in this turn. */
   sixes?: number;
+  /** Run Fast: the seat's own hand, and every seat's card count. */
+  hand?: string[];
+  handCounts?: number[];
+  handSeat?: number | null;
+  /** Run Fast: the combination to beat and the one that won the last trick. */
+  trick?: CardRecord | null;
+  lastTrick?: CardRecord | null;
+  mustLead?: string | null;
+  tricks?: number;
   scores?: Partial<Record<1 | 2, number>>;
   legalMoves?: z.output<typeof discMovesSchema> | z.output<typeof checkerMovesSchema>;
   forcedPiece?: { row: number; col: number } | null;
@@ -179,6 +196,17 @@ export type ClientView = {
   progress?: z.output<typeof contextoProgressSchema>;
   secret?: string;
 };
+
+const cardRecordContract = z
+  .object({
+    "seat": z.number(),
+    "cards": z.array(z.string()),
+    "combo": z
+      .object({ "kind": z.string(), "size": z.number(), "key": z.number(), "len": z.number() })
+      .nullable(),
+    "n": z.number(),
+  })
+  .nullable();
 
 const gamePlayerSchema = z
   .object({
@@ -324,6 +352,13 @@ const clientViewContract = z
     "takeoff": z.array(z.number()).optional(),
     "roll": z.union([z.number(), z.null()]).optional(),
     "sixes": z.number().optional(),
+    "hand": z.array(z.string()).optional(),
+    "handCounts": z.array(z.number()).optional(),
+    "handSeat": z.union([z.number(), z.null()]).optional(),
+    "trick": cardRecordContract.optional(),
+    "lastTrick": cardRecordContract.optional(),
+    "mustLead": z.union([z.string(), z.null()]).optional(),
+    "tricks": z.number().optional(),
     "scores": z.object({ "1": z.number().optional(), "2": z.number().optional() }).optional(),
     "legalMoves": z.union([checkerMovesSchema, discMovesSchema]).optional(),
     "forcedPiece": z

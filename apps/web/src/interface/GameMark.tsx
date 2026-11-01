@@ -51,6 +51,22 @@ const glyphs = {
     a: "var(--palette-aero-red)",
     b: "var(--palette-aero-yellow)",
   },
+  paodekuai: {
+    rows: [
+      "..........",
+      "..........",
+      ".##...##..",
+      ".#a#..#b#.",
+      ".#a#..#b#.",
+      ".##...##..",
+      "..........",
+      "..........",
+      "..........",
+      "..........",
+    ],
+    a: "var(--palette-pdk-red)",
+    b: "var(--palette-pdk-ink)",
+  },
   checkers: {
     rows: [
       "..........",

@@ -57,6 +57,17 @@ export interface ProjectionPart {
   takeoff?: unknown;
   roll?: unknown;
   sixes?: unknown;
+  hand?: unknown;
+  handCounts?: unknown;
+  handSeat?: unknown;
+  played?: unknown;
+  toPlay?: unknown;
+  trick?: unknown;
+  lastTrick?: unknown;
+  mustLead?: unknown;
+  passes?: unknown;
+  acts?: unknown;
+  tricks?: unknown;
   scores?: unknown;
   legalMoves?: unknown;
   forcedPiece?: unknown;
@@ -270,6 +281,17 @@ const objectValue = z
     takeoff: z.unknown().optional(),
     roll: z.unknown().optional(),
     sixes: z.unknown().optional(),
+    hand: z.unknown().optional(),
+    handCounts: z.unknown().optional(),
+    handSeat: z.unknown().optional(),
+    played: z.unknown().optional(),
+    toPlay: z.unknown().optional(),
+    trick: z.unknown().optional(),
+    lastTrick: z.unknown().optional(),
+    mustLead: z.unknown().optional(),
+    passes: z.unknown().optional(),
+    acts: z.unknown().optional(),
+    tricks: z.unknown().optional(),
     secret: z.unknown().optional(),
   })
   .loose()

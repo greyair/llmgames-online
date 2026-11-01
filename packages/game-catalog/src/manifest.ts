@@ -108,6 +108,14 @@ export const GAME_MANIFESTS = {
     detail: "Five stones in a row. Fifteen lines to watch.",
     i18n: { game: "game.gomoku" },
   },
+  paodekuai: {
+    id: "paodekuai",
+    title: "Run Fast",
+    players: "2-3",
+    category: "Cards",
+    detail: "Shed sixteen cards first. Beat the shape on the table.",
+    i18n: { game: "game.paodekuai" },
+  },
   contexto: {
     id: "contexto",
     title: "Contexto",

@@ -18,6 +18,7 @@ export const previewScreens = [
   { id: "contexto", name: "Contexto" },
   { id: "gomoku", name: "Gomoku" },
   { id: "aeroplane", name: "Aeroplane Chess" },
+  { id: "paodekuai", name: "Run Fast" },
 ] as const;
 
 const sharedStates = [
@@ -50,6 +51,7 @@ const gameStates = {
   connect4: ["opening", "full-column"],
   gomoku: ["opening", "midgame", "win"],
   aeroplane: ["opening", "midgame", "win"],
+  paodekuai: ["opening", "midgame", "leading"],
   reversi: ["opening", "forced-pass", "endgame"],
   codenames: [
     "clue",

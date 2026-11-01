@@ -19,6 +19,7 @@ export interface Env {
   CONTEXTO_ROOM: DurableObjectNamespace;
   GOMOKU_ROOM: DurableObjectNamespace;
   AEROPLANE_ROOM: DurableObjectNamespace;
+  PAODEKUAI_ROOM: DurableObjectNamespace;
 
   EMAIL?: {
     send(message: {

@@ -8,6 +8,7 @@ import { Discs } from "./Discs";
 import { Checkers } from "./Checkers";
 import { Gomoku } from "./Gomoku";
 import { Aeroplane } from "./Aeroplane";
+import { Paodekuai } from "./Paodekuai";
 import { Battleship } from "./Battleship";
 import { contextoRankStyle } from "./contextoRankStyle";
 import "./final-state.css";
@@ -311,6 +312,13 @@ export function FinalState({
     return (
       <section className="result-board" aria-label={t("match.finalBoard")}>
         <Aeroplane state={final} send={() => {}} />
+      </section>
+    );
+
+  if (state.type === "paodekuai")
+    return (
+      <section className="result-board" aria-label={t("match.finalBoard")}>
+        <Paodekuai state={final} send={() => {}} />
       </section>
     );
 

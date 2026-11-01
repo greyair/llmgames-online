@@ -775,6 +775,36 @@ function Aeroplane() {
   );
 }
 
+function Paodekuai() {
+  const bx = 10,
+    by = 8;
+
+  // Five overlapping cards on a pale table, one turned red for a suit.
+  const faces = [
+    { x: bx, y: by + 8, red: false },
+    { x: bx + 12, y: by + 2, red: true },
+    { x: bx + 24, y: by + 7, red: false },
+    { x: bx + 36, y: by, red: true },
+    { x: bx + 48, y: by + 6, red: false },
+  ];
+
+  return (
+    <>
+      <Glow fill={c("pdk-table")} />
+      <F d={R(bx - 4, by - 2, 72, 58)} fill={c("pdk-table-deep")} />
+      <F d={R(bx - 4, by - 4, 72, 56)} fill={c("pdk-table")} />
+      {faces.map(({ x, y, red }, index) => (
+        <g key={index}>
+          <F d={R(x + 1, y + 1, 14, 40)} fill={c("pdk-card-edge")} />
+          <F d={R(x, y, 14, 40)} fill={c("pdk-card")} />
+          <T d={R(x + 3, y + 4, 4, 6)} fill={c(red ? "pdk-red" : "pdk-ink")} level={12} />
+          <T d={R(x + 3, y + 30, 8, 6)} fill={c(red ? "pdk-red" : "pdk-ink")} level={8} />
+        </g>
+      ))}
+    </>
+  );
+}
+
 const scenes = {
   connect4: Connect4,
   checkers: Checkers,
@@ -786,6 +816,7 @@ const scenes = {
   pokemon: Pokemon,
   gomoku: Gomoku,
   aeroplane: Aeroplane,
+  paodekuai: Paodekuai,
 } satisfies Record<string, () => ReactElement>;
 
 export function GameScene({ id, className }: { id: string; className?: string }) {

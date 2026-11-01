@@ -45,7 +45,8 @@ export type GameTypeId =
   | "poker"
   | "contexto"
   | "gomoku"
-  | "aeroplane";
+  | "aeroplane"
+  | "paodekuai";
 
 /** Absolute lifetime of a game room, measured from room creation. */
 export const ROOM_LIFETIME_MINUTES = 45;
@@ -87,6 +88,7 @@ export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
   poker: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 90 * 60 * 1000 },
   gomoku: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
   aeroplane: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
+  paodekuai: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
 };
 
 /** Largest match length any game accepts; the real cap is per game. */
@@ -184,6 +186,15 @@ export const GAME_INSTRUCTIONS: Readonly<Record<GameTypeId, GameInstructionSpec>
       turnTimer: "The room's configured turn timer applies to each roll and to each plane choice.",
       onTimeout:
         "No roll and no move is made: the dice are discarded, nothing on the board changes and the turn passes to the next seat.",
+    },
+  },
+  paodekuai: {
+    briefing:
+      "Run Fast (跑得快) for 2-3 seats with a 48-card deck (no jokers, no heart/club/diamond 2, no spade ace). Three seats hold 16 cards each and the holder of the spade three leads a first play that must include it; with two seats 16 cards are set aside unseen and seat 0 leads. Ranks run 3 4 5 6 7 8 9 T J Q K A 2 and suits never matter. Your hand ships as card ids like S3 or HT; play with play_cards { cards: [...] } and those same ids, or pass. Shapes: single, pair, triple (only as your last cards), triple with one or two, straight of five or more, two or more consecutive pairs, plane of two or more consecutive triples with the same number of single or pair wings, and bomb (four of a kind). A bomb beats any non-bomb; otherwise you must match the type and card count with a higher key. Passing is always allowed while following and never while leading. The first seat to empty its hand wins.",
+    timers: {
+      turnTimer: "The room's configured turn timer applies to each play or pass.",
+      onTimeout:
+        "A seat that is following passes. A seat that is leading cannot pass, so the server plays its cheapest legal card and play continues.",
     },
   },
   reversi: {
@@ -311,14 +322,14 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
     title: "Add Jev",
     description:
       "Host only, private lobby: add one hosted Jev player to an open seat when the server offers add_jev in legalActions. At most one Jev per room.",
-    games: ["connect4", "pokemon", "reversi", "checkers", "battleship", "poker", "contexto", "gomoku", "aeroplane"],
+    games: ["connect4", "pokemon", "reversi", "checkers", "battleship", "poker", "contexto", "gomoku", "aeroplane", "paodekuai"],
     data: emptyData,
   },
   {
     actionType: "remove_jev",
     title: "Remove Jev",
     description: "Host only, private lobby: remove the hosted Jev player before the game starts.",
-    games: ["connect4", "pokemon", "reversi", "checkers", "battleship", "poker", "contexto", "gomoku", "aeroplane"],
+    games: ["connect4", "pokemon", "reversi", "checkers", "battleship", "poker", "contexto", "gomoku", "aeroplane", "paodekuai"],
     data: emptyData,
   },
   {
@@ -337,6 +348,7 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
       "contexto",
       "gomoku",
       "aeroplane",
+      "paodekuai",
     ],
     data: {
       playerId: {
@@ -362,6 +374,7 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
       "contexto",
       "gomoku",
       "aeroplane",
+      "paodekuai",
     ],
     data: {
       spectating: {
@@ -387,6 +400,7 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
       "contexto",
       "gomoku",
       "aeroplane",
+      "paodekuai",
     ],
     data: {
       playerIds: {
@@ -413,6 +427,7 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
       "contexto",
       "gomoku",
       "aeroplane",
+      "paodekuai",
     ],
     data: emptyData,
   },
@@ -504,6 +519,32 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
         maximum: 14,
       },
     },
+  },
+
+  // ── Run Fast ────────────────────────────────────────────────
+  {
+    actionType: "play_cards",
+    title: "Play cards",
+    description:
+      "Play a legal combination from your hand: a single, a pair, a triple (only as your last cards), triple with one or two, a straight of five or more, consecutive pairs, a plane with wings, or a bomb. While following you must match the type and card count with a higher key unless you play a bomb.",
+    games: ["paodekuai"],
+    aliases: ["play"],
+    data: {
+      cards: {
+        type: "array",
+        description:
+          "Card ids from your hand, e.g. [\"S3\",\"H3\"]; a bare rank such as [\"3\",\"3\"] is also accepted and the server picks the lowest suits",
+        required: true,
+      },
+    },
+  },
+  {
+    actionType: "pass",
+    title: "Pass",
+    description:
+      "Pass while following a trick. Never legal while you are leading, because a leader must play.",
+    games: ["paodekuai"],
+    data: emptyData,
   },
 
   // ── Contexto ────────────────────────────────────────────
@@ -872,6 +913,7 @@ export const KNOWN_GAME_TYPES: readonly GameTypeId[] = [
   "contexto",
   "gomoku",
   "aeroplane",
+  "paodekuai",
 ] as const;
 
 export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
@@ -885,6 +927,7 @@ export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
   contexto: true,
   gomoku: true,
   aeroplane: true,
+  paodekuai: true,
 };
 
 export const ENABLED_GAME_TYPES: readonly GameTypeId[] = KNOWN_GAME_TYPES.filter(
@@ -901,6 +944,10 @@ export function normalizeGameType(raw: string): GameTypeId | string {
       return "aeroplane";
     case "five-in-a-row":
       return "gomoku";
+    case "pao-de-kuai":
+    case "run-fast":
+    case "pdk":
+      return "paodekuai";
     case "connect-4":
       return "connect4";
     case "draughts":

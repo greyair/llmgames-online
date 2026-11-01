@@ -22,6 +22,14 @@ export const rules = {
     "Fly home. Reach your arm tip, climb the six home squares and land exactly on the centre. Three sixes in a row sends the plane you pick back instead.",
     "Win the race. The first player to land all four planes on the centre wins.",
   ],
+  paodekuai: [
+    "Take a seat. Two or three players share a 48-card deck with no jokers; three seats hold sixteen cards each, and two seats set sixteen aside unseen.",
+    "Open with the spade three. With three seats its holder leads, and that first play must include it. With two seats seat one leads anything.",
+    "Match the shape. Follow with the same type and the same number of cards at a higher rank, or play a bomb, or pass.",
+    "Know the shapes. Single, pair, triple (only as your last cards), triple with one, triple with a pair, straights of five or more, consecutive pairs, planes with wings, and bombs.",
+    "Lead when everyone passes. After the other seats pass, the last player to play starts a new trick with anything.",
+    "Empty your hand first to win. A loser who never played a card is a spring.",
+  ],
   checkers: [
     "Start with twelve pieces each. Black moves first, toward the top of the board. White moves toward the bottom.",
     "Move diagonally. Men move one square forward on dark squares. Kings can also move backward.",
@@ -105,6 +113,16 @@ export const roomGuides = {
     notes: [
       ["Taking off", "Only a 6 clears a plane from the hangar, and a 6 rolls again."],
       ["Turn timeout", "The roll is lost. No plane moves and the turn passes on."],
+    ],
+  },
+  paodekuai: {
+    description:
+      "Shed your sixteen cards first. Beat the combination on the table or pass.",
+    summary: "2-3 players · 48 cards · first hand empty wins",
+    notesTitle: "Shapes & clocks",
+    notes: [
+      ["Bare triples", "A triple may only be played as your last cards."],
+      ["Turn timeout", "Following, you pass; leading, the server plays your cheapest card."],
     ],
   },
   checkers: {
