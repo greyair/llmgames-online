@@ -234,3 +234,15 @@ pnpm build:all                          # 6 tasks successful
 - `restores the paused seats after the room restarts`：两个 Bot 都暂停后换一个实例唤醒同一份存储，棋盘不得变化。
 
 计数：`apps/workers` 107 文件 / 955 passed，2 skipped（本报告原为 106 / 949）。
+
+## 12. 复审修正 2：对局内的受控恢复（2026-11-02）
+
+外部复审指出暂停后没有对局内的恢复入口。成立：`remove_rule_bot` 只在 `waiting` 阶段可用，Bot 在中盘停摆后房主只能等超时或结束。
+
+新增：
+
+- 动作 `resume_rule_bot`（房主；可带 `{ playerId }`，缺省恢复第一个暂停的席位）。清掉暂停标记后立即触发一次 Bot 调度，动作本身**不**代替 Bot 决策。
+- **有界**：每个席位每局最多恢复 3 次（`BOT_RESUME_LIMIT`），超出直接拒绝并提示改用移除。原因是结构性停摆（策略看不懂当前合法动作）重试多少次都一样，无限恢复只是带事件的死循环。计数持久化，换局（`start_game`）归零。
+- 可观测：客户端与 Agent 视图新增 `pausedBots: string[]`；浏览器在席位行上显示「已暂停」，房主控件多出一个「恢复机器人」按钮。
+
+用例：暂停后 `legalActions` 出现 `resume_rule_bot` 且 `pausedBots` 有值；连续恢复 3 次后第 4 次被拒；两个 Bot 都暂停时棋盘不动，恢复后一次 alarm 就能继续走。

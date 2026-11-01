@@ -235,3 +235,13 @@ pnpm build:all                          # 6 tasks successful，46 页面
 2. 聊天与回放联动：把 `chat_message` 作为回放时间线上的旁注（需要新的 R2 文档字段，属于独立功能）。
 3. 按游戏配置"是否允许旁观者发言"（当前是房间级、房主可切换）。
 4. 把 `ChatRateLimiter` 的桶状态放到 storage，使跨 isolate 的限流严格连续（当前重启会重置突发额度）。
+
+## 12. 复审修正 2：无游标读取拿到了最旧的一页（2026-11-02）
+
+外部复审指出 `get_room_messages` 首次调用可能看不到最新消息。成立。
+
+原因在房间的 `/agent/chat` 读取分支：无论有没有 `sinceSeq`，它都调 `RoomChatService.read()`。`read()` 的语义是"游标之后的增量"，`sinceSeq` 缺省被归一成 0，于是从第 1 条开始取 `limit` 条——房间聊到第 100 条时，AI 第一次读拿到的是 1–50，最新那条 @ 根本不在里面。工具说明写的却是"省略游标读取最新消息"。
+
+修复：无游标走 `recent(limit)`（和 socket 连上时收到的窗口一致，取最新一页），有游标才走 `read()`。两条路径的 `hasMore`/`cursor` 语义不变。
+
+用例：`answers a read without a cursor with the newest messages`（3 条消息、`limit=2` → 必须是 `[2, 3]`；未修时是 `[1, 2]`）。原来那条 `bounds a read and reports that more remains` 改成显式传 `sinceSeq=0`，因为它测的是"从游标起的有界分页"，不该依赖无游标的语义。

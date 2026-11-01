@@ -198,3 +198,16 @@ docs/PLATFORM-EXTENSIONS-FINAL.md   ← 本文件
 修复后门禁：`apps/workers` 107 文件 / 955 passed（2 skipped），`pnpm lint` 通过，`build:all` 46 页。三条回归用例都先确认过"去掉修复就会失败"，不是补一条永远为真的断言。
 
 另外记一条复审没提的：`GAME_OPTIONS` 的可选值 13/19 路在服务端可用，但前端棋盘几何写死 9 路（`VIEW = 8*CELL + 2*MARGIN`），第 9 列之后画在画布外——已在 `e0e1e89` 修掉并补了 `goGeometry` 单测。
+
+## 9. 第二轮复审（2026-11-02）
+
+| 级别 | 问题 | 复核结论 | 处置 |
+| --- | --- | --- | --- |
+| P1 | `get_room_messages` 首次调用（不传游标）可能看不到最新消息 | **成立**。房间读取分支无条件调 `read()`，无游标被归一成 0，返回最旧一页 | 已修：无游标走 `recent(limit)` |
+| P1 | Bot 暂停后没有对局内恢复入口 | **成立**。`remove_rule_bot` 只在 `waiting` 可用 | 已修：新增 `resume_rule_bot`，每席每局 3 次上限，`pausedBots` 投影 + 房主按钮 |
+| P2 | Sandbox 只排除 production，其他层级默认开放 | **成立**。共享 staging 一旦打开 flag 就等于公开调试接口 | 已修：改为显式白名单（development / test） |
+| P2 | `play_1v1` 提示"Never … chat mid-game"与允许 `send_room_message` 冲突 | **成立** | 已修：改成禁止在主会话解说，并明确房间聊天是另一条通道 |
+
+四个修复都带回归用例，且先验证过"去掉修复就会失败"（聊天那条未修时返回 `[1, 2]` 而不是 `[2, 3]`）。
+
+仍开放（与本轮无关）：系列赛不继承 `options`、大富翁轮数语义、聊天失败后不保留草稿、沙盒种子/回放/Fixture/Rich-Compact 对照。

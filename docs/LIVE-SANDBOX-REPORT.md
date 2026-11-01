@@ -199,3 +199,11 @@ open http://localhost:3000/dev/sandbox
 - 生产部署下该路由根本不存在。
 
 仍未做（原计划的"暂缓"项）：固定种子、动作脚本重放、Fixture 导出、Agent Rich/Compact 对照。这些是功能，不是缺口。
+
+## 11. 复审修正 2：闸门改成显式白名单（2026-11-02）
+
+原来 `sandboxEnabled()` 的条件是"`ENVIRONMENT` 不是 production"。这意味着任何**非生产**部署——比如共享 staging——只要有人把 `SANDBOX_ENABLED` 设成 `"true"`，调试接口就对整个互联网开放：谁都能建房间、读投影、替席位行动，不需要登录。
+
+改成白名单：只有 `development` 与 `test` 两个取值放行。未列出的层级（staging、preview、空值）一律关闭，无论 flag 怎么写。共享环境如果将来需要沙盒，先给它自己的访问控制，再把名字加进 `SANDBOX_ENVIRONMENTS`。
+
+用例：`is off on any tier that is not explicitly listed`（staging / preview / 空 / 未设）与 `is on only for the local tiers`（development / test）。
