@@ -445,6 +445,41 @@
   box-shadow: none;
   border-radius: var(--radius-xs);
 }
+/* Rule bot row (C4): same shape as the Jev row, monochrome icon. */
+.lobby-bot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  flex-wrap: wrap;
+  padding: var(--space-16) var(--space-16) var(--space-16) var(--space-24);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.lobby-bot > div:first-child {
+  min-width: 0;
+  flex: 1 1 280px;
+}
+.lobby-bot > div > strong {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  font-size: var(--type-lead);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+.lobby-bot p {
+  margin: var(--space-4) var(--space-0) var(--space-0);
+  font-size: var(--type-small);
+  line-height: var(--leading-body);
+  color: var(--text-muted);
+}
+.lobby-bot-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
 .lobby-webhooks {
   flex-direction: column;
   align-items: stretch;

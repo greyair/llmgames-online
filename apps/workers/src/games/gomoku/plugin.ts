@@ -13,6 +13,7 @@ import {
   isGomokuPointOnBoard,
 } from "./rules";
 import { gomokuAgentDecision } from "./agent";
+import { gomokuRuleBot } from "./bot";
 
 const DEFAULT_MATCH_MS = ROOM_LIFETIME_MS;
 
@@ -208,4 +209,7 @@ export const gomokuPlugin: GamePlugin<GomokuGameState, "gomoku"> = {
   },
 
   agentDecision: gomokuAgentDecision,
+
+  /** Free, deterministic seat (C4): win, block, then shape near the centre. */
+  ruleBot: gomokuRuleBot,
 };

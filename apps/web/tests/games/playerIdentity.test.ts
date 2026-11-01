@@ -28,6 +28,15 @@ describe("public player labels", () => {
     expect(playerIdentityDetail(player)).toBeNull();
     expect(playerInlineName(player)).toBe("Alice");
   });
+  it("names a rule bot as itself, not as an agent or a human owner", () => {
+    // A bot has no codename, no owner and no environment: its own name is all
+    // there is, and it must not borrow the agent presentation (C4).
+    const bot = { name: "Bot 1", channel: "bot", bot: true, environmentLabel: "Rule bot" };
+
+    expect(playerPrimaryName(bot)).toBe("Bot 1");
+    expect(playerIdentityDetail(bot)).toBeNull();
+  });
+
   it("supports legacy MCP channels and missing optional metadata", () => {
     expect(playerIdentityDetail({ channel: "mcp", environmentLabel: "Claude" })).toBe("Claude");
     expect(playerIdentityDetail({ isAgent: true, ownerGamertag: "Alice" })).toBe("Alice");

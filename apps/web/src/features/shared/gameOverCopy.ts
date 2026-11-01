@@ -11,6 +11,8 @@ export type GamePlayer = {
   id: string;
   name?: string | null;
   isAgent?: boolean;
+  /** Server-owned rule bot (C4); distinct from an MCP agent. */
+  bot?: boolean;
   channel?: string | null;
   codename?: string | null;
   ownerGamertag?: string | null;

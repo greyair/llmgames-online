@@ -317,6 +317,7 @@ export function LobbySetup({
         <PlayerName className="lobby-member-name" player={member} />
         <span className="lobby-tags">
           {isHost && <span className="lobby-tag">{t("lobby.host")}</span>}
+          {member.bot && <span className="lobby-tag">{t("lobby.botTag")}</span>}
           {member.id === me && <span className="lobby-tag lobby-you">{t("lobby.you")}</span>}
         </span>
         <span className="lobby-grip" aria-hidden="true">
@@ -427,6 +428,12 @@ export function LobbySetup({
         : unassigned
           ? t("lobby.syncing")
           : t("lobby.ready");
+
+  // The server owns this answer: a game without a rule bot simply never offers
+  // the action, so the lobby needs no per-game table (C4).
+  const legalActions = state.you?.legalActions ?? [];
+  const canAddBot = host && allowed && legalActions.includes("add_rule_bot");
+  const canRemoveBot = host && allowed && legalActions.includes("remove_rule_bot");
 
   const jevCanAdd = Boolean(jevAccess && (jevAccess.connected || jevAccess.trialAvailable));
 
@@ -541,6 +548,27 @@ export function LobbySetup({
               >
                 {t("board.lobby.connectAccount")} <Icon name="arrowUpRight" size={18} />
               </ButtonLink>
+            )}
+          </div>
+        </div>
+      )}
+      {host && (canAddBot || canRemoveBot) && (
+        <div className="lobby-bot">
+          <div>
+            <strong>
+              <Icon name="spark" size={20} /> {t("lobby.ruleBot")}
+            </strong>
+            <p>{t("lobby.ruleBotHelp")}</p>
+          </div>
+          <div className="lobby-bot-actions">
+            {canRemoveBot ? (
+              <Button size="sm" variant="secondary" onClick={() => request("remove_rule_bot")}>
+                {t("lobby.removeBot")}
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => request("add_rule_bot")}>
+                {t("lobby.addBot")}
+              </Button>
             )}
           </div>
         </div>

@@ -88,6 +88,41 @@ export interface GameViewerContext {
   isSpectator: boolean;
 }
 
+/**
+ * What a rule bot may see when choosing (C4).
+ *
+ * `view` is the same recipient projection the human gets — for the games that
+ * ship a bot it is public information, and a game with hidden state simply has
+ * no `ruleBot`. The bot therefore cannot read a rival's hand by construction,
+ * even though it runs inside the room.
+ */
+export interface RuleBotDecisionView {
+  readonly gameType: string;
+  /** The bot's own room seat id, so it can find its colour or seat index. */
+  readonly playerId: string;
+  readonly phase: string;
+  /** Actions this seat may send right now, as the platform lists them. */
+  readonly legalActions: readonly string[];
+  /** This seat's own projected state. */
+  readonly view: WireObject;
+}
+
+/**
+ * Deterministic, model-free play (C4).
+ *
+ * A rule bot is only a *policy*: the platform owns the seat, the turn order,
+ * the validation, the log and the replay. A strategy may be slow-ish but must
+ * be pure — no storage, no clocks, no network — so a decision is reproducible.
+ */
+export interface RuleBotStrategy {
+  readonly id: string;
+  /**
+   * One intent for the current decision, or `null` when the strategy cannot
+   * find a legal move. `null` pauses the bot instead of guessing.
+   */
+  chooseAction(view: RuleBotDecisionView): GameIntent | null;
+}
+
 /** Nominal id used for diagnostics and registry lookups. */
 export type GamePluginId = GameTypeId;
 
@@ -205,4 +240,13 @@ export interface GamePlugin<TState extends BaseGameState, TId extends string = G
    * cannot quietly reach one and miss the other.
    */
   agentDecision?: AgentDecisionFields;
+
+  /**
+   * Optional deterministic policy so this game can seat a free rule bot.
+   *
+   * A game without one simply cannot add a bot; the lobby hides the action and
+   * the platform refuses it, rather than silently seating something that never
+   * moves.
+   */
+  ruleBot?: RuleBotStrategy;
 }

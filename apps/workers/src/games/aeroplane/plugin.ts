@@ -27,6 +27,7 @@ import {
   type AeroplaneChoice,
 } from "./rules";
 import { aeroplaneAgentDecision } from "./agent";
+import { aeroplaneRuleBot } from "./bot";
 
 const DEFAULT_MATCH_MS = ROOM_LIFETIME_MS;
 
@@ -213,6 +214,9 @@ export const aeroplanePlugin: GamePlugin<AeroplaneGameState, "aeroplane"> = {
   },
 
   agentDecision: aeroplaneAgentDecision,
+
+  /** Free, deterministic seat (C4). */
+  ruleBot: aeroplaneRuleBot,
 };
 
 /** One die roll: 1-6 from the platform CSPRNG, never from Math.random. */

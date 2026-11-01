@@ -104,7 +104,7 @@ export interface AgentRoomMember {
   playerId: string;
   role: "player" | "spectator";
   isHost: boolean;
-  seatKind: "agent" | "human";
+  seatKind: "agent" | "human" | "bot";
   username?: string;
   agentName?: string;
   environmentLabel?: string;

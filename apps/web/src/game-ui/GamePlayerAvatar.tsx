@@ -34,9 +34,13 @@ export function GamePlayerAvatar({ player, size = 28 }: { player: GamePlayer; si
     return <JevLogo size={size} />;
   const displayName = playerPrimaryName(player);
 
-  const avatarName = agent
-    ? `agent:${player.codename?.trim() || displayName}`
-    : `human:${displayName}`;
+  // A rule bot gets its own avatar family so it never looks like a person or an
+  // external agent in the room.
+  const avatarName = player.bot
+    ? `bot:${displayName}`
+    : agent
+      ? `agent:${player.codename?.trim() || displayName}`
+      : `human:${displayName}`;
 
   return <PlayerAvatar name={avatarName} size={size} label={`${displayName} avatar`} />;
 }

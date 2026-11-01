@@ -34,7 +34,7 @@ import type {
   YouContext,
 } from "./types";
 import { channelLabel, generateUniqueCodename, isCodenameFormat } from "../lib/codenames";
-import { randomInt } from "../lib/csprng";
+import { randomId, randomInt } from "../lib/csprng";
 import {
   activateRoomCode,
   extendRoomCode,
@@ -69,7 +69,7 @@ import {
   type ActionRejection,
   type StartGameProblem,
 } from "./actionErrors";
-import type { GameEffect, GamePlugin } from "../games/contract";
+import type { GameEffect, GameIntent, GamePlugin, RuleBotStrategy } from "../games/contract";
 import { compactState } from "../games/agent-decision";
 import { gamePluginFor } from "../games/registry";
 import { RoomChatService } from "./chat/RoomChatService";
@@ -108,6 +108,18 @@ export const ACTION_RESULT_TTL_MS = 5 * 60_000;
 
 /** Bounded per-room memory of acknowledged requests (oldest entries are dropped). */
 export const ACTION_RESULT_MEMORY = 64;
+
+/**
+ * One alarm may advance rule bots this many times before re-arming (C4).
+ *
+ * A bot turn is a full `dispatchAction`: rules, storage write, broadcast. Eight
+ * of those is a normal burst (a card game passing around the table) and still a
+ * bounded amount of CPU for one wake-up.
+ */
+export const BOT_MAX_STEPS_PER_TICK = 8;
+
+/** Re-arm delay when a bot burst ended with another bot still to move. */
+export const BOT_WAKE_MS = 150;
 
 /** Durable copy of acknowledged requests, written with the game state. */
 const ACKED_ACTION_KEY = "ackedActionRecords";
@@ -485,6 +497,27 @@ const PLATFORM_AGENT_KEYS: ReadonlySet<string> = new Set([
   "series",
 ]);
 
+/**
+ * Platform actions a bot never sends (C4).
+ *
+ * A strategy chooses game intents; leaving, ending the match or re-arranging
+ * seats belongs to the host, not to a policy.
+ */
+const BOT_NON_DECISIONS: ReadonlySet<string> = new Set([
+  "leave",
+  "end_game",
+  "start_game",
+  "kick_player",
+  "move_player_to_spectator",
+  "set_player_seats",
+  "set_host_spectating",
+  "add_jev",
+  "remove_jev",
+  "set_spectator_chat",
+  "add_rule_bot",
+  "remove_rule_bot",
+]);
+
 /** Whitelist of fields consumed by the generic MCP projection compactor. */
 const agentProjectionSourceSchema = z
   .object({
@@ -670,6 +703,15 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    */
   private sandboxMode = false;
 
+  /** A bot burst is running; nested calls from `dispatchAction` return at once. */
+  private botRunning = false;
+
+  /**
+   * Seats whose strategy failed. Persisted nowhere on purpose: a paused bot is
+   * a diagnostic state, and the durable `bot_stalled` event records why.
+   */
+  private botPaused = new Set<string>();
+
   /**
    * Initializes the Durable Object and restores persisted game state.
    * If the stored game was in progress, timers are restarted immediately.
@@ -821,6 +863,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (this.gameState.status === "playing") {
         await this.runTimerTick();
         await this.runJevDecision();
+        await this.advanceRuleBots();
       }
 
       await this.scheduleNextRoomAlarm();
@@ -3158,6 +3201,221 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     });
   }
 
+  // ─── Rule bots (C4) ──────────────────────────────────────────
+
+  /** The game's deterministic policy, or null when it ships none. */
+  private botStrategy(): RuleBotStrategy | null {
+    return this.gameRules()?.ruleBot ?? null;
+  }
+
+  /**
+   * The bot seat whose decision is due, or null.
+   *
+   * Only a real bot seat that is *actually* to move counts, so a paused bot, a
+   * finished match or a human decision never advances anything.
+   */
+  private currentBotSeat(): BasePlayerInfo | null {
+    const state = this.gameState;
+
+    if (!state || state.status !== "playing") return null;
+
+    if (!this.botStrategy()) return null;
+
+    if (this.botPaused.size > 0 && state.players.every((p) => !p.bot || this.botPaused.has(p.id)))
+      return null;
+
+    for (const player of state.players) {
+      if (!player.bot || this.botPaused.has(player.id)) continue;
+
+      if (this.isYourTurn(player.id)) return player;
+    }
+
+    return null;
+  }
+
+  /** A synthetic seat for dispatching a bot intent through the normal path. */
+  private botPlayer(seat: BasePlayerInfo): Player {
+    return {
+      id: seat.id,
+      name: seat.name,
+      socket: null,
+      isConnected: true,
+      joinedAt: Date.now(),
+      channel: "bot",
+      bot: true,
+      isSpectator: false,
+    };
+  }
+
+  /** Ask the game's policy for one intent, over this seat's own projection. */
+  private botIntent(strategy: RuleBotStrategy, seat: BasePlayerInfo): GameIntent | null {
+    if (!this.gameState) return null;
+
+    const clientView = this.buildClientView(seat.id);
+    const view = clientView ? this.asProjectionPart(clientView) : null;
+
+    if (!view) return null;
+
+    const legalActions = this.getLegalActions(seat.id).filter(
+      (action) => !BOT_NON_DECISIONS.has(action),
+    );
+
+    try {
+      return strategy.chooseAction({
+        gameType: this.gameState.type,
+        playerId: seat.id,
+        phase: this.gameState.turnState.phase,
+        legalActions,
+        view,
+      });
+    } catch (error) {
+      console.error(`${this.roomLabel}: rule bot failed`, error);
+
+      return null;
+    }
+  }
+
+  /**
+   * Advance bot decisions until a human is to move.
+   *
+   * Bounded on purpose: at most {@link BOT_MAX_STEPS_PER_TICK} actions per call,
+   * each one a normal `dispatchAction`. If the table is still on a bot the room
+   * re-arms its alarm instead of looping, so a bot-vs-bot match cannot hold a
+   * request open indefinitely.
+   */
+  private async advanceRuleBots(): Promise<void> {
+    if (this.botRunning) return;
+
+    const strategy = this.botStrategy();
+
+    if (!strategy || !this.gameState) return;
+
+    this.botRunning = true;
+
+    try {
+      for (let step = 0; step < BOT_MAX_STEPS_PER_TICK; step++) {
+        if (this.gameState?.status !== "playing") return;
+
+        if (!this.currentBotSeat()) return;
+
+        // A game that shows a finished hand before the next decision owns this
+        // gate; the bot waits for it exactly like a human seat does.
+        if (Date.now() < this.agentDecisionReadyAt()) {
+          await this.state.storage.setAlarm(Date.now() + BOT_WAKE_MS);
+
+          return;
+        }
+
+        const seat = this.currentBotSeat();
+
+        if (!seat) return;
+
+        const intent = this.botIntent(strategy, seat);
+
+        if (!intent) {
+          await this.pauseBot(seat, "no_move");
+
+          return;
+        }
+
+        const requestId = `bot:${this.gameState.turnState.turnNumber}:${this.gameState.turnState.startedAt}`;
+
+        const rejection = await this.dispatchAction(this.botPlayer(seat), intent, false, {
+          playerId: seat.id,
+          requestId,
+          fingerprint: actionFingerprint(intent.actionType, intent.data),
+        });
+
+        if (rejection) {
+          await this.pauseBot(seat, rejection.code);
+
+          return;
+        }
+      }
+
+      if (this.currentBotSeat()) await this.state.storage.setAlarm(Date.now() + BOT_WAKE_MS);
+    } finally {
+      this.botRunning = false;
+    }
+  }
+
+  /**
+   * Stop a bot that cannot move, and say why.
+   *
+   * The room stays playable: the match keeps its turn and the clock, the host
+   * can remove the seat, and the reason is in the durable event log instead of
+   * being retried forever.
+   */
+  private async pauseBot(seat: BasePlayerInfo, reason: string): Promise<void> {
+    if (this.botPaused.has(seat.id)) return;
+
+    this.botPaused.add(seat.id);
+    logEvent("bot_stalled", { roomType: this.gameState?.type, reason });
+    this.recordEvent("bot_stalled", { playerId: seat.id, name: seat.name, reason });
+    this.broadcastState();
+  }
+
+  /** Host action: seat one rule bot when the game ships a policy. */
+  private async addRuleBot(): Promise<string | void> {
+    const state = this.gameState;
+
+    if (!state) return "No game state";
+
+    if (state.status !== "waiting") return "Bots can only be added before the match starts";
+
+    if (state.series) return "Series participants are fixed for this match";
+
+    if (!this.botStrategy()) return `${state.type} has no rule bot`;
+
+    if (state.players.length >= state.maxPlayers) return "No player seat is available";
+
+    const names = new Set(state.players.map((player) => player.name));
+
+    let index = 1;
+
+    while (names.has(`Bot ${index}`)) index += 1;
+
+    state.players.push({
+      id: randomId(),
+      name: `Bot ${index}`,
+      channel: "bot",
+      bot: true,
+      environmentLabel: "Rule bot",
+    });
+    state.updatedAt = Date.now();
+
+    await this.saveState();
+    this.broadcastState();
+
+    return;
+  }
+
+  /** Host action: remove every rule bot seat from the lobby. */
+  private async removeRuleBots(): Promise<string | void> {
+    const state = this.gameState;
+
+    if (!state) return "No game state";
+
+    if (state.status !== "waiting") return "Bots can only be removed before the match starts";
+
+    const bots = state.players.filter((player) => player.bot);
+
+    if (bots.length === 0) return "There is no rule bot in this room";
+
+    for (const bot of bots) this.botPaused.delete(bot.id);
+
+    state.players = state.players.filter((player) => !player.bot);
+    state.updatedAt = Date.now();
+
+    if (!state.players.some((player) => player.id === state.hostId))
+      return "The host cannot be a rule bot";
+
+    await this.saveState();
+    this.broadcastState();
+
+    return;
+  }
+
   // ─── Room chat (C1) ───────────────────────────────────────────
 
   /**
@@ -3684,6 +3942,8 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     // The finished state and its receipt are on disk now, so the terminal
     // projection describes something a restart can still reproduce.
     this.deliverPendingMatchEnd();
+    // A bot's move is a normal action, so the next bot decision follows it here.
+    await this.advanceRuleBots();
   }
 
   /**
@@ -3734,6 +3994,8 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       [
         "add_jev",
         "remove_jev",
+        "add_rule_bot",
+        "remove_rule_bot",
         "kick_player",
         "move_player_to_spectator",
         "set_host_spectating",
@@ -3824,6 +4086,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
         return (await this.setPlayerSeats(playerIds)) ?? true;
       }
+
+      case "add_rule_bot":
+        if (this.gameState.hostId !== player.id) return "Only the host can add a rule bot";
+
+        return (await this.addRuleBot()) ?? true;
+
+      case "remove_rule_bot":
+        if (this.gameState.hostId !== player.id) return "Only the host can remove a rule bot";
+
+        return (await this.removeRuleBots()) ?? true;
 
       case "set_spectator_chat": {
         if (this.gameState.hostId !== player.id) return "Only the host can change spectator chat";
@@ -4133,7 +4405,17 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     return value.map((entry) => {
       const player = this.asProjectionPart(entry);
 
-      return player ? this.definedAgentFields({ id: player.id, name: player.name }) : entry;
+      if (!player) return entry;
+
+      const seat = this.gameState?.players.find((member) => member.id === player.id);
+
+      // A rule bot is marked so a model knows this seat will not answer chat
+      // and does not need an invitation or a controller (C4).
+      return this.definedAgentFields({
+        id: player.id,
+        name: player.name,
+        bot: seat?.bot === true ? true : undefined,
+      });
     });
   }
 
@@ -4146,7 +4428,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         playerId: member.id,
         role,
         isHost: member.id === this.gameState?.hostId,
-        seatKind: member.isAgent ? "agent" : "human",
+        seatKind: member.bot ? "bot" : member.isAgent ? "agent" : "human",
         username: member.ownerGamertag ?? (member.isAgent ? undefined : member.name),
         agentName: member.isAgent ? (member.codename ?? member.name) : undefined,
         environmentLabel: member.isAgent ? member.environmentLabel : undefined,
@@ -4251,6 +4533,14 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           if (this.jevMember()) actions.push("remove_jev");
           else if (this.gameState.players.length < this.gameState.maxPlayers)
             actions.push("add_jev");
+        }
+
+        // A rule bot is free and model-less, so it needs no provider key (C4).
+        if (this.botStrategy()) {
+          if (this.gameState.players.some((player) => player.bot)) actions.push("remove_rule_bot");
+
+          if (this.gameState.players.length < this.gameState.maxPlayers)
+            actions.push("add_rule_bot");
         }
       }
 
@@ -4425,6 +4715,8 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     }
 
     this.broadcastProjected("game_started");
+    // A room whose first seat is a bot must move without waiting for a socket.
+    await this.advanceRuleBots();
   }
 
   /**

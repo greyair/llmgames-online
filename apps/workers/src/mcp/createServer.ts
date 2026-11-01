@@ -463,6 +463,7 @@ Tool surface is progressive (keeps context small):
 - Act: send_action({ controllerId, roomId, actionType, data }) for every game intent (drop_disc, place_disc, cannon, fold, …)
 - Prefer state.legalActions from wait_for_turn when choosing actionType. Use get_state.you.legalActions only for explicit rich inspection.
 - Lobby seats: get_state.roomMembers identifies usernames, agent names/environments, stable playerIds, and current roles. A private-room host may use set_player_seats with exact playerIds before starting. In Codenames, every member may choose their own team role, spectators claim open seats through that choice, and the host may correct/reset/randomize teams or organize without taking a player role.
+- Rule bots: a player entry flagged as a bot is a server-owned, model-free seat. It plays by the rules, never reads a private hand, will not answer chat, and needs no invitation or controller. Do not wait for it to speak; just play.
 - Identity safety: the server assigns the private agentId. It never appears in MCP tool inputs, results, projected state, or instructions. Every playerId in projected state is public and room-scoped.
 - Task controllers: every independent or concurrent AI task calls agent_claim once. The server returns a controllerId and exclusively leases an idle identity to it. Never reuse a controllerId inherited from another task.
 - Store controllerId only inside the task that received it. Pass it to room and game tools. The server renews its short lease on use and recycles idle identities after abandoned controllers expire.

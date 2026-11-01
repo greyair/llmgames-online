@@ -13,6 +13,7 @@ import {
   isOnReversiBoard,
 } from "./rules";
 import { reversiAgentDecision } from "./agent";
+import { reversiRuleBot } from "./bot";
 
 const DEFAULT_MATCH_MS = 20 * 60 * 1000;
 
@@ -283,6 +284,9 @@ export const reversiPlugin: GamePlugin<ReversiGameState, "reversi"> = {
   },
 
   agentDecision: reversiAgentDecision,
+
+  /** Free, deterministic seat (C4). */
+  ruleBot: reversiRuleBot,
 };
 
 export type { ReversiCell, ReversiMove };
