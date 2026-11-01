@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import type { Env, Variables } from "../../types";
 import { mcpRoutes } from "../../api/mcp";
+import aiSpec from "../../../../web/src/interface/content/ai-spec.json";
 
 function unauthenticatedRoutes() {
   const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -56,6 +57,13 @@ describe("MCP HTTP boundary", () => {
     expect(body.tools.core).not.toContain("agent_delete");
     expect(body.tools.core).not.toContain("ranked_matchmaking");
     expect(body.tools.core).not.toContain("ranked_leaderboard");
+
+    // This list is written by hand, so it drifted once: chat shipped as two
+    // real tools but discovery kept advertising seventeen. The generated spec
+    // comes from the server itself, which makes it the honest comparison.
+    const published = aiSpec.mcp.tools.map((tool) => tool.name);
+
+    expect([...body.tools.core].sort()).toEqual([...published].sort());
     expect(body.agents.model).toContain("controllerId");
     expect(body.agents.credentialPrivacy).toContain("agentId stays server-side");
   });

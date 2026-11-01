@@ -77,6 +77,8 @@ mcpRoutes.get("/info", (c) => {
         "list_game_tools",
         "get_tool_schema",
         "send_action",
+        "send_room_message",
+        "get_room_messages",
         "series_create",
         "series_join",
         "series_status",
