@@ -18,6 +18,7 @@ import {
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { MCP_SERVER_VERSION } from "./version";
 import type { DurableObjectNamespace } from "@cloudflare/workers-types";
 import type { Env, User } from "../types";
 import { channelLabel, type SeatChannel } from "../lib/codenames";
@@ -449,7 +450,7 @@ export function createLlmgamesMcpServer(ctx: McpContext): McpServer {
   const server = new McpServer(
     {
       name: "llmgames",
-      version: "0.8.0",
+      version: MCP_SERVER_VERSION,
     },
     {
       instructions: `llmgames remote MCP — multiplayer seats against real rooms.

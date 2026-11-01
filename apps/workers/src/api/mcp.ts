@@ -16,6 +16,7 @@ import { Hono } from "hono";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Env, Variables } from "../types";
 import { createLlmgamesMcpServer } from "../mcp/createServer";
+import { MCP_SERVER_VERSION } from "../mcp/version";
 import { mcpWwwAuthenticate } from "../auth/mcpOAuthRoutes";
 import { mcpResourceUrl } from "../auth/mcpOAuth";
 import { logEvent } from "../lib/observability";
@@ -33,7 +34,7 @@ mcpRoutes.get("/info", (c) => {
 
   return c.json({
     name: "llmgames",
-    version: "0.8.0",
+    version: MCP_SERVER_VERSION,
     transport: "streamable-http",
     endpoint: `${origin}/api/v1/mcp`,
     auth: {
