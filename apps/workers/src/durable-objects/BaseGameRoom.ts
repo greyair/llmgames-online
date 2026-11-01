@@ -80,6 +80,7 @@ import {
   type RoomChatEntry,
 } from "./chat/chatTypes";
 import { normalizeChatLimit } from "./chat/chatValidation";
+import { sandboxEnabled, SANDBOX_MAX_SEATS } from "../lib/sandbox";
 
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -660,6 +661,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   private roomChat: RoomChatService | null = null;
 
   /**
+   * This room was created as a Live Sandbox room (C3).
+   *
+   * A sandbox room may be driven seat-by-seat through `/sandbox/*`. The flag is
+   * only ever set by `/create` on a deployment where {@link sandboxEnabled}
+   * holds, and every sandbox request re-checks that gate — so a production
+   * isolate can neither set it nor use it.
+   */
+  private sandboxMode = false;
+
+  /**
    * Initializes the Durable Object and restores persisted game state.
    * If the stored game was in progress, timers are restarted immediately.
    *
@@ -679,11 +690,15 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    */
   private async restorePersistedRoom(): Promise<void> {
     try {
-      const [stored, lastMeaningfulActivityAt, legacyLobbyLastActiveAt] = await Promise.all([
-        this.state.storage.get<TState>("gameState"),
-        this.state.storage.get<number>("lastMeaningfulActivityAt"),
-        this.state.storage.get<number>("lobbyLastActiveAt"),
-      ]);
+      const [stored, lastMeaningfulActivityAt, legacyLobbyLastActiveAt, sandboxMode] =
+        await Promise.all([
+          this.state.storage.get<TState>("gameState"),
+          this.state.storage.get<number>("lastMeaningfulActivityAt"),
+          this.state.storage.get<number>("lobbyLastActiveAt"),
+          this.state.storage.get<boolean>("sandboxMode"),
+        ]);
+
+      this.sandboxMode = sandboxMode === true;
 
       this.lastMeaningfulActivityAt = lastMeaningfulActivityAt ?? legacyLobbyLastActiveAt ?? 0;
 
@@ -998,6 +1013,24 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     if (request.headers.get("Upgrade") === "websocket") {
       return this.handleWebSocketUpgrade(request, url);
+    }
+
+    if (url.pathname.includes("/sandbox/")) {
+      if (!this.sandboxAllowed()) return this.jsonResponse(null, 404);
+
+      if (url.pathname.endsWith("/sandbox/seed") && request.method === "POST") {
+        return this.handleSandboxSeed(request);
+      }
+
+      if (url.pathname.endsWith("/sandbox/view") && request.method === "GET") {
+        return this.handleSandboxView(url);
+      }
+
+      if (url.pathname.endsWith("/sandbox/events") && request.method === "GET") {
+        return this.handleSandboxEvents(url);
+      }
+
+      return this.jsonResponse(null, 404);
     }
 
     // Agent HTTP first — paths like /agent/join must not match endsWith("/join")
@@ -2332,10 +2365,20 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         return this.jsonResponse({ error: "Room code already exists" }, 409);
       }
 
-      const parsedConfig = parseRoomCreationConfig(await request.json(), this.roomGameType());
+      const body = await request.json();
+      const parsedConfig = parseRoomCreationConfig(body, this.roomGameType());
 
       if (!parsedConfig.ok) {
         return this.jsonResponse({ error: parsedConfig.error }, 400);
+      }
+
+      // A sandbox room is created only where the sandbox itself is allowed, so
+      // a production deployment cannot be talked into making one.
+      const wantsSandbox =
+        isObjectValue(body) && objectValue(body, "sandbox") === true;
+
+      if (wantsSandbox && !sandboxEnabled(this.env)) {
+        return this.jsonResponse({ error: "Sandbox is unavailable" }, 404);
       }
 
       const config = parsedConfig.config;
@@ -2343,6 +2386,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
       this.gameState = this.createDefaultState(config, roomCode);
       this.applyRoomOptions(config);
+      this.sandboxMode = wantsSandbox;
+
+      if (wantsSandbox) await this.state.storage.put("sandboxMode", true);
+
       await this.saveCreatedStateAndScheduleExpiry(this.gameState.createdAt);
 
       return new Response(
@@ -3010,6 +3057,105 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         payload: { userId: player.id, name: player.name },
       });
     }
+  }
+
+  // ─── Live sandbox (C3) ───────────────────────────────────────
+
+  /** Sandbox endpoints answer only on a sandbox room in a sandbox deployment. */
+  private sandboxAllowed(): boolean {
+    return this.sandboxMode && sandboxEnabled(this.env);
+  }
+
+  /**
+   * `POST /sandbox/seed` — seat the demo players.
+   *
+   * This is the only privileged thing the sandbox adds: choosing who is in the
+   * room. Acting as a seat afterwards uses the ordinary `/agent/action` and the
+   * ordinary projected view, so no second impersonation path exists.
+   */
+  private async handleSandboxSeed(request: Request): Promise<Response> {
+    try {
+      const input = wireValueSchema.parse(await request.json());
+      const raw = isObjectValue(input) ? input : null;
+      const seats = raw ? objectValue(raw, "seats") : undefined;
+      const watchers = raw ? objectValue(raw, "spectators") : undefined;
+
+      if (!this.gameState || !Array.isArray(seats) || seats.length === 0)
+        return this.jsonResponse({ error: "seats required" }, 400);
+
+      if (seats.length > SANDBOX_MAX_SEATS)
+        return this.jsonResponse({ error: "Too many seats" }, 400);
+
+      if (this.gameState.status !== "waiting")
+        return this.jsonResponse({ error: "Seats are fixed once the match starts" }, 409);
+
+      const members: BasePlayerInfo[] = [];
+
+      for (const entry of seats) {
+        const seat = this.asProjectionPart(entry);
+        const id = seat?.id;
+        const name = seat?.name;
+
+        if (!isString(id) || !id || id.length > 128 || !isString(name) || !name)
+          return this.jsonResponse({ error: "Each seat needs an id and a name" }, 400);
+
+        members.push({ id, name, channel: "browser" });
+      }
+
+      const first = members[0];
+
+      if (!first) return this.jsonResponse({ error: "seats required" }, 400);
+
+      const spectators: BasePlayerInfo[] = [];
+
+      if (Array.isArray(watchers)) {
+        for (const entry of watchers) {
+          const seat = this.asProjectionPart(entry);
+          const id = seat?.id;
+          const name = seat?.name;
+
+          if (!isString(id) || !id || !isString(name) || !name) continue;
+
+          spectators.push({ id, name, channel: "browser" });
+        }
+      }
+
+      this.gameState.players = members;
+      this.gameState.spectators = spectators;
+      this.gameState.hostId = first.id;
+      this.gameState.maxPlayers = Math.max(this.gameState.maxPlayers, members.length);
+      this.gameState.updatedAt = Date.now();
+
+      await this.saveState();
+
+      return this.jsonResponse({ ok: true, seats: members.map(({ id, name }) => ({ id, name })) });
+    } catch {
+      return this.jsonResponse({ error: "Invalid seat request" }, 400);
+    }
+  }
+
+  /** `GET /sandbox/view?playerId=` — the real browser projection for one seat. */
+  private handleSandboxView(url: URL): Response {
+    const playerId = url.searchParams.get("playerId");
+
+    if (!playerId) return this.jsonResponse({ error: "playerId required" }, 400);
+
+    if (!this.gameState || !this.isRoomMember(playerId))
+      return this.jsonResponse({ error: "Seat not in room" }, 404);
+
+    return this.jsonResponse({ state: this.buildClientView(playerId) });
+  }
+
+  /** `GET /sandbox/events?limit=` — the audit trail the match actually wrote. */
+  private handleSandboxEvents(url: URL): Response {
+    const requested = Number(url.searchParams.get("limit"));
+    const limit = Number.isFinite(requested) ? Math.min(Math.max(Math.trunc(requested), 1), 120) : 40;
+
+    return this.jsonResponse({
+      events: this.readEventRows()
+        .slice(-limit)
+        .map((event) => ({ seq: event.seq, at: event.at, type: event.type, summary: event.summary })),
+    });
   }
 
   // ─── Room chat (C1) ───────────────────────────────────────────

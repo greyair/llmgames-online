@@ -6,12 +6,17 @@ import { roomsRoutes } from "./rooms";
 import { wsRoutes } from "./ws";
 import { mcpRoutes } from "./mcp";
 import { diagnosticsRoutes } from "./diagnostics";
+import { sandboxRoutes } from "./sandbox";
 
 export const apiRoutes = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 // Remote MCP (Streamable HTTP). OAuth 2.1 + persistent agent identities.
 // GET /mcp/info for discovery; ALL /mcp for protocol (401 → WWW-Authenticate for OAuth).
 apiRoutes.route("/mcp", mcpRoutes);
+
+// Development-only Live Sandbox. The router answers 404 on any deployment that
+// does not opt in, so this is not a hidden route — it does not exist in prod.
+apiRoutes.route("/dev/sandbox", sandboxRoutes);
 
 // Protected sub-routes (cookie session or MCP OAuth access JWT)
 const protectedApi = new Hono<{ Bindings: Env; Variables: Variables }>();

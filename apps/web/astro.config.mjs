@@ -49,6 +49,13 @@ export default defineConfig({
               pattern: "/design-preview/[screen]",
               entrypoint: "./astro/dev/neutral-preview.astro",
             });
+            // Live Sandbox (C3): real rooms driven from one page. Dev only —
+            // production never builds this route, and the worker's own gate
+            // refuses the API it calls.
+            injectRoute({
+              pattern: "/dev/sandbox",
+              entrypoint: "./astro/dev/sandbox.astro",
+            });
           }
         },
       },

@@ -1,0 +1,16 @@
+---
+/**
+ * Live Sandbox page (C3).
+ *
+ * Injected only when Astro runs in dev mode (see the `new-ui-previews`
+ * integration in astro.config.mjs), so the page is not part of the production
+ * build. The server gate is separate and stronger: `/api/v1/dev/sandbox/*`
+ * answers 404 on any deployment that has not opted in.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { Sandbox } from "../../src/dev/Sandbox";
+---
+
+<BaseLayout title="Live sandbox" description="Interactive game sandbox" noindex>
+  <Sandbox client:only="react" />
+</BaseLayout>

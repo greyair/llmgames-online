@@ -176,6 +176,8 @@
     "FRONTEND_URL": "http://localhost:3000",
     "ALLOWED_ORIGINS": "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173",
     "JEV_DAILY_CALL_LIMIT": "0",
-    "JEV_USER_DAILY_CALL_LIMIT": "0"
+    "JEV_USER_DAILY_CALL_LIMIT": "0",
+    "ENVIRONMENT": "development",
+    "SANDBOX_ENABLED": "true"
   }
 }

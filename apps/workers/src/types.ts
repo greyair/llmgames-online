@@ -62,6 +62,13 @@ export interface Env {
   JEV_USER_DAILY_CALL_LIMIT?: string;
   /** Comma-separated user ids allowed to read /api/v1/diagnostics. Unset disables it. */
   OPERATOR_USER_IDS?: string;
+  /**
+   * Deployment tier. `production` disables every development-only route,
+   * including the Live Sandbox, regardless of any other flag.
+   */
+  ENVIRONMENT?: string;
+  /** Must be exactly "true" to enable /api/v1/dev/sandbox. Never set in production. */
+  SANDBOX_ENABLED?: string;
   ENCRYPTION_SECRET: string;
   GOOGLE_CLIENT_SECRET: string;
   TURNSTILE_SECRET_KEY: string;
