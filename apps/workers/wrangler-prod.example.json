@@ -80,6 +80,10 @@
       {
         "name": "MONOPOLY_ROOM",
         "class_name": "MonopolyRoom"
+      },
+      {
+        "name": "CHESS_ROOM",
+        "class_name": "ChessRoom"
       }
     ]
   },
@@ -126,6 +130,12 @@
       "tag": "v6",
       "new_sqlite_classes": [
         "MonopolyRoom"
+      ]
+    },
+    {
+      "tag": "v7",
+      "new_sqlite_classes": [
+        "ChessRoom"
       ]
     }
   ],

@@ -88,6 +88,7 @@ describe("gameToolCatalog", () => {
       "paodekuai",
       "doudizhu",
       "monopoly",
+      "chess",
     ]);
     expect(Object.keys(all.gameInstructions)).toEqual(Object.keys(all.games));
     expect(all.turnTimerConfig).toEqual({

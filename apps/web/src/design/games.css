@@ -43,6 +43,12 @@
   --game-ink: var(--palette-mono-ink);
   --game-2: var(--palette-mono-ring);
 }
+[data-game="chess"] {
+  /* Walnut squares with an ivory piece, so the mark reads like the board. */
+  --game: var(--palette-chess-dark);
+  --game-ink: var(--palette-chess-white);
+  --game-2: var(--palette-chess-light);
+}
 [data-game="checkers"] {
   --game: var(--palette-walnut);
   --game-ink: var(--palette-ivory);

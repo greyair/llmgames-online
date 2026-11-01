@@ -46,6 +46,14 @@ export const rules = {
     "Build on a full group. You may add up to three house levels to any property in a group you own entirely, at any time in your turn.",
     "Go bankrupt, or outlast. Unpayable debts sell your houses at half, then your properties; the last player standing wins.",
   ],
+  chess: [
+    "Two players. White moves first; the server seats the drawn starter as White.",
+    "Move one piece a turn. Knights jump, bishops run diagonally, rooks along ranks and files, the queen does both, the king one square — and no move may leave your own king in check.",
+    "Castle by moving the king two squares toward an unmoved rook. Both squares must be empty, the king may not start, pass through or land on an attacked square, and neither piece may have moved.",
+    "En passant: a pawn that just advanced two squares can be taken by an enemy pawn beside it, on the very next move only.",
+    "Promote: a pawn reaching the far rank becomes a queen, rook, bishop or knight — queen unless you say otherwise.",
+    "Win by checkmate. Stalemate, a hundred plies without a capture or pawn move, the same position three times, and bare kings with nothing to mate with are draws.",
+  ],
   checkers: [
     "Start with twelve pieces each. Black moves first, toward the top of the board. White moves toward the bottom.",
     "Move diagonally. Men move one square forward on dark squares. Kings can also move backward.",
@@ -159,6 +167,17 @@ export const roomGuides = {
     notes: [
       ["Paying", "Cash and houses are sold at half price before bankruptcy is declared."],
       ["Turn timeout", "The platform rolls, skips a pending purchase and ends the turn."],
+    ],
+  },
+  chess: {
+    description:
+      "Standard chess on sixty-four squares. Castling, en passant and promotion all count.",
+    summary: "2 players · 8×8 board · checkmate wins",
+    notesTitle: "Special moves & clocks",
+    notes: [
+      ["Castling", "Only toward a rook that has never moved, through empty unattacked squares."],
+      ["Illegal moves", "A move that leaves your own king in check is refused by the server."],
+      ["Turn timeout", "Chess has no pass: the seat that runs out of time forfeits the match."],
     ],
   },
   checkers: {

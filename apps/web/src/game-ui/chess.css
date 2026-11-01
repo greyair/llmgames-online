@@ -1,0 +1,275 @@
+/*
+ * Chess board.
+ *
+ * One grid of 64 buttons inside a square box, with file and rank labels placed
+ * just outside the frame. The board is capped at a comfortable reading width so
+ * a 1440px desktop does not turn it into a wall, and the piece glyphs scale with
+ * the viewport so 390px keeps eight files legible.
+ */
+
+.chess-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  align-items: center;
+  width: 100%;
+}
+
+.chess-fit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  align-items: center;
+  width: min(100%, 30rem);
+}
+
+.chess-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--control-xs);
+}
+
+.chess-taker {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  min-width: 0;
+}
+
+.chess-taker-label {
+  font-size: var(--type-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.chess-taken {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.chess-taken-piece {
+  font-size: var(--type-body);
+  line-height: var(--leading-none);
+  font-style: normal;
+}
+
+.chess-taken-piece[data-color="w"] {
+  color: var(--palette-chess-white);
+  -webkit-text-stroke: 0.75px var(--palette-chess-ink);
+}
+
+.chess-taken-piece[data-color="b"] {
+  color: var(--palette-chess-ink);
+}
+
+/* The frame reserves a gutter on the left and bottom for the coordinates, so
+   the labels sit outside the clipped board instead of being cut off by it. */
+.chess-frame {
+  position: relative;
+  width: 100%;
+  padding: 0 0 var(--space-20) var(--space-16);
+}
+
+.chess-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  width: 100%;
+  aspect-ratio: 1;
+  border: var(--stroke-2) solid var(--palette-chess-frame);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  background: var(--palette-chess-light);
+  touch-action: manipulation;
+}
+
+.chess-square {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: var(--palette-chess-light);
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chess-square[data-dark="true"] {
+  background: var(--palette-chess-dark);
+}
+
+.chess-square[data-movable="true"] {
+  cursor: pointer;
+}
+
+.chess-square:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.chess-square[data-last="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--palette-chess-mark);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.chess-square[data-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 var(--stroke-3) var(--palette-chess-select);
+  pointer-events: none;
+}
+
+.chess-square[data-check="true"] {
+  background: radial-gradient(circle at 50% 50%, var(--palette-chess-check), transparent 74%);
+}
+
+.chess-piece {
+  position: relative;
+  font-size: clamp(var(--type-title), 5.2vw, var(--type-display));
+  line-height: var(--leading-none);
+  user-select: none;
+  pointer-events: none;
+}
+
+.chess-piece[data-color="w"] {
+  color: var(--palette-chess-white);
+  -webkit-text-stroke: 1.2px var(--palette-chess-ink);
+}
+
+.chess-piece[data-color="b"] {
+  color: var(--palette-chess-ink);
+  -webkit-text-stroke: 1.2px var(--palette-chess-light);
+}
+
+.chess-dot {
+  position: absolute;
+  width: 26%;
+  height: 26%;
+  border-radius: 50%;
+  background: var(--palette-chess-select);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* A capture reads as a ring around the piece rather than a dot on top of it. */
+.chess-square[data-reachable="true"]:has(.chess-piece) .chess-dot {
+  width: 86%;
+  height: 86%;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--stroke-3) var(--palette-chess-select);
+}
+
+.chess-files,
+.chess-ranks {
+  position: absolute;
+  display: grid;
+  margin: 0;
+  font-size: var(--type-micro);
+  color: var(--palette-chess-label);
+  pointer-events: none;
+}
+
+.chess-files {
+  inset: auto 0 0 var(--space-16);
+  height: var(--space-20);
+  grid-template-columns: repeat(8, 1fr);
+  align-items: center;
+  text-align: center;
+}
+
+.chess-ranks {
+  inset: 0 auto var(--space-20) 0;
+  width: var(--space-16);
+  grid-template-rows: repeat(8, 1fr);
+  align-items: center;
+  justify-items: center;
+}
+
+.chess-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  align-items: center;
+  width: min(100%, 30rem);
+  margin-top: var(--space-24);
+  text-align: center;
+}
+
+.chess-hint,
+.chess-last,
+.chess-check,
+.chess-result {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.chess-hint[data-check="true"],
+.chess-check {
+  color: var(--palette-chess-check-ink);
+  font-weight: 600;
+}
+
+.chess-promote {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 560px) {
+  .chess-fit {
+    width: min(100%, 22rem);
+  }
+
+  .chess-board {
+    border-width: var(--stroke-1);
+  }
+
+  .chess-piece {
+    font-size: clamp(var(--type-lead), 8vw, var(--type-section));
+  }
+
+  .chess-frame {
+    padding: 0 0 var(--space-16) var(--space-12);
+  }
+
+  .chess-files {
+    inset: auto 0 0 var(--space-12);
+    height: var(--space-16);
+  }
+
+  .chess-ranks {
+    inset: 0 auto var(--space-16) 0;
+    width: var(--space-12);
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .chess-fit {
+    width: min(100%, 20rem);
+  }
+
+  .chess-tray {
+    display: none;
+  }
+
+  .chess-foot {
+    margin-top: var(--space-12);
+  }
+}

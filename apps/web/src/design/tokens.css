@@ -115,6 +115,18 @@
   --palette-mono-grey: #9d978c;
   --palette-mono-ring: #d2603f;
 
+  /* Chess: maple and walnut squares, ivory and ebony pieces */
+  --palette-chess-light: #eadfc8;
+  --palette-chess-dark: #a9855f;
+  --palette-chess-frame: #7b5a3c;
+  --palette-chess-ink: #1d1a16;
+  --palette-chess-white: #fbf7ec;
+  --palette-chess-mark: #e0b04a;
+  --palette-chess-select: #3f7f63;
+  --palette-chess-check: #e2543d;
+  --palette-chess-check-ink: #a84535;
+  --palette-chess-label: #6b563c;
+
   /* Reversi: pastel felt, black and white discs */
   --palette-reversi-felt: #7cc79b;
   --palette-reversi-felt-deep: #4da172;

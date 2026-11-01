@@ -162,6 +162,81 @@ export function fixture(type: string): ClientView {
       you: { ...base.you, seat: 0, legalActions: ["play_cards"] },
     };
 
+  if (type === "chess") {
+    // An Italian four-knights middlegame: row 0 is rank 8, so the string reads
+    // top to bottom exactly as the board is printed.
+    const board = [
+      "r.bqkb.r",
+      "pppp.ppp",
+      "..n..n..",
+      "....p...",
+      "..B.P...",
+      ".....N..",
+      "PPPP.PPP",
+      "RNBQK..R",
+    ].join("");
+
+    return {
+      ...base,
+      seats: { "preview-0": 1, "preview-1": 2 },
+      board,
+      turn: "w",
+      castling: "KQkq",
+      ep: null,
+      halfmove: 4,
+      fullmove: 4,
+      plies: 6,
+      last: { from: 61, to: 34, uci: "f1c4", san: "Bc4" },
+      captured: { w: "", b: "" },
+      legal: [
+        "c4b5",
+        "c4a6",
+        "c4d5",
+        "c4e6",
+        "c4f7",
+        "c4b3",
+        "c4d3",
+        "c4e2",
+        "c4f1",
+        "f3e5",
+        "f3g5",
+        "f3d4",
+        "f3h4",
+        "f3g1",
+        "a2a3",
+        "a2a4",
+        "b2b3",
+        "b2b4",
+        "c2c3",
+        "d2d3",
+        "d2d4",
+        "g2g3",
+        "g2g4",
+        "h2h3",
+        "h2h4",
+        "b1a3",
+        "b1c3",
+        "d1e2",
+        "e1e2",
+        "e1f1",
+        "e1g1",
+        "h1g1",
+        "h1f1",
+      ],
+      check: false,
+      checkSquare: null,
+      result: null,
+      fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+      turnState: {
+        phase: "play",
+        turnNumber: 7,
+        currentPlayerId: "preview-0",
+        turnTimeRemaining: 52000,
+      },
+      you: { ...base.you, seat: 1, color: "white", legalActions: ["move"] },
+    };
+  }
+
   if (type === "monopoly") {
     const owners = new Array<number | null>(24).fill(null);
     const houses = new Array<number>(24).fill(0);

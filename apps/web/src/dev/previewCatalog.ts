@@ -21,6 +21,7 @@ export const previewScreens = [
   { id: "paodekuai", name: "Run Fast" },
   { id: "doudizhu", name: "Fight the Landlord" },
   { id: "monopoly", name: "Monopoly" },
+  { id: "chess", name: "Chess" },
 ] as const;
 
 const sharedStates = [
@@ -56,6 +57,7 @@ const gameStates = {
   paodekuai: ["opening", "midgame", "leading"],
   doudizhu: ["opening", "midgame", "win"],
   monopoly: ["opening", "midgame"],
+  chess: ["opening", "midgame", "check"],
   reversi: ["opening", "forced-pass", "endgame"],
   codenames: [
     "clue",

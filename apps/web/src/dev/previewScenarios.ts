@@ -85,6 +85,82 @@ export function applyPreviewScenario(
   if (scenario === "opening" && screen === "gomoku")
     s.board = Array.from({ length: 15 }, () => Array(15).fill(0));
 
+  if (screen === "chess") {
+    if (scenario === "opening") {
+      s.board = [
+        "rnbqkbnr",
+        "pppppppp",
+        "........",
+        "........",
+        "........",
+        "........",
+        "PPPPPPPP",
+        "RNBQKBNR",
+      ].join("");
+      s.turn = "w";
+      s.castling = "KQkq";
+      s.ep = null;
+      s.halfmove = 0;
+      s.fullmove = 1;
+      s.plies = 0;
+      s.last = null;
+      s.check = false;
+      s.checkSquare = null;
+      s.result = null;
+      s.legal = [
+        "a2a3",
+        "a2a4",
+        "b2b3",
+        "b2b4",
+        "c2c3",
+        "c2c4",
+        "d2d3",
+        "d2d4",
+        "e2e3",
+        "e2e4",
+        "f2f3",
+        "f2f4",
+        "g2g3",
+        "g2g4",
+        "h2h3",
+        "h2h4",
+        "b1a3",
+        "b1c3",
+        "g1f3",
+        "g1h3",
+      ];
+      s.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+      phase("play", ["move"]);
+    }
+
+    if (scenario === "check") {
+      // 1.e4 e5 2.Nf3 Nc6 3.d4 exd4 4.Nxd4 Bb4+ — White must answer the check.
+      s.board = [
+        "r.bqk.nr",
+        "pppp.ppp",
+        "..n.....",
+        "........",
+        ".b.NP...",
+        "........",
+        "PPP..PPP",
+        "RNBQKB.R",
+      ].join("");
+      s.turn = "w";
+      s.castling = "KQkq";
+      s.ep = null;
+      s.halfmove = 1;
+      s.fullmove = 5;
+      s.plies = 7;
+      s.last = { from: 5, to: 33, uci: "f8b4", san: "Bb4+" };
+      s.check = true;
+      s.checkSquare = 60;
+      s.result = null;
+      s.legal = ["c2c3", "b1c3", "b1d2", "c1d2", "d1d2", "e1e2"];
+      s.fen = "r1bqk1nr/pppp1ppp/2n5/8/1b1NP3/8/PPP2PPP/RNBQKB1R w KQkq - 1 5";
+      phase("play", ["move"]);
+    }
+  }
+
   if (screen === "monopoly") {
     if (scenario === "opening") {
       s.cash = [1500, 1500];

@@ -998,3 +998,61 @@ export interface MonopolyGameState extends BaseGameState {
   turns: number;
   rounds: number;
 }
+
+// --- Chess (国际象棋) ---
+
+export type ChessColor = "w" | "b";
+
+export interface ChessLastMove {
+  /** Square indices 0-63 in FEN order. */
+  from: number;
+  to: number;
+  uci: string;
+  san: string;
+}
+
+/**
+ * Why the match ended: the four drawn outcomes the rules produce, plus the two
+ * the clocks do. There is no resign — the turn clock is the only way to lose a
+ * game you are still sitting in.
+ */
+export type ChessEndReason =
+  | "checkmate"
+  | "stalemate"
+  | "fifty_move"
+  | "repetition"
+  | "insufficient_material"
+  | "timeout"
+  | "match_timeout";
+
+export interface ChessGameState extends BaseGameState {
+  type: "chess";
+  turnState: BaseTurnState & { phase: "waiting" | "play" | "ended" };
+  /** playerId → seat 1 plays White and moves first, 2 plays Black. */
+  seats: Record<string, 1 | 2>;
+  /** 64 chars in FEN order: index 0 = a8, 7 = h8, 56 = a1, 63 = h1. "." is empty. */
+  board: string;
+  turn: ChessColor;
+  /** Remaining castling rights, a subset of "KQkq" in that order. */
+  castling: string;
+  /** En-passant target square (the square a pawn just skipped), or null. */
+  ep: number | null;
+  /** Plies since the last capture or pawn move; the fifty-move rule fires at 100. */
+  halfmove: number;
+  /** Full-move number as in FEN: starts at 1, increases after Black moves. */
+  fullmove: number;
+  plies: number;
+  last: ChessLastMove | null;
+  /** Letters each side has taken: `w` holds the black pieces White captured. */
+  captured: { w: string; b: string };
+  /** Repetition keys since the last capture or pawn move; current one last. */
+  history: string[];
+  /** UCI moves legal for the side to move, recomputed after every move. */
+  legal: string[];
+  /** The side to move is in check. */
+  check: boolean;
+  /** Square of the checked king, or null. */
+  checkSquare: number | null;
+  result: { winner: ChessColor | "draw"; reason: ChessEndReason } | null;
+  winner: string | null; // playerId | "draw"
+}

@@ -101,6 +101,8 @@ export type ClientView = {
     toCall?: number;
     weaponCosts?: { bomb?: number; radar?: number; torpedo?: number };
     team?: string | null;
+    /** Chess: "white" | "black", so the board can orient itself. */
+    color?: string | null;
     role?: z.output<typeof viewerRoleSchema> | null;
     canSeeKey?: boolean;
   };
@@ -128,7 +130,8 @@ export type ClientView = {
     payouts?: Array<{ playerId: string; amount: number }>;
   } | null;
   maxPlayers?: number;
-  board?: z.output<typeof numericBoardSchema> | z.output<typeof wordBoardSchema>;
+  /** Chess sends one 64-character string; the grid games send a nested array. */
+  board?: z.output<typeof numericBoardSchema> | z.output<typeof wordBoardSchema> | string;
   seats?: z.output<typeof seatNumbersSchema> | z.output<typeof cardSeatsSchema>;
   lastMove?: z.output<typeof lastMoveSchema>;
   /** Winning run set by the rule module when a match ends on a connected line. */
@@ -175,6 +178,20 @@ export type ClientView = {
   landed?: number | null;
   rounds?: number;
   buildable?: number[];
+  /** Chess: the position, whose turn it is and what is playable right now. */
+  plies?: number;
+  turn?: string;
+  castling?: string;
+  ep?: number | null;
+  halfmove?: number;
+  fullmove?: number;
+  last?: { from?: number; to?: number; uci?: string; san?: string } | null;
+  captured?: { w?: string; b?: string } | null;
+  legal?: string[];
+  check?: boolean;
+  checkSquare?: number | null;
+  result?: { winner?: string; reason?: string } | null;
+  fen?: string;
   scores?: Partial<Record<1 | 2, number>>;
   legalMoves?: z.output<typeof discMovesSchema> | z.output<typeof checkerMovesSchema>;
   forcedPiece?: { row: number; col: number } | null;

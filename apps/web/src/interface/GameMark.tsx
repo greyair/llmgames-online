@@ -98,6 +98,22 @@ const glyphs = {
     ],
     a: "var(--palette-mono-ring)",
   },
+  chess: {
+    // A knight's head: muzzle, brow and two ears.
+    rows: [
+      "..........",
+      "....##....",
+      "...####...",
+      "..#a###...",
+      "..#a###...",
+      "..#####...",
+      "..####....",
+      "..###.....",
+      "..........",
+      "..........",
+    ],
+    a: "var(--palette-chess-ink)",
+  },
   checkers: {
     rows: [
       "..........",

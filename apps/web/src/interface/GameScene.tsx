@@ -860,6 +860,41 @@ function Monopoly() {
   );
 }
 
+/**
+ * Chess: an 8×8 board seen from above with one ivory and one ebony piece.
+ * Two pieces are enough to read as chess — a full set at this scale is noise.
+ */
+function Chess() {
+  const bx = 20,
+    by = 4,
+    size = 7;
+
+  let light = "",
+    dark = "";
+
+  for (let row = 0; row < 8; row += 1)
+    for (let col = 0; col < 8; col += 1) {
+      const square = R(bx + col * size, by + row * size, size, size);
+
+      if ((row + col) % 2) dark += square;
+      else light += square;
+    }
+
+  return (
+    <>
+      <Glow fill={c("chess-light")} />
+      <F d={R(bx - 3, by - 3, 8 * size + 6, 8 * size + 6)} fill={c("chess-frame")} />
+      <F d={light} fill={c("chess-light")} />
+      <F d={dark} fill={c("chess-dark")} />
+      {/* Ivory knight on f3, ebony pawn on e5, both as 5px discs. */}
+      <F d={oval(bx + 5 * size, by + 2 * size + 1, 5)} fill={c("chess-white")} />
+      <T d={oval(bx + 5 * size, by + 2 * size + 1, 5, 2)} fill={c("chess-ink")} level={12} />
+      <F d={oval(bx + 4 * size, by + 5 * size + 1, 5)} fill={c("chess-ink")} />
+      <T d={oval(bx + 4 * size, by + 5 * size + 1, 5, 2)} fill={c("chess-white")} level={6} />
+    </>
+  );
+}
+
 const scenes = {
   connect4: Connect4,
   checkers: Checkers,
@@ -874,6 +909,7 @@ const scenes = {
   paodekuai: Paodekuai,
   doudizhu: Doudizhu,
   monopoly: Monopoly,
+  chess: Chess,
 } satisfies Record<string, () => ReactElement>;
 
 export function GameScene({ id, className }: { id: string; className?: string }) {

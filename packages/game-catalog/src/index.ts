@@ -48,7 +48,8 @@ export type GameTypeId =
   | "aeroplane"
   | "paodekuai"
   | "doudizhu"
-  | "monopoly";
+  | "monopoly"
+  | "chess";
 
 /** Absolute lifetime of a game room, measured from room creation. */
 export const ROOM_LIFETIME_MINUTES = 45;
@@ -93,6 +94,7 @@ export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
   paodekuai: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
   doudizhu: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
   monopoly: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 90 * 60 * 1000 },
+  chess: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
 };
 
 /** Largest match length any game accepts; the real cap is per game. */
@@ -217,6 +219,15 @@ export const GAME_INSTRUCTIONS: Readonly<Record<GameTypeId, GameInstructionSpec>
       turnTimer: "The room's configured turn timer applies to the whole turn.",
       onTimeout:
         "The platform rolls for a seat that has not rolled, skips a purchase it has not decided and ends a turn it has not ended.",
+    },
+  },
+  chess: {
+    briefing:
+      "Standard chess for 2 seats. Seat 1 plays White and moves first, seat 2 plays Black. Board is a 64-character string in FEN order: index = row * 8 + col, row 0 is rank 8 and row 7 is rank 1, col 0 is file a. Uppercase PNBRQK are White, lowercase are Black, . is empty. Move with { from: \"e2\", to: \"e4\" }, or one UCI string in uci such as e2e4 or e7e8q. Castling is the king's own two-square move (e1g1, e1c1, e8g8, e8c8). Promotion takes promotion q, r, b or n; promoted pawns default to a queen. A move that leaves your own king in check is refused, and legalMoves always lists exactly what is playable now. Checkmate wins. Stalemate, 100 plies without a capture or pawn move, the same position three times and insufficient mating material are draws and end the match automatically.",
+    timers: {
+      turnTimer: "The room's configured turn timer applies to every move.",
+      onTimeout:
+        "There is no pass in chess: a seat whose turn clock expires forfeits the match to its opponent.",
     },
   },
   reversi: {
@@ -603,6 +614,33 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
     description: "Finish the turn once the roll is resolved. A double must be rolled again first.",
     games: ["monopoly"],
     data: emptyData,
+  },
+
+  // ── Chess ───────────────────────────────────────────────────
+  {
+    actionType: "move",
+    title: "Make a move",
+    description:
+      "Move a piece from one square to another. Give from and to as algebraic squares (e2, e4), or skip them and send one UCI string in uci. Castling is the king's two-square move (e1g1, e1c1); a pawn reaching the last rank needs promotion q, r, b or n.",
+    games: ["chess"],
+    data: {
+      from: {
+        type: "string",
+        description: "Origin square, a file a-h plus a rank 1-8, e.g. e2",
+      },
+      to: {
+        type: "string",
+        description: "Destination square, e.g. e4",
+      },
+      uci: {
+        type: "string",
+        description: "The whole move as one string instead of from/to, e.g. e2e4 or e7e8q",
+      },
+      promotion: {
+        type: "string",
+        description: "Promotion piece: q, r, b or n. Defaults to q",
+      },
+    },
   },
 
   // ── Fight the Landlord ──────────────────────────────────────
@@ -1018,6 +1056,7 @@ export const KNOWN_GAME_TYPES: readonly GameTypeId[] = [
   "paodekuai",
   "doudizhu",
   "monopoly",
+  "chess",
 ] as const;
 
 export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
@@ -1034,6 +1073,7 @@ export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
   paodekuai: true,
   doudizhu: true,
   monopoly: true,
+  chess: true,
 };
 
 export const ENABLED_GAME_TYPES: readonly GameTypeId[] = KNOWN_GAME_TYPES.filter(
@@ -1058,6 +1098,9 @@ export function normalizeGameType(raw: string): GameTypeId | string {
     case "landlord":
     case "ddz":
       return "doudizhu";
+    case "international-chess":
+    case "western-chess":
+      return "chess";
     case "connect-4":
       return "connect4";
     case "draughts":

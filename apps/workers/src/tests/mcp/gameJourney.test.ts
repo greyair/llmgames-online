@@ -24,6 +24,7 @@ import { AeroplaneRoom } from "../../durable-objects/AeroplaneRoom";
 import { PaodekuaiRoom } from "../../durable-objects/PaodekuaiRoom";
 import { DoudizhuRoom } from "../../durable-objects/DoudizhuRoom";
 import { MonopolyRoom } from "../../durable-objects/MonopolyRoom";
+import { ChessRoom } from "../../durable-objects/ChessRoom";
 import { planAeroplaneMove, type AeroplaneChoice } from "../../games/aeroplane/rules";
 import { pdkMoves } from "../../games/paodekuai/rules";
 import { ddzMoves } from "../../games/doudizhu/rules";
@@ -188,7 +189,8 @@ interface Journey {
     | "aeroplane"
     | "paodekuai"
     | "doudizhu"
-    | "monopoly";
+    | "monopoly"
+    | "chess";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -203,7 +205,8 @@ interface Journey {
     | "AEROPLANE_ROOM"
     | "PAODEKUAI_ROOM"
     | "DOUDIZHU_ROOM"
-    | "MONOPOLY_ROOM";
+    | "MONOPOLY_ROOM"
+    | "CHESS_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
@@ -248,6 +251,19 @@ const GOMOKU_SCRIPT: ReadonlyArray<{ row: number; col: number }> = [
   { row: 3, col: 0 },
   { row: 0, col: 4 },
   { row: 4, col: 0 },
+];
+
+/**
+ * Chess plays the shortest possible mate: 1. f3 e5 2. g4 Qh4#.
+ *
+ * One ply per action, so the driver never has to evaluate a position — it only
+ * needs the move to be legal, which the server checks anyway.
+ */
+const CHESS_SCRIPT: ReadonlyArray<readonly [string, string]> = [
+  ["f2", "f3"],
+  ["e7", "e5"],
+  ["g2", "g4"],
+  ["d8", "h4"],
 ];
 
 /**
@@ -577,6 +593,25 @@ const journeys: Journey[] = [
     assertRival: (rival) => {
       expect(rival).not.toHaveProperty("deck");
       expect(rival.cash?.length).toBe(2);
+    },
+  },
+  {
+    gameType: "chess",
+    Room: ChessRoom,
+    binding: "CHESS_ROOM",
+    players: 2,
+    minActions: CHESS_SCRIPT.length,
+    next: (_state, _seatTurn, turn) => {
+      // Fool's mate, one ply per turn: f3 e5 g4 Qh4#. Seat order is drawn, so
+      // the script is indexed by ply rather than by controller.
+      const ply = CHESS_SCRIPT[turn];
+
+      return ply ? { actionType: "move", data: { from: ply[0], to: ply[1] } } : null;
+    },
+    // Repetition keys are server bookkeeping; the board itself is public.
+    assertRival: (rival) => {
+      expect(rival).not.toHaveProperty("history");
+      expect(z.string().safeParse(rival.board).data).toHaveLength(64);
     },
   },
   paodekuaiJourney,

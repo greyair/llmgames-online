@@ -11,6 +11,7 @@ import { Aeroplane } from "./Aeroplane";
 import { Paodekuai } from "./Paodekuai";
 import { Doudizhu } from "./Doudizhu";
 import { Monopoly } from "./Monopoly";
+import { Chess } from "./Chess";
 import { Battleship } from "./Battleship";
 import { contextoRankStyle } from "./contextoRankStyle";
 import "./final-state.css";
@@ -335,6 +336,13 @@ export function FinalState({
     return (
       <section className="result-board" aria-label={t("match.finalBoard")}>
         <Monopoly state={final} send={() => {}} />
+      </section>
+    );
+
+  if (state.type === "chess")
+    return (
+      <section className="result-board" aria-label={t("match.finalBoard")}>
+        <Chess state={final} send={() => {}} />
       </section>
     );
 

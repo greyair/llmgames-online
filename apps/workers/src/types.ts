@@ -22,6 +22,7 @@ export interface Env {
   PAODEKUAI_ROOM: DurableObjectNamespace;
   DOUDIZHU_ROOM: DurableObjectNamespace;
   MONOPOLY_ROOM: DurableObjectNamespace;
+  CHESS_ROOM: DurableObjectNamespace;
 
   EMAIL?: {
     send(message: {

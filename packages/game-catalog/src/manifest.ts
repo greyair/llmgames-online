@@ -132,6 +132,14 @@ export const GAME_MANIFESTS = {
     detail: "Buy the ring, build on a full group, outlast the rest.",
     i18n: { game: "game.monopoly" },
   },
+  chess: {
+    id: "chess",
+    title: "Chess",
+    players: "2",
+    category: "Board",
+    detail: "Castle, pin, promote. Mate the king in sixty-four squares.",
+    i18n: { game: "game.chess" },
+  },
   contexto: {
     id: "contexto",
     title: "Contexto",

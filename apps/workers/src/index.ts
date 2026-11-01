@@ -27,6 +27,8 @@ export { DoudizhuRoom } from "./durable-objects/DoudizhuRoom";
 
 export { MonopolyRoom } from "./durable-objects/MonopolyRoom";
 
+export { ChessRoom } from "./durable-objects/ChessRoom";
+
 export { BroadcastService } from "./broadcast";
 
 export { GameSeries } from "./durable-objects/GameSeries";

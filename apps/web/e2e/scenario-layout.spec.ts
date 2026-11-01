@@ -16,6 +16,7 @@ const games = [
   "paodekuai",
   "doudizhu",
   "monopoly",
+  "chess",
 ];
 
 for (const viewport of [

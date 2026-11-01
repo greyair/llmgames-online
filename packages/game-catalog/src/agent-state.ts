@@ -92,6 +92,18 @@ export interface ProjectionPart {
   upgradeable?: unknown;
   yourProperties?: unknown;
   standOn?: unknown;
+  turn?: unknown;
+  castling?: unknown;
+  ep?: unknown;
+  halfmove?: unknown;
+  fullmove?: unknown;
+  last?: unknown;
+  captured?: unknown;
+  legal?: unknown;
+  check?: unknown;
+  checkSquare?: unknown;
+  result?: unknown;
+  fen?: unknown;
   scores?: unknown;
   legalMoves?: unknown;
   forcedPiece?: unknown;
