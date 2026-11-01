@@ -142,9 +142,11 @@ decision format and budget handling under `apps/workers/src/agents`.
 ## 5. Add the browser board
 
 Add the game to `apps/web/src/interface/catalog.ts` and its rules to
-`gameRules.ts`. Add a renderer under `apps/web/src/game-ui` and select it in
-`GameBoard.tsx`. Use server-provided legal moves and send intents through the
-shared socket client. Do not calculate authoritative outcomes in the browser.
+`gameRules.ts`. Add a renderer under `apps/web/src/game-ui` and register it in
+`boardRegistry.ts` — `GameBoard.tsx` renders whatever that table returns, and the
+`Record<GameTypeId, LazyBoard>` type fails the build until the entry exists. Use
+server-provided legal moves and send intents through the shared socket client.
+Do not calculate authoritative outcomes in the browser.
 
 Review `GameMark.tsx`, `GameScene.tsx`, room/lobby player limits, final-result
 copy, replay components, social metadata and static route generation. Add
@@ -156,6 +158,21 @@ Search existing integrations to find the remaining typed registries:
 rg -n 'reversi|REVERSI_ROOM|ReversiRoom' apps packages
 rg -n 'CHECK|game_type|gameType' apps/workers/migrations
 ```
+
+## Patterns this codebase already has
+
+M4 added eight games, and four of their shapes are worth copying rather than
+reinventing:
+
+| Need | Read |
+| --- | --- |
+| A turn with several decisions in a row (roll → buy → build → end) | `games/monopoly/plugin.ts` — the plugin keeps `currentPlayerId` and moves the phase, the platform never forces a hand-over |
+| Two seats deciding at once (Go's scoring) | `games/go/plugin.ts` — widen `mayActNow`, clear `turnState.currentPlayerId`, and let each seat's `legalActions` do the talking |
+| Secret state that must not reach a rival | `games/monopoly/plugin.ts` (deck order) and `games/paodekuai/plugin.ts` (hands) — one `projectState` is applied to all three views |
+| A per-viewer list the browser must not derive (buildable squares, legal points) | `games/monopoly/plugin.ts` and `games/go/plugin.ts` — compute it in `projectState`, ship it, and let the board draw it |
+
+Rules that are pure geometry or scoring belong in `rules.ts` and are worth
+testing directly: chess is certified by perft counts, Go by area-scoring totals.
 
 ## 6. Verify it
 
