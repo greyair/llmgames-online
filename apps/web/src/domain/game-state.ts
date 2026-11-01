@@ -139,8 +139,8 @@ export type ClientView = {
   colours?: number[];
   /** Aeroplane: dice values that clear a plane from the hangar. */
   takeoff?: number[];
-  /** Aeroplane: the roll on the table, or null between turns. */
-  roll?: number | null;
+  /** Aeroplane: one die. Monopoly: the pair. */
+  roll?: number | number[] | null;
   /** Aeroplane: consecutive sixes rolled in this turn. */
   sixes?: number;
   /** Run Fast: the seat's own hand, and every seat's card count. */
@@ -161,6 +161,20 @@ export type ClientView = {
   toAct?: number;
   multiplier?: number;
   winnerSide?: "landlord" | "farmers" | null;
+  /** Monopoly: public board state, and the viewer's own build options. */
+  cash?: number[];
+  position?: number[];
+  jail?: boolean[];
+  jailCards?: number[];
+  owners?: (number | null)[];
+  houses?: number[];
+  bankrupt?: boolean[];
+  deckCount?: number;
+  doubles?: number;
+  card?: number | null;
+  landed?: number | null;
+  rounds?: number;
+  buildable?: number[];
   scores?: Partial<Record<1 | 2, number>>;
   legalMoves?: z.output<typeof discMovesSchema> | z.output<typeof checkerMovesSchema>;
   forcedPiece?: { row: number; col: number } | null;
@@ -359,7 +373,7 @@ const clientViewContract = z
     "planes": z.array(z.array(z.number())).optional(),
     "colours": z.array(z.number()).optional(),
     "takeoff": z.array(z.number()).optional(),
-    "roll": z.union([z.number(), z.null()]).optional(),
+    "roll": z.union([z.number(), z.array(z.number()), z.null()]).optional(),
     "sixes": z.number().optional(),
     "hand": z.array(z.string()).optional(),
     "handCounts": z.array(z.number()).optional(),
@@ -376,6 +390,19 @@ const clientViewContract = z
     "toAct": z.number().optional(),
     "multiplier": z.number().optional(),
     "winnerSide": z.union([z.literal("landlord"), z.literal("farmers"), z.null()]).optional(),
+    "cash": z.array(z.number()).optional(),
+    "position": z.array(z.number()).optional(),
+    "jail": z.array(z.boolean()).optional(),
+    "jailCards": z.array(z.number()).optional(),
+    "owners": z.array(z.union([z.number(), z.null()])).optional(),
+    "houses": z.array(z.number()).optional(),
+    "bankrupt": z.array(z.boolean()).optional(),
+    "deckCount": z.number().optional(),
+    "doubles": z.number().optional(),
+    "card": z.union([z.number(), z.null()]).optional(),
+    "landed": z.union([z.number(), z.null()]).optional(),
+    "rounds": z.number().optional(),
+    "buildable": z.array(z.number()).optional(),
     "scores": z.object({ "1": z.number().optional(), "2": z.number().optional() }).optional(),
     "legalMoves": z.union([checkerMovesSchema, discMovesSchema]).optional(),
     "forcedPiece": z

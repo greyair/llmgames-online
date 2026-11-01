@@ -162,6 +162,43 @@ export function fixture(type: string): ClientView {
       you: { ...base.you, seat: 0, legalActions: ["play_cards"] },
     };
 
+  if (type === "monopoly") {
+    const owners = new Array<number | null>(24).fill(null);
+    const houses = new Array<number>(24).fill(0);
+
+    owners[1] = 0;
+    owners[2] = 0;
+    owners[4] = 1;
+    owners[10] = 0;
+    houses[1] = 2;
+
+    return {
+      ...base,
+      seats: { "preview-0": 0, "preview-1": 1 },
+      cash: [1180, 940],
+      position: [7, 15],
+      jail: [false, false],
+      jailCards: [0, 1],
+      owners,
+      houses,
+      bankrupt: [false, false],
+      deckCount: 9,
+      buildable: [2],
+      doubles: 0,
+      roll: [3, 4],
+      card: null,
+      landed: 7,
+      rounds: 6,
+      turnState: {
+        phase: "roll",
+        turnNumber: 13,
+        currentPlayerId: "preview-0",
+        turnTimeRemaining: 45000,
+      },
+      you: { ...base.you, seat: 0, legalActions: ["roll", "build"] },
+    };
+  }
+
   if (type === "checkers") {
     const board = Array.from({ length: 8 }, (_, r) =>
       Array.from({ length: 8 }, (_, c) => ((r + c) % 2 === 0 ? 0 : r < 3 ? 2 : r > 4 ? 1 : 0)),

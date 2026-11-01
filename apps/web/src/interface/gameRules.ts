@@ -38,6 +38,14 @@ export const rules = {
     "Beat or pass. Match the type and card count with a higher key, play a bomb or the rocket, or pass. A leader must play.",
     "Win as a side. The landlord wins alone; both farmers win together as soon as either empties their hand.",
   ],
+  monopoly: [
+    "Sit two to four at the ring. Twenty-four spaces, 1500 cash each, and 200 every time you pass 起点.",
+    "Roll and move. Two dice, clockwise. A double rolls again, but a third double in a row puts you in 大牢 instead of moving.",
+    "Buy or skip. Landing on an unowned property lets you buy it at the listed price; there is no auction.",
+    "Pay the rent. Landing on a rival's property pays automatically — doubled while they hold the whole group and no houses.",
+    "Build on a full group. You may add up to three house levels to any property in a group you own entirely, at any time in your turn.",
+    "Go bankrupt, or outlast. Unpayable debts sell your houses at half, then your properties; the last player standing wins.",
+  ],
   checkers: [
     "Start with twelve pieces each. Black moves first, toward the top of the board. White moves toward the bottom.",
     "Move diagonally. Men move one square forward on dark squares. Kings can also move backward.",
@@ -141,6 +149,16 @@ export const roomGuides = {
     notes: [
       ["Thrown-in deal", "If all three seats pass, the cards are dealt again and the next seat opens."],
       ["Turn timeout", "Bidding, you pass; following, you pass; leading, the server plays your cheapest card."],
+    ],
+  },
+  monopoly: {
+    description:
+      "Buy the ring and build on full groups. Rent decides who runs out of cash first.",
+    summary: "2-4 players · 24 spaces · last one standing wins",
+    notesTitle: "Money & clocks",
+    notes: [
+      ["Paying", "Cash and houses are sold at half price before bankruptcy is declared."],
+      ["Turn timeout", "The platform rolls, skips a pending purchase and ends the turn."],
     ],
   },
   checkers: {

@@ -124,6 +124,14 @@ export const GAME_MANIFESTS = {
     detail: "Bid for the bottom cards, then play one against two.",
     i18n: { game: "game.doudizhu" },
   },
+  monopoly: {
+    id: "monopoly",
+    title: "Monopoly",
+    players: "2-4",
+    category: "Board",
+    detail: "Buy the ring, build on a full group, outlast the rest.",
+    i18n: { game: "game.monopoly" },
+  },
   contexto: {
     id: "contexto",
     title: "Contexto",

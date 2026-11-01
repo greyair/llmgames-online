@@ -47,7 +47,8 @@ export type GameTypeId =
   | "gomoku"
   | "aeroplane"
   | "paodekuai"
-  | "doudizhu";
+  | "doudizhu"
+  | "monopoly";
 
 /** Absolute lifetime of a game room, measured from room creation. */
 export const ROOM_LIFETIME_MINUTES = 45;
@@ -91,6 +92,7 @@ export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
   aeroplane: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
   paodekuai: { lobbyMs: ROOM_LIFETIME_MS, playingMs: ROOM_LIFETIME_MS },
   doudizhu: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
+  monopoly: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 90 * 60 * 1000 },
 };
 
 /** Largest match length any game accepts; the real cap is per game. */
@@ -206,6 +208,15 @@ export const GAME_INSTRUCTIONS: Readonly<Record<GameTypeId, GameInstructionSpec>
       turnTimer: "The room's configured turn timer applies to each bid, play or pass.",
       onTimeout:
         "A seat that must bid passes. Following, it passes. Leading, the server plays its cheapest legal card.",
+    },
+  },
+  monopoly: {
+    briefing:
+      "Monopoly (大富翁) for 2-4 seats on a 24-space ring, indices 0-23 clockwise. Everyone starts on 起点 (0) with 1500 cash and collects 200 whenever they pass or land on it. Corners: 0 起点, 6 大牢 (jail), 12 茶馆 (rest), 18 去大牢 (go to jail). Spaces 3 and 15 draw from an 11-card 命运 deck; 9 税 costs 100 and 21 灯油 costs 50; the other 16 spaces are properties in 8 groups of 2, cheapest first. A turn is roll two dice, then buy or skip an unowned property, then optionally build, then end. Doubles roll again; a third double in a row goes to jail instead of moving. Landing on a rival's property pays rent automatically — doubled on a full group with no houses — and a payment you cannot cover sells your houses at half, then your properties at half, and only then bankrupts you. In jail you may pay 50, use a get-out card, or roll for doubles; a double frees you and moves you, and the third failed attempt pays the fine and moves by that roll. The last seat standing wins; if the match clock runs out the highest net worth wins.",
+    timers: {
+      turnTimer: "The room's configured turn timer applies to the whole turn.",
+      onTimeout:
+        "The platform rolls for a seat that has not rolled, skips a purchase it has not decided and ends a turn it has not ended.",
     },
   },
   reversi: {
@@ -530,6 +541,68 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
         maximum: 14,
       },
     },
+  },
+
+  // ── Monopoly ────────────────────────────────────────────────
+  {
+    actionType: "roll",
+    title: "Roll the dice",
+    description:
+      "Roll the two server-owned dice and move. In jail this is the attempt to roll doubles.",
+    games: ["aeroplane", "monopoly"],
+    aliases: ["roll_dice"],
+    data: emptyData,
+  },
+  {
+    actionType: "buy",
+    title: "Buy the property",
+    description: "Buy the unowned space you just landed on, at its listed price.",
+    games: ["monopoly"],
+    data: emptyData,
+  },
+  {
+    actionType: "skip",
+    title: "Skip the purchase",
+    description: "Decline to buy the space you landed on. There is no auction.",
+    games: ["monopoly"],
+    data: emptyData,
+  },
+  {
+    actionType: "build",
+    title: "Build a house",
+    description:
+      "Add one house level to a property you own in a group you own entirely, up to three levels. Allowed before or after the roll, but not while a purchase is pending.",
+    games: ["monopoly"],
+    data: {
+      space: {
+        type: "integer",
+        description: "Board index 0-23 of the property to build on",
+        required: true,
+        minimum: 0,
+        maximum: 23,
+      },
+    },
+  },
+  {
+    actionType: "pay",
+    title: "Pay the jail fine",
+    description: "Pay 50 to leave jail, then roll normally.",
+    games: ["monopoly"],
+    data: emptyData,
+  },
+  {
+    actionType: "card",
+    title: "Use a get-out-of-jail card",
+    description: "Spend a held get-out-of-jail card to leave jail, then roll normally.",
+    games: ["monopoly"],
+    data: emptyData,
+  },
+  {
+    actionType: "end",
+    title: "End the turn",
+    description: "Finish the turn once the roll is resolved. A double must be rolled again first.",
+    games: ["monopoly"],
+    data: emptyData,
   },
 
   // ── Fight the Landlord ──────────────────────────────────────
@@ -944,6 +1017,7 @@ export const KNOWN_GAME_TYPES: readonly GameTypeId[] = [
   "aeroplane",
   "paodekuai",
   "doudizhu",
+  "monopoly",
 ] as const;
 
 export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
@@ -959,6 +1033,7 @@ export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
   aeroplane: true,
   paodekuai: true,
   doudizhu: true,
+  monopoly: true,
 };
 
 export const ENABLED_GAME_TYPES: readonly GameTypeId[] = KNOWN_GAME_TYPES.filter(

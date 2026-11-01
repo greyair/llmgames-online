@@ -23,6 +23,7 @@ import { GomokuRoom } from "../../durable-objects/GomokuRoom";
 import { AeroplaneRoom } from "../../durable-objects/AeroplaneRoom";
 import { PaodekuaiRoom } from "../../durable-objects/PaodekuaiRoom";
 import { DoudizhuRoom } from "../../durable-objects/DoudizhuRoom";
+import { MonopolyRoom } from "../../durable-objects/MonopolyRoom";
 import { planAeroplaneMove, type AeroplaneChoice } from "../../games/aeroplane/rules";
 import { pdkMoves } from "../../games/paodekuai/rules";
 import { ddzMoves } from "../../games/doudizhu/rules";
@@ -110,8 +111,15 @@ const stateSchema = z
     colours: z.array(z.number()).optional(),
     planes: z.array(z.array(z.number())).optional(),
     takeoff: z.array(z.number()).optional(),
-    roll: z.number().nullable().optional(),
+    // Aeroplane projects one die, Monopoly a pair.
+    roll: z.union([z.number(), z.array(z.number()), z.null()]).optional(),
     sixes: z.number().optional(),
+    // Monopoly publishes cash, owners and what the viewer could build on; only
+    // the chance deck is hidden.
+    cash: z.array(z.number()).optional(),
+    buildable: z.array(z.number()).optional(),
+    // Monopoly exposes the seat map as numbers, so the driver reads its own seat.
+    seatMap: z.record(z.string(), z.number()).optional(),
     // Run Fast projects only the viewer's hand; rival hands stay server-side.
     hand: z.array(z.string()).optional(),
     handCounts: z.array(z.number()).optional(),
@@ -179,7 +187,8 @@ interface Journey {
     | "gomoku"
     | "aeroplane"
     | "paodekuai"
-    | "doudizhu";
+    | "doudizhu"
+    | "monopoly";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -193,7 +202,8 @@ interface Journey {
     | "GOMOKU_ROOM"
     | "AEROPLANE_ROOM"
     | "PAODEKUAI_ROOM"
-    | "DOUDIZHU_ROOM";
+    | "DOUDIZHU_ROOM"
+    | "MONOPOLY_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
@@ -490,9 +500,9 @@ const journeys: Journey[] = [
       // read it the way a model would: look yourself up in `seats`.
       const seats = z.record(z.string(), z.number()).safeParse(state.seats).data ?? {};
       const seat = seats[state.you.playerId];
-      const roll = state.roll;
+      const roll = z.number().safeParse(state.roll).data;
 
-      if (seat === undefined || roll === null || roll === undefined) return null;
+      if (seat === undefined || roll === undefined) return null;
 
       // Ask the real rules module what each plane would do, then take the
       // biggest gain: a plane reaching the centre first, then one that captures,
@@ -532,6 +542,41 @@ const journeys: Journey[] = [
     assertRival: (rival) => {
       expect(rival.planes?.length).toBeGreaterThan(0);
       expect(rival.you.legalActions).not.toContain("roll");
+    },
+  },
+  {
+    gameType: "monopoly",
+    Room: MonopolyRoom,
+    binding: "MONOPOLY_ROOM",
+    players: 2,
+    minActions: 40,
+    // Two seats buy everything and build on every full group, so rents climb
+    // and one of them runs out of cash; a cautious driver would trade forever.
+    budget: 900,
+    timeout: 240_000,
+    next: (state) => {
+      const legal = state.you.legalActions;
+      const phase = state.turnState?.phase;
+
+      if (phase === "roll" && legal.includes("roll")) return { actionType: "roll", data: {} };
+
+      if (phase === "buy") return { actionType: legal.includes("buy") ? "buy" : "skip", data: {} };
+
+      if (phase === "end") {
+        const [space] = state.buildable ?? [];
+
+        // House levels are what make rents bite; without them two cautious seats
+        // can trade passes for ever.
+        if (space !== undefined) return { actionType: "build", data: { space } };
+
+        return { actionType: "end", data: {} };
+      }
+
+      return null;
+    },
+    assertRival: (rival) => {
+      expect(rival).not.toHaveProperty("deck");
+      expect(rival.cash?.length).toBe(2);
     },
   },
   paodekuaiJourney,

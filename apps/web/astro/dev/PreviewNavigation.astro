@@ -27,7 +27,7 @@
     '/series':'/design-preview/library',
   } satisfies Record<string,string>;
 
-  const games=['connect4','checkers','reversi','codenames','poker','pokemon','battleship','contexto','gomoku','aeroplane','paodekuai','doudizhu'];
+  const games=['connect4','checkers','reversi','codenames','poker','pokemon','battleship','contexto','gomoku','aeroplane','paodekuai','doudizhu','monopoly'];
 
   for(const game of games){routes['/'+game]='/design-preview/'+game;routes['/games/'+game]='/design-preview/public/games/'+game;}
 

@@ -85,6 +85,30 @@ export function applyPreviewScenario(
   if (scenario === "opening" && screen === "gomoku")
     s.board = Array.from({ length: 15 }, () => Array(15).fill(0));
 
+  if (screen === "monopoly") {
+    if (scenario === "opening") {
+      s.cash = [1500, 1500];
+      s.position = [0, 0];
+      s.owners = new Array<number | null>(24).fill(null);
+      s.houses = new Array<number>(24).fill(0);
+      s.buildable = [];
+      s.roll = null;
+      s.landed = null;
+      s.rounds = 0;
+      turn.phase = "roll";
+      turn.currentPlayerId = "preview-0";
+      you.legalActions = ["roll"];
+    }
+
+    if (scenario === "midgame") {
+      turn.phase = "buy";
+      turn.currentPlayerId = "preview-0";
+      s.landed = 7;
+      s.roll = [3, 4];
+      you.legalActions = ["buy", "skip"];
+    }
+  }
+
   if (screen === "doudizhu") {
     if (scenario === "opening") {
       s.hand = ["S3", "H3", "S4", "H4", "C5", "S6", "H7", "C8", "D9", "ST", "HJ", "CQ", "DK", "SA", "S2", "j1", "j2"];

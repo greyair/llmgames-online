@@ -76,6 +76,10 @@
       {
         "name": "DOUDIZHU_ROOM",
         "class_name": "DoudizhuRoom"
+      },
+      {
+        "name": "MONOPOLY_ROOM",
+        "class_name": "MonopolyRoom"
       }
     ]
   },
@@ -116,6 +120,12 @@
       "tag": "v5",
       "new_sqlite_classes": [
         "DoudizhuRoom"
+      ]
+    },
+    {
+      "tag": "v6",
+      "new_sqlite_classes": [
+        "MonopolyRoom"
       ]
     }
   ],

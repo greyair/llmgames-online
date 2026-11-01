@@ -42,6 +42,8 @@ export function getRoomNamespace(env: Env, gameType: GameType): DurableObjectNam
       return env.PAODEKUAI_ROOM;
     case "doudizhu":
       return env.DOUDIZHU_ROOM;
+    case "monopoly":
+      return env.MONOPOLY_ROOM;
   }
 }
 

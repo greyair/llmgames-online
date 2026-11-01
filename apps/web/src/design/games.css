@@ -37,6 +37,12 @@
   --game-ink: var(--palette-white);
   --game-2: var(--palette-pdk-ink);
 }
+[data-game="monopoly"] {
+  /* The board is paper, so the mark reads as a dark ring with one red token. */
+  --game: var(--palette-mono-board);
+  --game-ink: var(--palette-mono-ink);
+  --game-2: var(--palette-mono-ring);
+}
 [data-game="checkers"] {
   --game: var(--palette-walnut);
   --game-ink: var(--palette-ivory);

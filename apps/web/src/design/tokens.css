@@ -98,6 +98,23 @@
   --palette-pdk-ink: #23201b;
   --palette-pdk-red: #c04a3a;
 
+  /* Monopoly: a pale ring board, eight group strips and four token inks */
+  --palette-mono-board: #f0ebdd;
+  --palette-mono-empty: #f7f3e7;
+  --palette-mono-line: #bdb39a;
+  --palette-mono-ink: #23201b;
+  --palette-mono-group-0: #c98a6a;
+  --palette-mono-group-1: #d3a76a;
+  --palette-mono-group-2: #c9c06a;
+  --palette-mono-group-3: #8fbd7a;
+  --palette-mono-group-4: #79b7ab;
+  --palette-mono-group-5: #7aa3c9;
+  --palette-mono-group-6: #9a8fc4;
+  --palette-mono-group-7: #c486ad;
+  --palette-mono-milk: #fbf7ee;
+  --palette-mono-grey: #9d978c;
+  --palette-mono-ring: #d2603f;
+
   /* Reversi: pastel felt, black and white discs */
   --palette-reversi-felt: #7cc79b;
   --palette-reversi-felt-deep: #4da172;

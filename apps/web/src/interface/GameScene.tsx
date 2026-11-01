@@ -836,6 +836,30 @@ function Doudizhu() {
   );
 }
 
+function Monopoly() {
+  const bx = 18,
+    by = 2,
+    cell = 4;
+
+  // The 7x7 ring: a paper frame with one coloured strip per space along the top
+  // and bottom edges.
+  return (
+    <>
+      <Glow fill={c("mono-board")} />
+      <F d={R(bx, by, 28, 28)} fill={c("mono-board")} />
+      <F d={R(bx + cell * 2, by + cell * 2, 20, 20)} fill={c("mono-empty")} />
+      {[0, 1, 2, 3, 4, 5, 6].map((step) => (
+        <g key={step}>
+          <T d={R(bx + step * cell, by, cell - 1, cell - 1)} fill={c(`mono-group-${step % 8}`)} level={10} />
+          <T d={R(bx + step * cell, by + 24, cell - 1, cell - 1)} fill={c(`mono-group-${(step + 4) % 8}`)} level={10} />
+        </g>
+      ))}
+      <F d={oval(bx + 12, by + 12, 6, 6)} fill={c("mono-ring")} />
+      <F d={oval(bx + 18, by + 17, 5, 5)} fill={c("mono-ink")} />
+    </>
+  );
+}
+
 const scenes = {
   connect4: Connect4,
   checkers: Checkers,
@@ -849,6 +873,7 @@ const scenes = {
   aeroplane: Aeroplane,
   paodekuai: Paodekuai,
   doudizhu: Doudizhu,
+  monopoly: Monopoly,
 } satisfies Record<string, () => ReactElement>;
 
 export function GameScene({ id, className }: { id: string; className?: string }) {

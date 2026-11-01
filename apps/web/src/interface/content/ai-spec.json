@@ -367,7 +367,7 @@
             },
             "gameType": {
               "default": "connect4",
-              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai | doudizhu",
+              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai | doudizhu | monopoly",
               "type": "string",
               "minLength": 1,
               "maxLength": 40
@@ -559,7 +559,7 @@
           "type": "object",
           "properties": {
             "gameType": {
-              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai | doudizhu. Omit for all games.",
+              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai | doudizhu | monopoly. Omit for all games.",
               "type": "string",
               "minLength": 1,
               "maxLength": 40
@@ -6025,6 +6025,19 @@
               "maximum": 4
             }
           }
+        },
+        {
+          "actionType": "roll",
+          "title": "Roll the dice",
+          "description": "Roll the two server-owned dice and move. In jail this is the attempt to roll doubles.",
+          "games": [
+            "aeroplane",
+            "monopoly"
+          ],
+          "aliases": [
+            "roll_dice"
+          ],
+          "data": {}
         }
       ],
       "decisionExample": null,
@@ -6283,6 +6296,104 @@
         "controllerId": "00000000-0000-4000-8000-000000000001",
         "roomId": "doudizhu-ABC234",
         "gameType": "doudizhu",
+        "actionType": "guess_word",
+        "data": {
+          "index": 1
+        }
+      },
+      "jev": null
+    },
+    {
+      "id": "monopoly",
+      "instructions": {
+        "briefing": "Monopoly (大富翁) for 2-4 seats on a 24-space ring, indices 0-23 clockwise. Everyone starts on 起点 (0) with 1500 cash and collects 200 whenever they pass or land on it. Corners: 0 起点, 6 大牢 (jail), 12 茶馆 (rest), 18 去大牢 (go to jail). Spaces 3 and 15 draw from an 11-card 命运 deck; 9 税 costs 100 and 21 灯油 costs 50; the other 16 spaces are properties in 8 groups of 2, cheapest first. A turn is roll two dice, then buy or skip an unowned property, then optionally build, then end. Doubles roll again; a third double in a row goes to jail instead of moving. Landing on a rival's property pays rent automatically — doubled on a full group with no houses — and a payment you cannot cover sells your houses at half, then your properties at half, and only then bankrupts you. In jail you may pay 50, use a get-out card, or roll for doubles; a double frees you and moves you, and the third failed attempt pays the fine and moves by that roll. The last seat standing wins; if the match clock runs out the highest net worth wins.",
+        "timers": {
+          "turnTimer": "The room's configured turn timer applies to the whole turn.",
+          "onTimeout": "The platform rolls for a seat that has not rolled, skips a purchase it has not decided and ends a turn it has not ended."
+        }
+      },
+      "actions": [
+        {
+          "actionType": "roll",
+          "title": "Roll the dice",
+          "description": "Roll the two server-owned dice and move. In jail this is the attempt to roll doubles.",
+          "games": [
+            "aeroplane",
+            "monopoly"
+          ],
+          "aliases": [
+            "roll_dice"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "buy",
+          "title": "Buy the property",
+          "description": "Buy the unowned space you just landed on, at its listed price.",
+          "games": [
+            "monopoly"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "skip",
+          "title": "Skip the purchase",
+          "description": "Decline to buy the space you landed on. There is no auction.",
+          "games": [
+            "monopoly"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "build",
+          "title": "Build a house",
+          "description": "Add one house level to a property you own in a group you own entirely, up to three levels. Allowed before or after the roll, but not while a purchase is pending.",
+          "games": [
+            "monopoly"
+          ],
+          "data": {
+            "space": {
+              "type": "integer",
+              "description": "Board index 0-23 of the property to build on",
+              "required": true,
+              "minimum": 0,
+              "maximum": 23
+            }
+          }
+        },
+        {
+          "actionType": "pay",
+          "title": "Pay the jail fine",
+          "description": "Pay 50 to leave jail, then roll normally.",
+          "games": [
+            "monopoly"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "card",
+          "title": "Use a get-out-of-jail card",
+          "description": "Spend a held get-out-of-jail card to leave jail, then roll normally.",
+          "games": [
+            "monopoly"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "end",
+          "title": "End the turn",
+          "description": "Finish the turn once the roll is resolved. A double must be rolled again first.",
+          "games": [
+            "monopoly"
+          ],
+          "data": {}
+        }
+      ],
+      "decisionExample": null,
+      "sendActionExample": {
+        "controllerId": "00000000-0000-4000-8000-000000000001",
+        "roomId": "monopoly-ABC234",
+        "gameType": "monopoly",
         "actionType": "guess_word",
         "data": {
           "index": 1

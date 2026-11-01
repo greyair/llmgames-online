@@ -20,6 +20,7 @@ export const previewScreens = [
   { id: "aeroplane", name: "Aeroplane Chess" },
   { id: "paodekuai", name: "Run Fast" },
   { id: "doudizhu", name: "Fight the Landlord" },
+  { id: "monopoly", name: "Monopoly" },
 ] as const;
 
 const sharedStates = [
@@ -54,6 +55,7 @@ const gameStates = {
   aeroplane: ["opening", "midgame", "win"],
   paodekuai: ["opening", "midgame", "leading"],
   doudizhu: ["opening", "midgame", "win"],
+  monopoly: ["opening", "midgame"],
   reversi: ["opening", "forced-pass", "endgame"],
   codenames: [
     "clue",

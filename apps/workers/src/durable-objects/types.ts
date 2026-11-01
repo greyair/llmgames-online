@@ -963,3 +963,38 @@ export interface DoudizhuGameState extends BaseGameState {
   /** Hand score: bid × 2^multiplier × spring. */
   score: number;
 }
+
+export interface MonopolyGameState extends BaseGameState {
+  type: "monopoly";
+  turnState: BaseTurnState & { phase: "waiting" | "roll" | "buy" | "end" | "ended" };
+  /** playerId → seat index 0..3. */
+  seats: Record<string, number>;
+  /** Cash per seat; a negative value never survives settlement. */
+  cash: number[];
+  /** Board index per seat. */
+  position: number[];
+  jail: boolean[];
+  /** Failed doubles attempts while jailed. */
+  jailTurns: number[];
+  /** Get-out-of-jail cards held per seat. */
+  jailCards: number[];
+  /** Owner seat per board index, or null; non-property squares stay null. */
+  owners: (number | null)[];
+  /** House levels per board index, 0-3. */
+  houses: number[];
+  /** Remaining chance cards, top last. Hidden from every projection. */
+  deck: number[];
+  /** Doubles rolled so far in this turn. */
+  doubles: number;
+  /** The dice just rolled, for the board. */
+  roll: [number, number] | null;
+  /** Chance card drawn this turn. */
+  card: number | null;
+  /** Board index the mover landed on, for the board highlight. */
+  landed: number | null;
+  bankrupt: boolean[];
+  winner: string | null;
+  /** Turns taken in total, and full rounds completed. */
+  turns: number;
+  rounds: number;
+}

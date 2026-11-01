@@ -16,7 +16,8 @@ CREATE TABLE "active_rooms" (
       'gomoku',
       'aeroplane',
       'paodekuai',
-      'doudizhu'
+      'doudizhu',
+      'monopoly'
     )
   ),
   room_id TEXT NOT NULL UNIQUE,

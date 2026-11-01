@@ -25,6 +25,7 @@ const LIBRARY_ORDER = [
   "aeroplane",
   "paodekuai",
   "doudizhu",
+  "monopoly",
 ] as const;
 
 export const gameCatalog = LIBRARY_ORDER.map((id) => GAME_MANIFESTS[id]);

@@ -1,0 +1,155 @@
+/* 大富翁: a pale ring board with eight coloured group strips, owner tints,
+   house pips and one dot per token. Colours come from tokens.css. */
+
+.mono-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-12);
+  container-type: size;
+}
+
+.mono-fit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: min(100cqw, 100cqh, 720px);
+  height: 100%;
+  min-height: 0;
+}
+
+.mono-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.mono-player {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-10);
+  font-size: var(--type-caption);
+  color: var(--palette-ink-55);
+  background: var(--palette-mono-board);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 1px 0 var(--palette-mono-line);
+}
+
+.mono-player[data-self="true"] {
+  color: var(--palette-ink);
+  box-shadow: 0 0 0 2px var(--palette-ink);
+}
+
+.mono-player[data-out="true"] {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.mono-dot {
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-pill);
+}
+
+.mono-name {
+  font-weight: 600;
+}
+
+.mono-cash {
+  font-family: var(--font-code);
+}
+
+.mono-badge {
+  padding: 0 var(--space-6);
+  font-size: var(--type-micro);
+  color: var(--palette-white);
+  background: var(--palette-mono-ink);
+  border-radius: var(--radius-pill);
+}
+
+.mono-board-wrap {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.mono-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: 1;
+}
+
+.mono-space[data-buildable="true"] {
+  cursor: pointer;
+}
+
+.mono-space[data-buildable="true"] rect {
+  stroke: var(--palette-mono-ink);
+  stroke-width: 3;
+}
+
+.mono-space[data-here="true"] rect {
+  stroke-dasharray: 5 3;
+}
+
+.mono-label {
+  font-family: var(--font-ui);
+  font-size: var(--type-small);
+  fill: var(--palette-mono-ink);
+}
+
+.mono-price {
+  font-family: var(--font-code);
+  font-size: var(--type-micro);
+  fill: var(--palette-ink-55);
+}
+
+.mono-centre {
+  font-family: var(--font-code);
+  font-size: var(--type-hero);
+  fill: var(--palette-mono-ink);
+}
+
+.mono-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--space-32);
+}
+
+.mono-hint {
+  flex: 1;
+  margin: 0;
+  font-size: var(--type-caption);
+  color: var(--palette-ink-55);
+}
+
+.mono-actions {
+  display: flex;
+  gap: var(--space-8);
+}
+
+/* Narrow boards shrink the labels with the cells; SVG text does not inherit the
+   container's font size, so each step is a token rather than a raw pixel value. */
+@container (max-width: 560px) {
+  .mono-label {
+    font-size: var(--type-micro);
+  }
+
+  .mono-price {
+    font-size: var(--type-micro);
+  }
+
+  .mono-centre {
+    font-size: var(--type-section);
+  }
+}

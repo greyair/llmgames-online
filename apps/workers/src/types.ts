@@ -21,6 +21,7 @@ export interface Env {
   AEROPLANE_ROOM: DurableObjectNamespace;
   PAODEKUAI_ROOM: DurableObjectNamespace;
   DOUDIZHU_ROOM: DurableObjectNamespace;
+  MONOPOLY_ROOM: DurableObjectNamespace;
 
   EMAIL?: {
     send(message: {

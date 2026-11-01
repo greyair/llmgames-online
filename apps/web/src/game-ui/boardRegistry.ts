@@ -42,6 +42,10 @@ const Doudizhu = lazy(() =>
   import("./Doudizhu").then(({ Doudizhu }) => ({ default: Doudizhu })),
 );
 
+const Monopoly = lazy(() =>
+  import("./Monopoly").then(({ Monopoly }) => ({ default: Monopoly })),
+);
+
 /**
  * Game id → board renderer.
  *
@@ -62,6 +66,7 @@ const BOARDS: Readonly<Record<GameTypeId, LazyBoard>> = {
   aeroplane: Aeroplane,
   paodekuai: Paodekuai,
   doudizhu: Doudizhu,
+  monopoly: Monopoly,
 };
 
 /** Renderer for a game, or null when this build does not ship that board. */

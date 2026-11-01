@@ -28,6 +28,7 @@ const heroOrder = [
   "aeroplane",
   "paodekuai",
   "doudizhu",
+  "monopoly",
 ];
 
 const heroGames = heroOrder.flatMap((id) => {

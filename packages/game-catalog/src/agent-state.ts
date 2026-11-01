@@ -76,6 +76,22 @@ export interface ProjectionPart {
   bid?: unknown;
   multiplier?: unknown;
   winnerSide?: unknown;
+  cash?: unknown;
+  position?: unknown;
+  owners?: unknown;
+  houses?: unknown;
+  jail?: unknown;
+  jailTurns?: unknown;
+  jailCards?: unknown;
+  bankrupt?: unknown;
+  deckCount?: unknown;
+  doubles?: unknown;
+  landed?: unknown;
+  rounds?: unknown;
+  card?: unknown;
+  upgradeable?: unknown;
+  yourProperties?: unknown;
+  standOn?: unknown;
   scores?: unknown;
   legalMoves?: unknown;
   forcedPiece?: unknown;
@@ -308,6 +324,22 @@ const objectValue = z
     bid: z.unknown().optional(),
     multiplier: z.unknown().optional(),
     winnerSide: z.unknown().optional(),
+    cash: z.unknown().optional(),
+    position: z.unknown().optional(),
+    owners: z.unknown().optional(),
+    houses: z.unknown().optional(),
+    jail: z.unknown().optional(),
+    jailTurns: z.unknown().optional(),
+    jailCards: z.unknown().optional(),
+    bankrupt: z.unknown().optional(),
+    deckCount: z.unknown().optional(),
+    doubles: z.unknown().optional(),
+    landed: z.unknown().optional(),
+    rounds: z.unknown().optional(),
+    card: z.unknown().optional(),
+    upgradeable: z.unknown().optional(),
+    yourProperties: z.unknown().optional(),
+    standOn: z.unknown().optional(),
     secret: z.unknown().optional(),
   })
   .loose()

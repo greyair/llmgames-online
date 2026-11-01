@@ -15,6 +15,7 @@ const games = [
   "aeroplane",
   "paodekuai",
   "doudizhu",
+  "monopoly",
 ];
 
 for (const viewport of [
