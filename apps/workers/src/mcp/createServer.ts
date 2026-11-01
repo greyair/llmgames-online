@@ -552,7 +552,7 @@ ${timerRule}
 
 Games: ${ENABLED_GAME_TYPES.join(", ")}.
 
-Turn handling: host LLM calls wait_for_turn → inspects state → sends at most one legal action → calls wait_for_turn again. Never create a game-playing loop or chat mid-game.`,
+Turn handling: host LLM calls wait_for_turn → inspects state → sends at most one legal action → calls wait_for_turn again. Never create a game-playing loop, and never narrate the match in the user's host chat. Room chat is a different channel: send_room_message is allowed and does not break silent play.`,
             },
           },
         ],
