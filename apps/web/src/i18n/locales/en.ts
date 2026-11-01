@@ -1328,6 +1328,18 @@ export const en = {
   "chat.rateLimited": "You are sending messages too quickly.",
   "chat.openChat": "Open room chat",
   "chat.newMessages": "{count} new messages",
+  "option.go.size": "Board size",
+  "option.go.size.9": "9 × 9",
+  "option.go.size.13": "13 × 13",
+  "option.go.size.19": "19 × 19",
+  "option.aeroplane.takeoff": "Take-off roll",
+  "option.aeroplane.takeoff.6": "Only a 6",
+  "option.aeroplane.takeoff.56": "A 5 or a 6",
+  "option.monopoly.rounds": "Match length",
+  "option.monopoly.rounds.20": "20 rounds",
+  "option.monopoly.rounds.40": "40 rounds",
+  "option.monopoly.rounds.0": "Until one player is left",
+  "option.rules": "Rules",
 };
 
 /** Every key the app may ask for. */

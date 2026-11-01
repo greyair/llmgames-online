@@ -25,6 +25,8 @@ import { go, useBrowserHref } from "@/lib/navigate";
 import { play } from "@/lib/sound";
 import { GameSocket, createGameRoom, joinGameRoom } from "@/services/gameSocket";
 import { clientViewContract, clientViewSchema, type ClientView } from "@/domain/game-state";
+import { gameOptionsFor } from "@llmgames/game-catalog";
+import { optionChoiceLabel, optionTitle } from "@/game-ui/gameOptions";
 import {
   parseRewatch,
   readOnlyReplayState,
@@ -49,19 +51,22 @@ const errorText = <T,>(e: T, fallback: string) => (e instanceof Error ? e.messag
 
 const choiceSpring = { type: "spring", stiffness: 560, damping: 36 } as const;
 
-function Choices<T extends number>({
+function Choices<T extends string | number>({
   legend,
   name,
   values,
   value,
   suffix,
+  format,
   onChange,
 }: {
   legend: string;
   name: string;
   values: T[];
   value: T;
-  suffix: string;
+  suffix?: string;
+  /** Display text for a value; the raw value is the default. */
+  format?: (value: T) => string;
   onChange: (value: T) => void;
 }) {
   return (
@@ -85,7 +90,7 @@ function Choices<T extends number>({
               />
             )}
             <span className="room-choice-label">
-              {option}
+              {format ? format(option) : option}
               {suffix}
             </span>
           </button>
@@ -186,6 +191,15 @@ export function Room({
   const [code, setCode] = useState(roomCode ?? "");
   const [minutes, setMinutes] = useState(30);
   const [seconds, setSeconds] = useState(30);
+
+  // Rule options this game declares (C2). Defaults come from the shared
+  // catalog, so the lobby can never show a value the server would refuse.
+  const optionSpecs = gameOptionsFor(gameType);
+
+  const [optionValues, setOptionValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(optionSpecs.map((spec) => [spec.key, spec.default])),
+  );
+
   const [exit, setExit] = useState(Boolean(demo?.confirm));
   const [end, setEnd] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -480,15 +494,18 @@ export function Room({
     setBusy(true);
     setError("");
 
+    const timers = { gameTotalTime: chosenMinutes * 60000, turnTime: seconds * 1000 };
+
+    // Only a game that declares options sends them, so a game that declares
+    // none never sees an unexpected key.
+    const created =
+      optionSpecs.length > 0
+        ? createGameRoom({ gameType, ...timers, options: optionValues })
+        : createGameRoom({ gameType, ...timers });
+
     try {
       acceptRoom(
-        create
-          ? await createGameRoom({
-              gameType,
-              gameTotalTime: chosenMinutes * 60000,
-              turnTime: seconds * 1000,
-            })
-          : await joinGameRoom({ roomCode: code.trim().toUpperCase() }),
+        create ? await created : await joinGameRoom({ roomCode: code.trim().toUpperCase() }),
       );
     } catch (e) {
       setError(errorText(e, t("room.connectFailed")));
@@ -763,6 +780,19 @@ export function Room({
                         onChange={setSeconds}
                       />
                     )}
+                    {optionSpecs.map((spec) => (
+                      <Choices
+                        key={spec.key}
+                        legend={optionTitle(t, spec)}
+                        name={`option-${spec.key}`}
+                        values={spec.choices.map((choice) => choice.value)}
+                        value={optionValues[spec.key] ?? spec.default}
+                        format={(value) => optionChoiceLabel(t, spec, value)}
+                        onChange={(value) =>
+                          setOptionValues((current) => ({ ...current, [spec.key]: value }))
+                        }
+                      />
+                    ))}
                     <div className="room-create-action">
                       <Button
                         type="submit"

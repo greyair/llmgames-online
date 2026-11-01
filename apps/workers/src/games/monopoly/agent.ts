@@ -85,6 +85,9 @@ export function monopolyAgentDecision(
     yourProperties: mine.map((space) => spaceLine(space.index, owners, houses)),
     upgradeable: canBuild.map((space) => spaceLine(space.index, owners, houses)),
     legalActions: [...legalActions],
+    /** 0 means the room plays until one seat is left (C2). */
+    roundLimit: numberValue(view.roundLimit) ?? 0,
+    rounds: numberValue(view.rounds) ?? 0,
     winnerSeat: winnerForSeats(view, seats),
   });
 }

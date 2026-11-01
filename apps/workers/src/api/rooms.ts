@@ -5,6 +5,7 @@ import {
   isGameEnabled,
   maxGameTotalTimeMs,
   MAX_GAME_TOTAL_TIME_MS,
+  resolveGameOptions,
   ROOM_LIFETIME_MS,
   TURN_TIME_MAX_MS,
   TURN_TIME_MIN_MS,
@@ -36,6 +37,11 @@ const createSchema = z
     maxBet: z.number().int().positive().max(10_000_000).optional(),
     startingChips: z.number().int().positive().max(100_000_000).optional(),
     fixedBet: z.number().int().positive().max(1_000_000).optional(),
+    /**
+     * Per-game rule options (C2). Values are strings so one shape covers
+     * numeric choices; the game's own declaration decides what is legal.
+     */
+    options: z.record(z.string().max(40), z.string().max(20)).optional(),
   })
   .strict();
 
@@ -87,6 +93,12 @@ roomsRoutes.post("/create", async (c) => {
 
   if (!isGameEnabled(gameType)) return c.json({ error: "Game type is currently unavailable" }, 404);
 
+  // Rule options are checked before a room code is reserved, so a bad choice
+  // never leaves a half-created room behind.
+  const resolvedOptions = resolveGameOptions(gameType, parsed.data.options);
+
+  if (!resolvedOptions.ok) return c.json({ error: resolvedOptions.error }, 400);
+
   // Each game declares its own maximum match length; the shared schema above only
   // bounds the request before the game type is known.
   const requestedTotalTime = parsed.data.gameTotalTime;
@@ -130,6 +142,9 @@ roomsRoutes.post("/create", async (c) => {
         body: JSON.stringify({
           ...parsed.data,
           gameType,
+          // Send the resolved map so the room stores the same defaults the
+          // browser was shown, not an empty object.
+          options: resolvedOptions.options,
           hostId: user.id,
           hostName: user.gamertag || "Player",
           roomCode,

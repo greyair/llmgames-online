@@ -119,6 +119,14 @@ export interface GameRoomConfig {
   gameTotalTime?: number;
   turnTime?: number;
   roomCode?: string;
+  /**
+   * Per-game rule options, already validated against the game's declaration.
+   *
+   * Every declared key is present (defaults filled in), so a rule module can
+   * read `options.size` without repeating the fallback. Absent means the game
+   * declares no options at all.
+   */
+  options?: Record<string, string>;
 }
 
 /** Minimum shape every game state must have for shared room logic to work */
@@ -163,6 +171,13 @@ export interface BaseGameState {
   playStartedAt?: number;
   /** Absolute room expiry timestamp in milliseconds since Unix epoch. */
   expiresAt: number;
+  /**
+   * Rule options this room was created with (C2).
+   *
+   * Kept on the state so a restarted room and its replay describe the same
+   * rules; a room from before this field simply has none.
+   */
+  roomOptions?: Record<string, string>;
 }
 
 // --- Connect 4 ---
@@ -1007,6 +1022,8 @@ export interface MonopolyGameState extends BaseGameState {
   /** Turns taken in total, and full rounds completed. */
   turns: number;
   rounds: number;
+  /** Stop after this many rounds; 0 means no round limit. */
+  roundLimit: number;
 }
 
 // --- Chess (国际象棋) ---

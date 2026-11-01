@@ -21,6 +21,8 @@ import { playerPrimaryName } from "@/features/shared/playerIdentity";
 import { PlayerName } from "./PlayerName";
 import { AgentWebhookInvites } from "./AgentWebhookInvites";
 import { useT, type Translate } from "@/i18n";
+import { gameOptionsFor } from "@llmgames/game-catalog";
+import { optionChoiceLabel, optionTitle } from "./gameOptions";
 import "./lobby.css";
 
 type Member = NonNullable<ClientView["players"]>[number];
@@ -622,6 +624,17 @@ export function LobbySetup({
             {t("room.timePerTurn")}
             <strong>{Math.round((state.timerConfig?.turnTime ?? 30000) / 1000)}{t("room.secondSuffix")}</strong>
           </span>
+          {/* Rule options are fixed at creation; the lobby only reports them. */}
+          {gameOptionsFor(state.type ?? "").map((spec) => {
+            const value = state.roomOptions?.[spec.key];
+
+            return (
+              <span key={spec.key}>
+                {optionTitle(t, spec)}
+                <strong>{value ? optionChoiceLabel(t, spec, value) : "—"}</strong>
+              </span>
+            );
+          })}
           {state.type === "battleship" && (
             <span>
               {t("lobby.fleetPlacement")}<strong>5{t("room.minuteSuffix")}</strong>

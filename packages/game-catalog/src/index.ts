@@ -1,4 +1,5 @@
 import type { WireObject } from "./value-contracts.js";
+import { gameOptionsFor } from "./options.js";
 
 export * from "./value-contracts.js";
 
@@ -7,6 +8,17 @@ export * from "./series.js";
 export * from "./game-log-document.js";
 
 export { GAME_MANIFESTS, gameManifest, type GameManifest } from "./manifest.js";
+
+export {
+  GAME_OPTIONS,
+  gameOptionNumber,
+  gameOptionValue,
+  gameOptionsFor,
+  resolveGameOptions,
+  type GameOptionChoice,
+  type GameOptionSpec,
+  type GameOptionsResult,
+} from "./options.js";
 
 
 import { BATTLESHIP_FLEET_FORMAT } from "./fleet.js";
@@ -1309,6 +1321,11 @@ export function listGameToolsCatalog(gameType?: string, options: CatalogOptions 
 
   const gameInstructions: Record<string, GameInstructionSpec> = {};
 
+  const gameOptionCatalog: Record<
+    string,
+    Array<{ key: string; default: string; values: string[] }>
+  > = {};
+
   for (const g of games) {
     byGame[g] = actionsForGame(g).map((a) => ({
       actionType: a.actionType,
@@ -1320,6 +1337,14 @@ export function listGameToolsCatalog(gameType?: string, options: CatalogOptions 
     const instructions = instructionsForGame(g);
 
     if (instructions) gameInstructions[g] = instructions;
+    const declaredOptions = gameOptionsFor(g);
+
+    if (declaredOptions.length > 0)
+      gameOptionCatalog[g] = declaredOptions.map((spec) => ({
+        key: spec.key,
+        default: spec.default,
+        values: spec.choices.map((choice) => choice.value),
+      }));
   }
 
   return {
@@ -1342,6 +1367,7 @@ export function listGameToolsCatalog(gameType?: string, options: CatalogOptions 
         "Battleship fleet placement stays fixed at 5 minutes; its battle turns use this range. Contexto uses one concurrent match clock rather than per-turn timers.",
     },
     gameInstructions,
+    gameOptions: gameOptionCatalog,
     games: byGame,
     coreTools:
       options.transport === "local"

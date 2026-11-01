@@ -388,6 +388,18 @@
               "type": "integer",
               "minimum": 30000,
               "maximum": 150000
+            },
+            "options": {
+              "description": "Per-game rule options, same meaning as the browser lobby. list_game_tools returns gameOptions for each game that declares any (go.size 9|13|19, aeroplane.takeoff 6|56, monopoly.rounds 20|40|0).",
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "additionalProperties": {
+                "type": "string",
+                "maxLength": 20
+              }
             }
           },
           "required": [

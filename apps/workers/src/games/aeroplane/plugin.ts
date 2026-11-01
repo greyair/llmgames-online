@@ -1,5 +1,6 @@
 import {
   ROOM_LIFETIME_MS,
+  gameOptionValue,
   isNumber,
   isString,
   isWireObject,
@@ -8,7 +9,7 @@ import {
 } from "@llmgames/game-catalog";
 
 import { randomId, randomInt } from "../../lib/csprng";
-import type { AeroplaneGameState } from "../../durable-objects/types";
+import type { AeroplaneGameState, GameRoomConfig } from "../../durable-objects/types";
 import type { GameActionResult, GameEffect, GamePlugin } from "../contract";
 
 import {
@@ -33,6 +34,17 @@ const DEFAULT_TURN_MS = 60 * 1000;
 
 /** The source's default take-off rule: only a 6 clears the hangar. */
 const DEFAULT_TAKEOFF = [6];
+
+/**
+ * Take-off rule from the room's options (C2).
+ *
+ * `6` needs a six to leave the hangar; `56` also accepts a five. The dice stay
+ * server-owned either way: the option changes which face allows a launch, not
+ * who rolls.
+ */
+function takeoffRule(options: GameRoomConfig["options"]): number[] {
+  return gameOptionValue("aeroplane", options, "takeoff") === "56" ? [5, 6] : [...DEFAULT_TAKEOFF];
+}
 
 /**
  * 飞行棋 (Aeroplane Chess), 2-4 seats. Intents: `roll` then `launch_plane { plane }`
@@ -74,7 +86,7 @@ export const aeroplanePlugin: GamePlugin<AeroplaneGameState, "aeroplane"> = {
       expiresAt: now + ROOM_LIFETIME_MS,
       seats: {},
       colours: [],
-      takeoff: [...DEFAULT_TAKEOFF],
+      takeoff: takeoffRule(config.options),
       planes: [],
       roll: null,
       rollBy: null,
@@ -102,7 +114,9 @@ export const aeroplanePlugin: GamePlugin<AeroplaneGameState, "aeroplane"> = {
 
     state.colours = aeroplaneColours(order.length);
     state.planes = order.map(() => new Array<number>(AEROPLANE_PLANES).fill(AEROPLANE_HANGAR));
-    state.takeoff = [...DEFAULT_TAKEOFF];
+    // The rule comes from the room, not from the module: `start()` must not
+    // quietly reset a 5-or-6 room to the default take-off.
+    state.takeoff = takeoffRule(state.roomOptions);
     state.roll = null;
     state.rollBy = null;
     state.sixes = 0;

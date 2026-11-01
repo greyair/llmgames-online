@@ -10,6 +10,7 @@ import { isBoolean, isFunction, isNumber, isObject, isString } from "@llmgames/g
 
 import {
   gameLifecycle,
+  resolveGameOptions,
   ROOM_INACTIVITY_MS,
   TURN_TIME_MAX_MS,
   TURN_TIME_MIN_MS,
@@ -217,8 +218,37 @@ function actionFingerprint(actionType: string, data: WireValue | undefined): str
   return `${actionType}|${canonicalJson(data ?? {})}`;
 }
 
-function parseRoomCreationConfig<T>(value: T): GameRoomConfig | null {
+type RoomConfigResult = { ok: true; config: GameRoomConfig } | { ok: false; error: string };
+
+/**
+ * Read one `options` object into a plain string map.
+ *
+ * Anything that is not a string value is refused rather than coerced: a numeric
+ * `9` and the string `"9"` would otherwise both reach a plugin that reads a
+ * string, and only one of them is what the browser sends.
+ */
+function parseOptionEntries(value: WireValue): Record<string, string> | null {
   if (!isObjectValue(value)) return null;
+
+  const options: Record<string, string> = {};
+
+  for (const [key, entry] of Object.entries(value)) {
+    if (!isString(entry)) return null;
+
+    options[key] = entry;
+  }
+
+  return options;
+}
+
+/**
+ * Validate a `/create` body into a room configuration.
+ *
+ * `gameType` is the room's own id (from its rule module), not a client field:
+ * options are checked against the game this Durable Object actually runs.
+ */
+function parseRoomCreationConfig<T>(value: T, gameType: string): RoomConfigResult {
+  if (!isObjectValue(value)) return { ok: false, error: "Invalid room identity" };
   const hostId = objectValue(value, "hostId");
   const hostName = objectValue(value, "hostName");
   const roomCode = objectValue(value, "roomCode");
@@ -232,7 +262,7 @@ function parseRoomCreationConfig<T>(value: T): GameRoomConfig | null {
     hostName.length > 200 ||
     (roomCode !== undefined && (!isString(roomCode) || !/^[A-HJ-NP-Z2-9]{6}$/.test(roomCode)))
   )
-    return null;
+    return { ok: false, error: "Invalid room identity" };
 
   const maxPlayers = optionalNumber(value, "maxPlayers");
   const gameTotalTime = optionalNumber(value, "gameTotalTime");
@@ -253,7 +283,19 @@ function parseRoomCreationConfig<T>(value: T): GameRoomConfig | null {
 
   if (turnTime !== undefined) config.turnTime = turnTime;
 
-  return config;
+  const rawOptions = objectValue(value, "options");
+  const provided = rawOptions === undefined ? {} : parseOptionEntries(rawOptions);
+
+  if (provided === null)
+    return { ok: false, error: "Rule options must be strings, for example {\"size\":\"13\"}" };
+
+  const resolved = resolveGameOptions(gameType, provided);
+
+  if (!resolved.ok) return { ok: false, error: resolved.error };
+
+  if (Object.keys(resolved.options).length > 0) config.options = resolved.options;
+
+  return { ok: true, config };
 }
 
 function parseClientMessage<T>(value: T): ClientMessage | null {
@@ -844,15 +886,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
               ? 200
               : 409,
           );
-        const config = parseRoomCreationConfig(body);
+        const parsedConfig = parseRoomCreationConfig(body, this.roomGameType());
 
         if (
-          !config ||
+          !parsedConfig.ok ||
           body.players.length !== 2 ||
           !body.players.some((p) => p.id === body.series.firstPlayerId)
         )
           return this.jsonResponse({ error: "Invalid series match" }, 400);
-        this.gameState = this.createDefaultState(config, body.roomCode);
+        this.gameState = this.createDefaultState(parsedConfig.config, body.roomCode);
+        this.applyRoomOptions(parsedConfig.config);
         this.gameState.players = body.players;
         this.gameState.spectators = body.players.some((p) => p.id === body.hostId)
           ? []
@@ -2289,14 +2332,17 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         return this.jsonResponse({ error: "Room code already exists" }, 409);
       }
 
-      const config = parseRoomCreationConfig(await request.json());
+      const parsedConfig = parseRoomCreationConfig(await request.json(), this.roomGameType());
 
-      if (!config) {
-        return this.jsonResponse({ error: "Invalid room identity" }, 400);
+      if (!parsedConfig.ok) {
+        return this.jsonResponse({ error: parsedConfig.error }, 400);
       }
 
+      const config = parsedConfig.config;
       const roomCode = config.roomCode || generateRoomCode();
+
       this.gameState = this.createDefaultState(config, roomCode);
+      this.applyRoomOptions(config);
       await this.saveCreatedStateAndScheduleExpiry(this.gameState.createdAt);
 
       return new Response(
@@ -2364,6 +2410,29 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    */
   protected createDefaultStateForWS(userId: string, userName: string, roomCode: string): TState {
     return this.createDefaultState({ hostId: userId, hostName: userName, roomCode }, roomCode);
+  }
+
+  /**
+   * Public game id this room runs, known before any state exists.
+   *
+   * The room's own rule module answers, so a client cannot borrow another
+   * game's option vocabulary by claiming a different `gameType` in the body.
+   */
+  private roomGameType(): string {
+    return this.gameRules()?.id ?? this.gameState?.type ?? "";
+  }
+
+  /**
+   * Record the validated rule options on the state (C2).
+   *
+   * Kept on `gameState` so a restarted room, its archive and its replay all
+   * describe the same rules. A room created before options existed simply has
+   * no `roomOptions`, and its plugin falls back to the historical defaults.
+   */
+  private applyRoomOptions(config: GameRoomConfig): void {
+    if (!this.gameState || !config.options) return;
+
+    this.gameState.roomOptions = { ...config.options };
   }
 
   // ─── WebSocket lifecycle ───────────────────────────────────────

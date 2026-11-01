@@ -1,7 +1,14 @@
-import { ROOM_LIFETIME_MS, isNumber, isString, isWireObject, type WireValue } from "@llmgames/game-catalog";
+import {
+  ROOM_LIFETIME_MS,
+  gameOptionNumber,
+  isNumber,
+  isString,
+  isWireObject,
+  type WireValue,
+} from "@llmgames/game-catalog";
 
 import { randomId } from "../../lib/csprng";
-import type { GoGameState } from "../../durable-objects/types";
+import type { GameRoomConfig, GoGameState } from "../../durable-objects/types";
 import type { GameActionResult, GameEffect, GamePlugin } from "../contract";
 
 import { goAgentDecision } from "./agent";
@@ -26,6 +33,21 @@ import {
 const DEFAULT_MATCH_MS = ROOM_LIFETIME_MS;
 
 const DEFAULT_TURN_MS = 60 * 1000;
+
+/**
+ * Board sizes the lobby offers (C2).
+ *
+ * A room created before options existed has no `roomOptions`, and
+ * `gameOptionNumber` then answers with the declared default — 9, which is the
+ * board every earlier Go room was played on.
+ */
+const ALLOWED_SIZES: readonly number[] = [9, 13, 19];
+
+function boardSizeFrom(options: GameRoomConfig["options"]): number {
+  const requested = gameOptionNumber("go", options, "size");
+
+  return ALLOWED_SIZES.includes(requested) ? requested : GO_DEFAULT_SIZE;
+}
 
 const seatOfColor = (color: GoColor): 1 | 2 => (color === GO_BLACK ? 1 : 2);
 
@@ -73,7 +95,8 @@ export const goPlugin: GamePlugin<GoGameState, "go"> = {
   createInitialState(config, roomCode, now) {
     const gameTotalTime = config.gameTotalTime ?? DEFAULT_MATCH_MS;
     const turnTime = config.turnTime ?? DEFAULT_TURN_MS;
-    const cells = new Array<number>(GO_DEFAULT_SIZE * GO_DEFAULT_SIZE).fill(GO_EMPTY);
+    const boardSize = boardSizeFrom(config.options);
+    const cells = new Array<number>(boardSize * boardSize).fill(GO_EMPTY);
 
     return {
       id: randomId(),
@@ -96,10 +119,10 @@ export const goPlugin: GamePlugin<GoGameState, "go"> = {
       updatedAt: now,
       expiresAt: now + ROOM_LIFETIME_MS,
       seats: {},
-      boardSize: GO_DEFAULT_SIZE,
+      boardSize,
       komi: GO_KOMI,
       cells,
-      playedAt: new Array<number>(GO_DEFAULT_SIZE * GO_DEFAULT_SIZE).fill(0),
+      playedAt: new Array<number>(boardSize * boardSize).fill(0),
       turn: GO_BLACK,
       captures: [0, 0, 0],
       passes: 0,

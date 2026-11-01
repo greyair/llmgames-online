@@ -88,6 +88,7 @@ export interface ProjectionPart {
   doubles?: unknown;
   landed?: unknown;
   rounds?: unknown;
+  roundLimit?: unknown;
   card?: unknown;
   upgradeable?: unknown;
   yourProperties?: unknown;
@@ -359,6 +360,7 @@ const objectValue = z
     doubles: z.unknown().optional(),
     landed: z.unknown().optional(),
     rounds: z.unknown().optional(),
+    roundLimit: z.unknown().optional(),
     card: z.unknown().optional(),
     upgradeable: z.unknown().optional(),
     yourProperties: z.unknown().optional(),

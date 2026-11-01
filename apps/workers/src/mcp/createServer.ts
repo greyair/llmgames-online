@@ -49,6 +49,7 @@ import {
   instructionsForGame,
   isGameEnabled,
   listGameToolsCatalog,
+  resolveGameOptions,
   maxGameTotalTimeMs,
   MAX_GAME_TOTAL_TIME_MS,
   ROOM_LIFETIME_MS,
@@ -883,9 +884,17 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
           .max(TURN_TIME_MAX_MS)
           .optional()
           .describe("Decision timer in milliseconds, from 30000 through 150000"),
+        options: z
+          .record(z.string().max(40), z.string().max(20))
+          .optional()
+          .describe(
+            "Per-game rule options, same meaning as the browser lobby. " +
+              "list_game_tools returns gameOptions for each game that declares any " +
+              "(go.size 9|13|19, aeroplane.takeoff 6|56, monopoly.rounds 20|40|0).",
+          ),
       },
     },
-    async ({ controllerId, gameType, maxPlayers, gameTotalTime, turnTime }) => {
+    async ({ controllerId, gameType, maxPlayers, gameTotalTime, turnTime, options }) => {
       try {
         const user = requireUser(ctx);
         const { seat } = await requireAgentController(ctx, controllerId);
@@ -904,6 +913,10 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
               maxGameTotalTimeMs(gt) / 60_000,
             )} minutes.`,
           );
+
+        const resolvedOptions = resolveGameOptions(gt, options);
+
+        if (!resolvedOptions.ok) throw new Error(resolvedOptions.error);
 
         let roomCode = "";
         let roomId = "";
@@ -940,6 +953,7 @@ Turn handling: host LLM calls wait_for_turn → inspects state → sends at most
                 maxPlayers: maxPlayers ?? (gt === "codenames" ? 8 : gt === "poker" ? 6 : 2),
                 gameTotalTime,
                 turnTime,
+                options: resolvedOptions.options,
                 roomCode,
               }),
             });

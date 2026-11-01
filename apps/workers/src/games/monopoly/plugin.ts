@@ -1,12 +1,13 @@
 import {
   ROOM_LIFETIME_MS,
+  gameOptionNumber,
   isNumber,
   isWireObject,
   type WireValue,
 } from "@llmgames/game-catalog";
 
 import { randomId, randomInt, shuffleInPlace } from "../../lib/csprng";
-import type { MonopolyGameState } from "../../durable-objects/types";
+import type { GameRoomConfig, MonopolyGameState } from "../../durable-objects/types";
 import type { GameActionResult, GameEffect, GamePlugin } from "../contract";
 
 import {
@@ -42,6 +43,16 @@ import {
 const DEFAULT_MATCH_MS = ROOM_LIFETIME_MS;
 
 const DEFAULT_TURN_MS = 60 * 1000;
+
+/**
+ * Round limit from the room's options (C2).
+ *
+ * `0` means "play until one seat is left", which the room lifetime still
+ * bounds: an unlimited game cannot outlive the Durable Object's own deadlines.
+ */
+function roundLimitFrom(options: GameRoomConfig["options"]): number {
+  return gameOptionNumber("monopoly", options, "rounds");
+}
 
 /**
  * 大富翁, 2-4 seats on a 24-space ring. Intents: `roll`, `buy`, `skip`,
@@ -101,6 +112,7 @@ export const monopolyPlugin: GamePlugin<MonopolyGameState, "monopoly"> = {
       winner: null,
       turns: 0,
       rounds: 0,
+      roundLimit: roundLimitFrom(config.options),
     };
   },
 
@@ -135,6 +147,8 @@ export const monopolyPlugin: GamePlugin<MonopolyGameState, "monopoly"> = {
     state.winner = null;
     state.turns = 0;
     state.rounds = 0;
+    // `roundLimit` is configuration: `createInitialState` read it from the room
+    // options and it must survive a restart, so `start` leaves it alone.
     state.turnState.currentPlayerId = order[0]?.id ?? null;
     state.turnState.phase = "roll";
     state.turnState.turnNumber = 1;
@@ -283,6 +297,7 @@ export const monopolyPlugin: GamePlugin<MonopolyGameState, "monopoly"> = {
       landed: projection.landed,
       bankrupt: projection.bankrupt,
       rounds: projection.rounds,
+      roundLimit: projection.roundLimit,
       winner: projection.winner,
     };
   },
@@ -349,6 +364,12 @@ function nextTurn(state: MonopolyGameState, from: number, now: number): GameEffe
   state.landed = null;
   state.turns += 1;
   state.rounds = Math.floor(state.turns / Math.max(alive.length, 1));
+
+  // A round-limited room settles on assets as soon as the last round ends:
+  // richest surviving seat wins, ties are a draw, and the event carries net
+  // worth so a client can show why the result is what it is.
+  if (state.roundLimit > 0 && state.rounds >= state.roundLimit)
+    return finish(state, richest(state), "round_limit");
 
   let seat = from;
 

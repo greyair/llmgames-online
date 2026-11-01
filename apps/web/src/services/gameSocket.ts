@@ -68,6 +68,8 @@ interface CreateRoomOptions {
   maxPlayers?: number;
   gameTotalTime?: number;
   turnTime?: number;
+  /** Per-game rule options (C2); the room validates them against its own spec. */
+  options?: Record<string, string>;
   settings?: WireValue;
 }
 
