@@ -131,6 +131,18 @@ describe("sandbox deployment gate", () => {
     expect(sandboxEnabled({ ENVIRONMENT: "production" })).toBe(false);
   });
 
+  it("is off on any tier that is not explicitly listed", () => {
+    // "not production" used to be enough, which left a shared staging box with
+    // an open debug API as soon as someone set the flag.
+    for (const ENVIRONMENT of ["staging", "preview", "", undefined])
+      expect(sandboxEnabled({ ENVIRONMENT, SANDBOX_ENABLED: "true" })).toBe(false);
+  });
+
+  it("is on only for the local tiers", () => {
+    expect(sandboxEnabled({ ENVIRONMENT: "development", SANDBOX_ENABLED: "true" })).toBe(true);
+    expect(sandboxEnabled({ ENVIRONMENT: "test", SANDBOX_ENABLED: "true" })).toBe(true);
+  });
+
   it("is off without the explicit flag", () => {
     expect(sandboxEnabled({ ENVIRONMENT: "development" })).toBe(false);
     expect(sandboxEnabled({ SANDBOX_ENABLED: "yes" })).toBe(false);

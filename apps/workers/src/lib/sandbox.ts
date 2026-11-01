@@ -10,15 +10,21 @@ import type { Env } from "../types";
  * environment flag.
  *
  * Both conditions must hold:
- *  - `ENVIRONMENT` is anything other than `production`
+ *  - `ENVIRONMENT` is one of {@link SANDBOX_ENVIRONMENTS}
  *  - `SANDBOX_ENABLED` is exactly `"true"`
  *
- * A production deployment defines neither, so the routes answer 404 there.
+ * The environment list is an allow-list, not "anything but production". A
+ * deployment that opted the flag on for a while and later relabelled itself
+ * `staging` used to keep the debug API open to the internet; now an unlisted
+ * tier is closed whatever the flag says. Shared environments need their own
+ * access control before they may appear here.
  */
+const SANDBOX_ENVIRONMENTS: ReadonlySet<string> = new Set(["development", "test"]);
+
 export function sandboxEnabled(
   env: Pick<Env, "ENVIRONMENT" | "SANDBOX_ENABLED">,
 ): boolean {
-  if (env.ENVIRONMENT === "production") return false;
+  if (!SANDBOX_ENVIRONMENTS.has(env.ENVIRONMENT ?? "")) return false;
 
   return env.SANDBOX_ENABLED === "true";
 }
