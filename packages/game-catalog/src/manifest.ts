@@ -140,6 +140,14 @@ export const GAME_MANIFESTS = {
     detail: "Castle, pin, promote. Mate the king in sixty-four squares.",
     i18n: { game: "game.chess" },
   },
+  xiangqi: {
+    id: "xiangqi",
+    title: "Chinese Chess",
+    players: "2",
+    category: "Board",
+    detail: "Hobble the horse, screen the cannon, and face the general.",
+    i18n: { game: "game.xiangqi" },
+  },
   contexto: {
     id: "contexto",
     title: "Contexto",

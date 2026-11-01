@@ -47,6 +47,7 @@ describe("MCP HTTP boundary", () => {
       "doudizhu",
       "monopoly",
       "chess",
+      "xiangqi",
     ]);
     expect(body.tools.core).toContain("wait_for_turn");
     expect(body.tools.core).toContain("send_action");

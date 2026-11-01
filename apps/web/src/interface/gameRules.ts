@@ -54,6 +54,16 @@ export const rules = {
     "Promote: a pawn reaching the far rank becomes a queen, rook, bishop or knight — queen unless you say otherwise.",
     "Win by checkmate. Stalemate, a hundred plies without a capture or pawn move, the same position three times, and bare kings with nothing to mate with are draws.",
   ],
+  xiangqi: [
+    "Two players on nine files and ten ranks; the pieces stand on the points. Red moves first.",
+    "General: one point orthogonally, never outside the 3×3 palace. Advisors: one point diagonally, inside the palace only.",
+    "Elephant: exactly two points diagonally and never across the river, blocked when the point between is occupied.",
+    "Horse: one point orthogonally then one diagonally outward, blocked when the leg is occupied. The chariot slides orthogonally without jumping.",
+    "Cannon: moves like a chariot but captures only by jumping exactly one piece — the screen — of either colour.",
+    "Soldier: one point forward; after crossing the river it may also step sideways, never backward.",
+    "The two generals may never face each other down an open file, and no move may leave your own general in check.",
+    "A side with no legal move loses, whether or not it is in check. 120 plies without a capture, or both sides stripped of chariots, horses, cannons and soldiers, is a draw.",
+  ],
   checkers: [
     "Start with twelve pieces each. Black moves first, toward the top of the board. White moves toward the bottom.",
     "Move diagonally. Men move one square forward on dark squares. Kings can also move backward.",
@@ -178,6 +188,17 @@ export const roomGuides = {
       ["Castling", "Only toward a rook that has never moved, through empty unattacked squares."],
       ["Illegal moves", "A move that leaves your own king in check is refused by the server."],
       ["Turn timeout", "Chess has no pass: the seat that runs out of time forfeits the match."],
+    ],
+  },
+  xiangqi: {
+    description:
+      "Chinese chess on nine files and ten ranks. The pieces stand on the points, not in squares.",
+    summary: "2 players · 9×10 points · checkmate or stalemate wins",
+    notesTitle: "Special rules & clocks",
+    notes: [
+      ["Palaces", "Generals and advisors never leave their 3×3 palace; elephants never cross the river."],
+      ["Facing generals", "A move that leaves the two generals facing down an open file is refused."],
+      ["Turn timeout", "There is no pass: the seat that runs out of time forfeits the match."],
     ],
   },
   checkers: {

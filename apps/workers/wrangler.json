@@ -84,6 +84,10 @@
       {
         "name": "CHESS_ROOM",
         "class_name": "ChessRoom"
+      },
+      {
+        "name": "XIANGQI_ROOM",
+        "class_name": "XiangqiRoom"
       }
     ]
   },
@@ -136,6 +140,13 @@
       "tag": "v7",
       "new_sqlite_classes": [
         "ChessRoom"
+      ]
+    }
+,
+    {
+      "tag": "v8",
+      "new_sqlite_classes": [
+        "XiangqiRoom"
       ]
     }
   ],

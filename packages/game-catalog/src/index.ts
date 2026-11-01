@@ -49,7 +49,8 @@ export type GameTypeId =
   | "paodekuai"
   | "doudizhu"
   | "monopoly"
-  | "chess";
+  | "chess"
+  | "xiangqi";
 
 /** Absolute lifetime of a game room, measured from room creation. */
 export const ROOM_LIFETIME_MINUTES = 45;
@@ -95,6 +96,7 @@ export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
   doudizhu: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
   monopoly: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 90 * 60 * 1000 },
   chess: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
+  xiangqi: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
 };
 
 /** Largest match length any game accepts; the real cap is per game. */
@@ -228,6 +230,15 @@ export const GAME_INSTRUCTIONS: Readonly<Record<GameTypeId, GameInstructionSpec>
       turnTimer: "The room's configured turn timer applies to every move.",
       onTimeout:
         "There is no pass in chess: a seat whose turn clock expires forfeits the match to its opponent.",
+    },
+  },
+  xiangqi: {
+    briefing:
+      "Chinese chess (象棋) for 2 seats on 9 files x 10 ranks; pieces stand on points, not squares. Seat 1 plays Red (uppercase) and moves first, seat 2 plays Black (lowercase). Board is 90 entries, index = rank * 9 + file: file 0 is ICCS 'a' on Red's left, rank 0 is Red's back rank, rank 9 is Black's. Red holds ranks 0-4, Black 5-9, and the river runs between them. K/k general steps one point orthogonally and never leaves the 3x3 palace; A/a advisor steps one point diagonally inside the palace; B/b elephant moves exactly two points diagonally, never crosses the river and is blocked by a filled eye; N/n horse moves one orthogonal step then one outward diagonal and is blocked when the leg is occupied; R/r chariot slides orthogonally without jumping; C/c cannon moves like a chariot but captures only by jumping exactly one screen of either colour; P/p soldier steps forward one point, and sideways too once it has crossed the river, never backward. The two generals may never face each other down an open file, and no move may leave your own general in check. A side with no legal move loses, in check or not. A game is drawn after 120 plies without a capture, or when neither side still has a chariot, horse, cannon or soldier. Perpetual check and perpetual chase are not enforced. Send { from: \"h2\", to: \"e2\" } or one ICCS string in uci.",
+    timers: {
+      turnTimer: "The room's configured turn timer applies to every move.",
+      onTimeout:
+        "There is no pass in Chinese chess: a seat whose turn clock expires forfeits the match.",
     },
   },
   reversi: {
@@ -621,24 +632,25 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
     actionType: "move",
     title: "Make a move",
     description:
-      "Move a piece from one square to another. Give from and to as algebraic squares (e2, e4), or skip them and send one UCI string in uci. Castling is the king's two-square move (e1g1, e1c1); a pawn reaching the last rank needs promotion q, r, b or n.",
-    games: ["chess"],
+      "Move one piece. Chess names squares e2, e4 (file a-h, rank 1-8) and takes UCI strings like e2e4 or e7e8q; Chinese chess names points h2, e2 (file a-i, rank 0-9) and takes ICCS strings like h2e2. Castling is the king's own two-square move (e1g1, e1c1), and a pawn reaching the last rank needs promotion q, r, b or n.",
+    games: ["chess", "xiangqi"],
     data: {
       from: {
         type: "string",
-        description: "Origin square, a file a-h plus a rank 1-8, e.g. e2",
+        description: "Origin: e2 in chess, h2 in Chinese chess",
       },
       to: {
         type: "string",
-        description: "Destination square, e.g. e4",
+        description: "Destination: e4 in chess, e2 in Chinese chess",
       },
       uci: {
         type: "string",
-        description: "The whole move as one string instead of from/to, e.g. e2e4 or e7e8q",
+        description:
+          "The whole move as one string instead of from/to: UCI e2e4 or ICCS h2e2",
       },
       promotion: {
         type: "string",
-        description: "Promotion piece: q, r, b or n. Defaults to q",
+        description: "Chess only: promotion piece q, r, b or n. Defaults to q",
       },
     },
   },
@@ -1057,6 +1069,7 @@ export const KNOWN_GAME_TYPES: readonly GameTypeId[] = [
   "doudizhu",
   "monopoly",
   "chess",
+  "xiangqi",
 ] as const;
 
 export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
@@ -1074,6 +1087,7 @@ export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
   doudizhu: true,
   monopoly: true,
   chess: true,
+  xiangqi: true,
 };
 
 export const ENABLED_GAME_TYPES: readonly GameTypeId[] = KNOWN_GAME_TYPES.filter(
@@ -1101,6 +1115,9 @@ export function normalizeGameType(raw: string): GameTypeId | string {
     case "international-chess":
     case "western-chess":
       return "chess";
+    case "chinese-chess":
+    case "elephant-chess":
+      return "xiangqi";
     case "connect-4":
       return "connect4";
     case "draughts":

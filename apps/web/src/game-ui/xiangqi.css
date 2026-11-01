@@ -1,0 +1,162 @@
+/*
+ * Chinese chess board.
+ *
+ * The board is one SVG: nine files, ten ranks, a river and two palaces. Points
+ * are the hit targets, so a piece is centred on the intersection rather than
+ * inside a square. Sized from the smaller of width and height so the ten ranks
+ * still fit a phone in landscape.
+ */
+
+.xq-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  align-items: center;
+  width: 100%;
+}
+
+.xq-fit {
+  display: flex;
+  justify-content: center;
+  width: min(100%, 32rem);
+}
+
+.xq-board {
+  width: 100%;
+  height: auto;
+  max-height: 62vh;
+  overflow: visible;
+}
+
+.xq-field {
+  fill: var(--palette-xq-board);
+  stroke: var(--palette-xq-frame);
+  stroke-width: var(--stroke-2);
+  rx: var(--radius-xs);
+}
+
+.xq-lines line {
+  stroke: var(--palette-xq-line);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.xq-river {
+  fill: var(--palette-xq-river);
+  font-size: var(--type-lead);
+  letter-spacing: 0.5em;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  user-select: none;
+  pointer-events: none;
+}
+
+.xq-point {
+  cursor: default;
+}
+
+.xq-point[data-movable="true"] {
+  cursor: pointer;
+}
+
+.xq-hit {
+  fill: transparent;
+}
+
+.xq-dot {
+  fill: var(--palette-xq-select);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.xq-point[data-last="true"] .xq-hit {
+  fill: var(--palette-xq-mark);
+  opacity: 0.35;
+}
+
+.xq-point[data-check="true"] .xq-hit {
+  fill: var(--palette-xq-check);
+  opacity: 0.45;
+}
+
+.xq-piece {
+  fill: var(--palette-xq-piece);
+  stroke: var(--palette-xq-piece-edge);
+  stroke-width: var(--stroke-2);
+  pointer-events: none;
+}
+
+.xq-piece-ring {
+  fill: none;
+  stroke-width: var(--stroke-2);
+  pointer-events: none;
+}
+
+.xq-piece-ring[data-side="r"] {
+  stroke: var(--palette-xq-red);
+}
+
+.xq-piece-ring[data-side="b"] {
+  stroke: var(--palette-xq-black);
+}
+
+.xq-glyph {
+  font-size: var(--type-score);
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  user-select: none;
+  pointer-events: none;
+}
+
+.xq-glyph[data-side="r"] {
+  fill: var(--palette-xq-red);
+}
+
+.xq-glyph[data-side="b"] {
+  fill: var(--palette-xq-black);
+}
+
+.xq-point[data-selected="true"] .xq-piece {
+  fill: var(--palette-xq-select-soft);
+}
+
+.xq-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  align-items: center;
+  width: min(100%, 32rem);
+  text-align: center;
+}
+
+.xq-hint,
+.xq-last,
+.xq-check,
+.xq-result {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.xq-hint[data-check="true"],
+.xq-check {
+  color: var(--palette-xq-check-ink);
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .xq-fit {
+    width: min(100%, 24rem);
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .xq-board {
+    max-height: 74vh;
+  }
+
+  .xq-foot {
+    gap: var(--space-2);
+  }
+}

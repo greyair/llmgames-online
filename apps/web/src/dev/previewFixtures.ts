@@ -237,6 +237,92 @@ export function fixture(type: string): ClientView {
     };
   }
 
+  if (type === "xiangqi") {
+    // Rows are rank 0 (Red's back rank) upward, one character per point — the
+    // same 90 cells the server sends once they are joined.
+    const board = [
+      "RNBAKABNR",
+      ".........",
+      ".C.....C.",
+      "P.P.P.P.P",
+      ".........",
+      ".........",
+      "p.p.p.p.p",
+      ".c.....c.",
+      ".........",
+      "rnbakabnr",
+    ]
+      .join("")
+      .split("");
+
+    return {
+      ...base,
+      seats: { "preview-0": 1, "preview-1": 2 },
+      board,
+      turn: "r",
+      plies: 0,
+      quiet: 0,
+      last: null,
+      captured: [],
+      legal: [
+        "a0a1",
+        "a0a2",
+        "b0c2",
+        "b0a2",
+        "c0e2",
+        "c0a2",
+        "d0e1",
+        "e0e1",
+        "f0e1",
+        "g0i2",
+        "g0e2",
+        "h0i2",
+        "h0g2",
+        "i0i1",
+        "i0i2",
+        "b2c2",
+        "b2d2",
+        "b2e2",
+        "b2f2",
+        "b2g2",
+        "b2a2",
+        "b2b3",
+        "b2b4",
+        "b2b5",
+        "b2b6",
+        "b2b9",
+        "b2b1",
+        "h2i2",
+        "h2g2",
+        "h2f2",
+        "h2e2",
+        "h2d2",
+        "h2c2",
+        "h2h3",
+        "h2h4",
+        "h2h5",
+        "h2h6",
+        "h2h9",
+        "h2h1",
+        "a3a4",
+        "c3c4",
+        "e3e4",
+        "g3g4",
+        "i3i4",
+      ],
+      check: false,
+      checkSquare: null,
+      result: null,
+      turnState: {
+        phase: "play",
+        turnNumber: 1,
+        currentPlayerId: "preview-0",
+        turnTimeRemaining: 58000,
+      },
+      you: { ...base.you, seat: 1, color: "red", legalActions: ["move"] },
+    };
+  }
+
   if (type === "monopoly") {
     const owners = new Array<number | null>(24).fill(null);
     const houses = new Array<number>(24).fill(0);

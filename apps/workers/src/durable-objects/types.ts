@@ -1056,3 +1056,49 @@ export interface ChessGameState extends BaseGameState {
   result: { winner: ChessColor | "draw"; reason: ChessEndReason } | null;
   winner: string | null; // playerId | "draw"
 }
+
+// --- Xiangqi (中国象棋) ---
+
+export type XiangqiSide = "r" | "b";
+
+/** 90 entries, index = rank * 9 + file; "" is empty. Uppercase Red, lowercase Black. */
+export type XiangqiBoard = string[];
+
+export type XiangqiEndReason =
+  | "checkmate"
+  | "stalemate"
+  | "quiet"
+  | "no_attackers"
+  | "timeout"
+  | "match_timeout";
+
+export interface XiangqiLastMove {
+  /** Point indices, rank * 9 + file. */
+  from: number;
+  to: number;
+  iccs: string;
+  /** Traditional notation, e.g. 炮二平五. */
+  text: string;
+}
+
+export interface XiangqiGameState extends BaseGameState {
+  type: "xiangqi";
+  turnState: BaseTurnState & { phase: "waiting" | "play" | "ended" };
+  /** playerId → seat 1 plays Red and moves first, 2 plays Black. */
+  seats: Record<string, 1 | 2>;
+  board: XiangqiBoard;
+  turn: XiangqiSide;
+  plies: number;
+  /** Plies since the last capture; the game is drawn at 120. */
+  quiet: number;
+  last: XiangqiLastMove | null;
+  /** Letters of every piece taken, in capture order. */
+  captured: string[];
+  /** ICCS moves legal for the side to move, recomputed after every move. */
+  legal: string[];
+  check: boolean;
+  /** Point of the general in check, or null. */
+  checkSquare: number | null;
+  result: { winner: XiangqiSide | "draw"; reason: XiangqiEndReason } | null;
+  winner: string | null; // playerId | "draw"
+}

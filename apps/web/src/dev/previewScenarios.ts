@@ -161,6 +161,72 @@ export function applyPreviewScenario(
     }
   }
 
+  if (screen === "xiangqi" && scenario === "midgame") {
+    // 1. 炮二平五 馬8進7 2. 馬二進三 車9平8 3. 車一平二 馬2進3 — Red to move.
+    s.board = [
+      "RNBAKABR.",
+      ".........",
+      ".C..C.N..",
+      "P.P.P.P.P",
+      ".........",
+      ".........",
+      "p.p.p.p.p",
+      ".cn...nc.",
+      ".........",
+      "r.bakabr.",
+    ]
+      .join("")
+      .split("");
+    s.turn = "r";
+    s.plies = 6;
+    s.quiet = 6;
+    s.last = { from: 82, to: 65, text: "馬2進3" };
+    s.check = false;
+    s.checkSquare = null;
+    s.result = null;
+    s.legal = [
+      "a0a1",
+      "a0a2",
+      "b0c2",
+      "b0a2",
+      "c0a2",
+      "d0e1",
+      "e0e1",
+      "f0e1",
+      "g0i2",
+      "h0i0",
+      "h0h1",
+      "h0h2",
+      "h0h3",
+      "h0h4",
+      "h0h5",
+      "h0h6",
+      "h0h7",
+      "b2c2",
+      "b2d2",
+      "b2a2",
+      "b2b3",
+      "b2b4",
+      "b2b5",
+      "b2b6",
+      "b2b1",
+      "e2f2",
+      "e2d2",
+      "e2c2",
+      "e2e6",
+      "e2e1",
+      "g2i1",
+      "g2e1",
+      "a3a4",
+      "c3c4",
+      "e3e4",
+      "g3g4",
+      "i3i4",
+    ];
+    turn.turnNumber = 7;
+    phase("play", ["move"]);
+  }
+
   if (screen === "monopoly") {
     if (scenario === "opening") {
       s.cash = [1500, 1500];

@@ -127,6 +127,21 @@
   --palette-chess-check-ink: #a84535;
   --palette-chess-label: #6b563c;
 
+  /* Chinese chess: a pale wooden board, red and black inks */
+  --palette-xq-board: #efe2c6;
+  --palette-xq-frame: #8a6a44;
+  --palette-xq-line: #9c7c52;
+  --palette-xq-river: #a98a63;
+  --palette-xq-piece: #fbf3e0;
+  --palette-xq-piece-edge: #b79a6f;
+  --palette-xq-red: #b4402f;
+  --palette-xq-black: #2b2620;
+  --palette-xq-mark: #d8a94a;
+  --palette-xq-select: #3f7f63;
+  --palette-xq-select-soft: #dff0e6;
+  --palette-xq-check: #d9583f;
+  --palette-xq-check-ink: #a84535;
+
   /* Reversi: pastel felt, black and white discs */
   --palette-reversi-felt: #7cc79b;
   --palette-reversi-felt-deep: #4da172;

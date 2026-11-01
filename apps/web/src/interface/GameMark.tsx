@@ -114,6 +114,22 @@ const glyphs = {
     ],
     a: "var(--palette-chess-ink)",
   },
+  xiangqi: {
+    // A round piece on a grid: the board's intersection under a disc.
+    rows: [
+      "..........",
+      "...####...",
+      "..#aaaa#..",
+      ".#aaaaaa#.",
+      ".#aaaaaa#.",
+      "..#aaaa#..",
+      "...####...",
+      "..#.##.#..",
+      "..........",
+      "..........",
+    ],
+    a: "var(--palette-xq-red)",
+  },
   checkers: {
     rows: [
       "..........",

@@ -25,6 +25,7 @@ import { PaodekuaiRoom } from "../../durable-objects/PaodekuaiRoom";
 import { DoudizhuRoom } from "../../durable-objects/DoudizhuRoom";
 import { MonopolyRoom } from "../../durable-objects/MonopolyRoom";
 import { ChessRoom } from "../../durable-objects/ChessRoom";
+import { XiangqiRoom } from "../../durable-objects/XiangqiRoom";
 import { planAeroplaneMove, type AeroplaneChoice } from "../../games/aeroplane/rules";
 import { pdkMoves } from "../../games/paodekuai/rules";
 import { ddzMoves } from "../../games/doudizhu/rules";
@@ -190,7 +191,8 @@ interface Journey {
     | "paodekuai"
     | "doudizhu"
     | "monopoly"
-    | "chess";
+    | "chess"
+    | "xiangqi";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -206,7 +208,8 @@ interface Journey {
     | "PAODEKUAI_ROOM"
     | "DOUDIZHU_ROOM"
     | "MONOPOLY_ROOM"
-    | "CHESS_ROOM";
+    | "CHESS_ROOM"
+    | "XIANGQI_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
@@ -265,6 +268,13 @@ const CHESS_SCRIPT: ReadonlyArray<readonly [string, string]> = [
   ["g2", "g4"],
   ["d8", "h4"],
 ];
+
+/**
+ * Chinese chess has no short forced mate from the opening, so this journey
+ * plays the rule that ends games without one: a four-ply chariot shuffle that
+ * captures nothing, which draws at 120 quiet plies.
+ */
+const XIANGQI_SHUFFLE = ["a0a1", "a9a8", "a1a0", "a8a9"] as const;
 
 /**
  * Aeroplane's move order: reach the centre, then capture, then fly furthest.
@@ -593,6 +603,27 @@ const journeys: Journey[] = [
     assertRival: (rival) => {
       expect(rival).not.toHaveProperty("deck");
       expect(rival.cash?.length).toBe(2);
+    },
+  },
+  {
+    gameType: "xiangqi",
+    Room: XiangqiRoom,
+    binding: "XIANGQI_ROOM",
+    players: 2,
+    minActions: 120,
+    budget: 130,
+    timeout: 120_000,
+    next: (_state, _seatTurn, turn) => {
+      // 120 quiet plies is the draw rule; the shuffle never captures, so the
+      // counter climbs every ply and the match ends on its own.
+      const move = XIANGQI_SHUFFLE[turn % XIANGQI_SHUFFLE.length];
+
+      return move
+        ? { actionType: "move", data: { from: move.slice(0, 2), to: move.slice(2, 4) } }
+        : null;
+    },
+    assertRival: (rival) => {
+      expect(z.array(z.string()).safeParse(rival.board).data).toHaveLength(90);
     },
   },
   {

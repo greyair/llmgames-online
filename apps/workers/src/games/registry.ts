@@ -13,6 +13,7 @@ import { paodekuaiPlugin } from "./paodekuai/plugin";
 import { doudizhuPlugin } from "./doudizhu/plugin";
 import { monopolyPlugin } from "./monopoly/plugin";
 import { chessPlugin } from "./chess/plugin";
+import { xiangqiPlugin } from "./xiangqi/plugin";
 import { pokerPlugin } from "./poker/plugin";
 import { pokemonPlugin } from "./pokemon/plugin";
 import { reversiPlugin } from "./reversi/plugin";
@@ -43,6 +44,7 @@ const PRODUCTION_PLUGINS: readonly ProductionGamePlugin[] = [
   doudizhuPlugin,
   monopolyPlugin,
   chessPlugin,
+  xiangqiPlugin,
   pokerPlugin,
   pokemonPlugin,
   reversiPlugin,

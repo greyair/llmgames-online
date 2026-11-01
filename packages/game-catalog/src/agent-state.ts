@@ -93,6 +93,8 @@ export interface ProjectionPart {
   yourProperties?: unknown;
   standOn?: unknown;
   turn?: unknown;
+  plies?: unknown;
+  quiet?: unknown;
   castling?: unknown;
   ep?: unknown;
   halfmove?: unknown;

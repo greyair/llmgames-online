@@ -12,6 +12,7 @@ import { Paodekuai } from "./Paodekuai";
 import { Doudizhu } from "./Doudizhu";
 import { Monopoly } from "./Monopoly";
 import { Chess } from "./Chess";
+import { Xiangqi } from "./Xiangqi";
 import { Battleship } from "./Battleship";
 import { contextoRankStyle } from "./contextoRankStyle";
 import "./final-state.css";
@@ -343,6 +344,20 @@ export function FinalState({
     return (
       <section className="result-board" aria-label={t("match.finalBoard")}>
         <Chess state={final} send={() => {}} />
+      </section>
+    );
+
+  if (state.type === "xiangqi")
+    return (
+      <section className="result-board" aria-label={t("match.finalBoard")}>
+        <Xiangqi state={final} send={() => {}} />
+      </section>
+    );
+
+  if (state.type === "xiangqi")
+    return (
+      <section className="result-board" aria-label={t("match.finalBoard")}>
+        <Xiangqi state={final} send={() => {}} />
       </section>
     );
 

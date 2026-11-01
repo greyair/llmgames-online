@@ -895,6 +895,41 @@ function Chess() {
   );
 }
 
+/**
+ * Chinese chess: the 9 × 10 point grid with a river through the middle and two
+ * pieces facing each other across it.
+ */
+function Xiangqi() {
+  const bx = 16,
+    by = 4,
+    size = 7;
+
+  let lines = "";
+
+  for (let file = 0; file <= 8; file += 1) {
+    if (file === 0 || file === 8) lines += R(bx + file * size, by, 1, 9 * size);
+    else {
+      lines += R(bx + file * size, by, 1, 4 * size);
+      lines += R(bx + file * size, by + 5 * size, 1, 4 * size);
+    }
+  }
+
+  for (let rank = 0; rank <= 9; rank += 1) lines += R(bx, by + rank * size, 8 * size + 1, 1);
+
+  return (
+    <>
+      <Glow fill={c("xq-board")} />
+      <F d={R(bx - 4, by - 4, 8 * size + 9, 9 * size + 9)} fill={c("xq-board")} />
+      <T d={lines} fill={c("xq-line")} level={12} />
+      <T d={R(bx, by + 4 * size + 1, 8 * size + 1, size - 2)} fill={c("xq-river")} level={4} />
+      <F d={oval(bx + 4 * size - 3, by + 2 * size - 3, 7)} fill={c("xq-piece")} />
+      <T d={oval(bx + 4 * size - 3, by + 2 * size - 3, 7, 2)} fill={c("xq-red")} level={10} />
+      <F d={oval(bx + 4 * size - 3, by + 7 * size - 3, 7)} fill={c("xq-piece")} />
+      <T d={oval(bx + 4 * size - 3, by + 7 * size - 3, 7, 2)} fill={c("xq-black")} level={10} />
+    </>
+  );
+}
+
 const scenes = {
   connect4: Connect4,
   checkers: Checkers,
@@ -910,6 +945,7 @@ const scenes = {
   doudizhu: Doudizhu,
   monopoly: Monopoly,
   chess: Chess,
+  xiangqi: Xiangqi,
 } satisfies Record<string, () => ReactElement>;
 
 export function GameScene({ id, className }: { id: string; className?: string }) {

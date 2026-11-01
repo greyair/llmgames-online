@@ -22,6 +22,7 @@ export const previewScreens = [
   { id: "doudizhu", name: "Fight the Landlord" },
   { id: "monopoly", name: "Monopoly" },
   { id: "chess", name: "Chess" },
+  { id: "xiangqi", name: "Chinese Chess" },
 ] as const;
 
 const sharedStates = [
@@ -58,6 +59,7 @@ const gameStates = {
   doudizhu: ["opening", "midgame", "win"],
   monopoly: ["opening", "midgame"],
   chess: ["opening", "midgame", "check"],
+  xiangqi: ["opening", "midgame"],
   reversi: ["opening", "forced-pass", "endgame"],
   codenames: [
     "clue",

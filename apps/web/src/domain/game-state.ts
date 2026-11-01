@@ -130,8 +130,8 @@ export type ClientView = {
     payouts?: Array<{ playerId: string; amount: number }>;
   } | null;
   maxPlayers?: number;
-  /** Chess sends one 64-character string; the grid games send a nested array. */
-  board?: z.output<typeof numericBoardSchema> | z.output<typeof wordBoardSchema> | string;
+  /** Chess sends one 64-character string, Chinese chess 90 cells; the grid games send a nested array. */
+  board?: z.output<typeof numericBoardSchema> | z.output<typeof wordBoardSchema> | string | string[];
   seats?: z.output<typeof seatNumbersSchema> | z.output<typeof cardSeatsSchema>;
   lastMove?: z.output<typeof lastMoveSchema>;
   /** Winning run set by the rule module when a match ends on a connected line. */
@@ -185,8 +185,11 @@ export type ClientView = {
   ep?: number | null;
   halfmove?: number;
   fullmove?: number;
-  last?: { from?: number; to?: number; uci?: string; san?: string } | null;
-  captured?: { w?: string; b?: string } | null;
+  last?: { from?: number; to?: number; uci?: string; san?: string; text?: string } | null;
+  /** Chinese chess: plies since the last capture, drawn at 120. */
+  quiet?: number;
+  /** Chess counts by side; Chinese chess keeps the pieces in capture order. */
+  captured?: { w?: string; b?: string } | string[] | null;
   legal?: string[];
   check?: boolean;
   checkSquare?: number | null;

@@ -48,6 +48,8 @@ const Monopoly = lazy(() =>
 
 const Chess = lazy(() => import("./Chess").then(({ Chess }) => ({ default: Chess })));
 
+const Xiangqi = lazy(() => import("./Xiangqi").then(({ Xiangqi }) => ({ default: Xiangqi })));
+
 /**
  * Game id → board renderer.
  *
@@ -70,6 +72,7 @@ const BOARDS: Readonly<Record<GameTypeId, LazyBoard>> = {
   doudizhu: Doudizhu,
   monopoly: Monopoly,
   chess: Chess,
+  xiangqi: Xiangqi,
 };
 
 /** Renderer for a game, or null when this build does not ship that board. */

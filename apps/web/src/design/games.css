@@ -49,6 +49,12 @@
   --game-ink: var(--palette-chess-white);
   --game-2: var(--palette-chess-light);
 }
+[data-game="xiangqi"] {
+  /* Wood board, red ink: the piece the player moves first. */
+  --game: var(--palette-xq-board);
+  --game-ink: var(--palette-xq-red);
+  --game-2: var(--palette-xq-black);
+}
 [data-game="checkers"] {
   --game: var(--palette-walnut);
   --game-ink: var(--palette-ivory);

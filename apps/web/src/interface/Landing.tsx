@@ -30,6 +30,7 @@ const heroOrder = [
   "doudizhu",
   "monopoly",
   "chess",
+  "xiangqi",
 ];
 
 const heroGames = heroOrder.flatMap((id) => {
