@@ -93,6 +93,15 @@ export interface ProjectionPart {
   yourProperties?: unknown;
   standOn?: unknown;
   turn?: unknown;
+  stage?: unknown;
+  komi?: unknown;
+  playedAt?: unknown;
+  captures?: unknown;
+  dead?: unknown;
+  accepted?: unknown;
+  score?: unknown;
+  moves?: unknown;
+  lastCaptured?: unknown;
   plies?: unknown;
   quiet?: unknown;
   castling?: unknown;

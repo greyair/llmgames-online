@@ -31,6 +31,8 @@ export { ChessRoom } from "./durable-objects/ChessRoom";
 
 export { XiangqiRoom } from "./durable-objects/XiangqiRoom";
 
+export { GoRoom } from "./durable-objects/GoRoom";
+
 export { BroadcastService } from "./broadcast";
 
 export { GameSeries } from "./durable-objects/GameSeries";

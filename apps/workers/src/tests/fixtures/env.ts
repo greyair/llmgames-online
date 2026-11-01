@@ -196,6 +196,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     MONOPOLY_ROOM: namespace,
     CHESS_ROOM: namespace,
     XIANGQI_ROOM: namespace,
+    GO_ROOM: namespace,
     GOOGLE_CLIENT_ID: "",
     TURNSTILE_SITE_KEY: "",
     FRONTEND_URL: "http://localhost:3000",

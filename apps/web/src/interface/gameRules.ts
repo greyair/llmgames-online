@@ -64,6 +64,14 @@ export const rules = {
     "The two generals may never face each other down an open file, and no move may leave your own general in check.",
     "A side with no legal move loses, whether or not it is in check. 120 plies without a capture, or both sides stripped of chariots, horses, cannons and soldiers, is a draw.",
   ],
+  go: [
+    "Two players on a 9×9 board. Black moves first, and White receives komi 7.5.",
+    "Stones are placed on the intersections. Orthogonally connected stones form a chain and share their liberties — the empty points touching the chain.",
+    "A chain with no liberties left is captured and lifted off the board. You may not place a stone that would leave your own chain without liberties, unless the move captures first.",
+    "Ko: a move that would rebuild a position already seen on the board is refused. Play elsewhere, then come back.",
+    "Pass instead of playing. Two passes in a row open scoring: mark chains you believe are dead, and both seats must accept the same marking.",
+    "Area scoring counts your stones plus the empty points only your stones surround, and White adds the komi. The higher total wins.",
+  ],
   checkers: [
     "Start with twelve pieces each. Black moves first, toward the top of the board. White moves toward the bottom.",
     "Move diagonally. Men move one square forward on dark squares. Kings can also move backward.",
@@ -199,6 +207,17 @@ export const roomGuides = {
       ["Palaces", "Generals and advisors never leave their 3×3 palace; elephants never cross the river."],
       ["Facing generals", "A move that leaves the two generals facing down an open file is refused."],
       ["Turn timeout", "There is no pass: the seat that runs out of time forfeits the match."],
+    ],
+  },
+  go: {
+    description:
+      "Go on a 9×9 board. Surround territory, capture by removing liberties, and count at the end.",
+    summary: "2 players · 9×9 points · area scoring, komi 7.5",
+    notesTitle: "Ko & scoring",
+    notes: [
+      ["Ko", "A move that rebuilds an earlier position is refused; play elsewhere first."],
+      ["Scoring", "Two passes open scoring. Mark dead chains, then both seats accept."],
+      ["Turn timeout", "The platform passes for a seat that runs out of time, and accepts while scoring."],
     ],
   },
   checkers: {

@@ -1,0 +1,155 @@
+/*
+ * Go board.
+ *
+ * A 9×9 grid of lines with stones on the intersections, drawn as one SVG so the
+ * board keeps its shape at any width. Stones get a flat fill plus one soft
+ * highlight; the two colours stay distinguishable in grayscale, which matters
+ * because a Go board is the one place where "which of these is black" has to be
+ * obvious at a glance.
+ */
+
+.go-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  align-items: center;
+  width: 100%;
+}
+
+.go-fit {
+  display: flex;
+  justify-content: center;
+  width: min(100%, 30rem);
+}
+
+.go-board {
+  width: 100%;
+  height: auto;
+  max-height: 62vh;
+}
+
+.go-field {
+  fill: var(--palette-go-board);
+  stroke: var(--palette-go-frame);
+  stroke-width: var(--stroke-2);
+}
+
+.go-lines line {
+  stroke: var(--palette-go-line);
+  stroke-width: 1;
+}
+
+.go-star {
+  fill: var(--palette-go-line);
+}
+
+.go-point {
+  cursor: default;
+}
+
+.go-point[data-open="true"] {
+  cursor: pointer;
+}
+
+.go-point[data-dead="true"] {
+  cursor: pointer;
+}
+
+.go-hit {
+  fill: transparent;
+}
+
+.go-ghost {
+  fill: var(--palette-go-select);
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.go-stone {
+  stroke-width: var(--stroke-1);
+  pointer-events: none;
+}
+
+.go-stone[data-color="1"] {
+  fill: var(--palette-go-black);
+  stroke: var(--palette-go-black-edge);
+}
+
+.go-stone[data-color="2"] {
+  fill: var(--palette-go-white);
+  stroke: var(--palette-go-white-edge);
+}
+
+.go-stone[data-dead="true"] {
+  opacity: 0.4;
+}
+
+.go-cross line {
+  stroke: var(--palette-go-mark);
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.go-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  align-items: center;
+  width: min(100%, 30rem);
+  text-align: center;
+}
+
+.go-hint,
+.go-tally,
+.go-accepted,
+.go-score {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text-muted);
+}
+
+.go-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+  justify-content: center;
+  align-items: center;
+}
+
+.go-tally [data-color="1"] {
+  color: var(--palette-go-black);
+}
+
+.go-tally [data-color="2"] {
+  color: var(--palette-go-white-edge);
+}
+
+.go-komi {
+  color: var(--text-faint);
+}
+
+.go-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  justify-content: center;
+  min-height: var(--control-sm);
+}
+
+@media (max-width: 560px) {
+  .go-fit {
+    width: min(100%, 23rem);
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .go-board {
+    max-height: 76vh;
+  }
+
+  .go-tally,
+  .go-accepted {
+    display: none;
+  }
+}

@@ -88,6 +88,10 @@
       {
         "name": "XIANGQI_ROOM",
         "class_name": "XiangqiRoom"
+      },
+      {
+        "name": "GO_ROOM",
+        "class_name": "GoRoom"
       }
     ]
   },
@@ -147,6 +151,13 @@
       "tag": "v8",
       "new_sqlite_classes": [
         "XiangqiRoom"
+      ]
+    }
+,
+    {
+      "tag": "v9",
+      "new_sqlite_classes": [
+        "GoRoom"
       ]
     }
   ],

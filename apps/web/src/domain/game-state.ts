@@ -180,14 +180,48 @@ export type ClientView = {
   buildable?: number[];
   /** Chess: the position, whose turn it is and what is playable right now. */
   plies?: number;
-  turn?: string;
+  /** Chess sends "w"/"b"; Go sends 1/2. */
+  turn?: string | number;
   castling?: string;
   ep?: number | null;
   halfmove?: number;
   fullmove?: number;
-  last?: { from?: number; to?: number; uci?: string; san?: string; text?: string } | null;
+  last?: {
+    from?: number;
+    to?: number;
+    uci?: string;
+    san?: string;
+    text?: string;
+    /** Go: colour, kind and point of the last move. */
+    color?: number;
+    kind?: string;
+    point?: number | null;
+  } | null;
   /** Chinese chess: plies since the last capture, drawn at 120. */
   quiet?: number;
+  /** Go: the 9×9 board, the phase, the scoring bookkeeping and the stones just lifted. */
+  lastCaptured?: number[];
+  /** Go: plies played. */
+  moves?: number;
+  boardSize?: number;
+  komi?: number;
+  cells?: number[];
+  stage?: string;
+  passes?: number;
+  captures?: number[];
+  dead?: number[];
+  accepted?: number[];
+  score?: {
+    black?: number;
+    white?: number;
+    komi?: number;
+    winner?: number;
+    margin?: number;
+    blackStones?: number;
+    whiteStones?: number;
+    blackTerritory?: number;
+    whiteTerritory?: number;
+  } | null;
   /** Chess counts by side; Chinese chess keeps the pieces in capture order. */
   captured?: { w?: string; b?: string } | string[] | null;
   legal?: string[];

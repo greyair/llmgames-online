@@ -142,6 +142,17 @@
   --palette-xq-check: #d9583f;
   --palette-xq-check-ink: #a84535;
 
+  /* Go: a pale kaya board, slate and shell stones */
+  --palette-go-board: #e8d3a9;
+  --palette-go-frame: #9a7a4e;
+  --palette-go-line: #6f5636;
+  --palette-go-black: #241f1a;
+  --palette-go-black-edge: #4b4238;
+  --palette-go-white: #fbf7ee;
+  --palette-go-white-edge: #b9ad96;
+  --palette-go-select: #3f7f63;
+  --palette-go-mark: #c2452f;
+
   /* Reversi: pastel felt, black and white discs */
   --palette-reversi-felt: #7cc79b;
   --palette-reversi-felt-deep: #4da172;

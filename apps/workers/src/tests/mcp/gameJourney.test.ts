@@ -26,6 +26,7 @@ import { DoudizhuRoom } from "../../durable-objects/DoudizhuRoom";
 import { MonopolyRoom } from "../../durable-objects/MonopolyRoom";
 import { ChessRoom } from "../../durable-objects/ChessRoom";
 import { XiangqiRoom } from "../../durable-objects/XiangqiRoom";
+import { GoRoom } from "../../durable-objects/GoRoom";
 import { planAeroplaneMove, type AeroplaneChoice } from "../../games/aeroplane/rules";
 import { pdkMoves } from "../../games/paodekuai/rules";
 import { ddzMoves } from "../../games/doudizhu/rules";
@@ -192,7 +193,8 @@ interface Journey {
     | "doudizhu"
     | "monopoly"
     | "chess"
-    | "xiangqi";
+    | "xiangqi"
+    | "go";
   Room: RoomClass;
   binding:
     | "CONNECT4_ROOM"
@@ -209,7 +211,8 @@ interface Journey {
     | "DOUDIZHU_ROOM"
     | "MONOPOLY_ROOM"
     | "CHESS_ROOM"
-    | "XIANGQI_ROOM";
+    | "XIANGQI_ROOM"
+    | "GO_ROOM";
   players: number;
   /** Actions the driver must get accepted before the match may stop short of an end. */
   minActions: number;
@@ -624,6 +627,33 @@ const journeys: Journey[] = [
     },
     assertRival: (rival) => {
       expect(z.array(z.string()).safeParse(rival.board).data).toHaveLength(90);
+    },
+  },
+  {
+    gameType: "go",
+    Room: GoRoom,
+    binding: "GO_ROOM",
+    players: 2,
+    minActions: 4,
+    next: (state) => {
+      // Two passes open scoring; then each seat accepts once. Nothing is
+      // marked dead, so an empty board is scored on komi alone.
+      if (state.stage === "scoring") {
+        const accepted = z.array(z.number()).catch([]).parse(state.accepted);
+        // Seat 1 is Black, which is colour 1 in the rule module; look yourself
+        // up in `seats` the way a model would.
+        const seats = z.record(z.string(), z.number()).safeParse(state.seats).data ?? {};
+        const color = seats[state.you.playerId] ?? 1;
+
+        return accepted.includes(color) ? null : { actionType: "accept_score", data: {} };
+      }
+
+      return { actionType: "pass_turn", data: {} };
+    },
+    // The board itself is public; only the superko record never leaves the server.
+    assertRival: (rival) => {
+      expect(rival).not.toHaveProperty("history");
+      expect(rival.type).toBe("go");
     },
   },
   {

@@ -50,7 +50,8 @@ export type GameTypeId =
   | "doudizhu"
   | "monopoly"
   | "chess"
-  | "xiangqi";
+  | "xiangqi"
+  | "go";
 
 /** Absolute lifetime of a game room, measured from room creation. */
 export const ROOM_LIFETIME_MINUTES = 45;
@@ -97,6 +98,7 @@ export const GAME_LIFECYCLE: Readonly<Record<GameTypeId, GameLifecycleSpec>> = {
   monopoly: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 90 * 60 * 1000 },
   chess: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
   xiangqi: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
+  go: { lobbyMs: ROOM_LIFETIME_MS, playingMs: 60 * 60 * 1000 },
 };
 
 /** Largest match length any game accepts; the real cap is per game. */
@@ -241,6 +243,16 @@ export const GAME_INSTRUCTIONS: Readonly<Record<GameTypeId, GameInstructionSpec>
         "There is no pass in Chinese chess: a seat whose turn clock expires forfeits the match.",
     },
   },
+  go: {
+    briefing:
+      "Go on a 9x9 board with Chinese area scoring, komi 7.5, positional superko and suicide forbidden. Seat 1 plays Black and moves first, seat 2 plays White. points are GTP names: columns A-T skipping I, rows counted from the bottom, so A9 is the top-left and J1 the bottom-right. Place a stone with place_go_stone { point: \"D4\" } (or a zero-based row and column), or pass with pass_turn. Stones with no liberties are captured; a move may not occupy a point, may not leave its own chain without liberties, and may not rebuild any earlier board position. Two passes in a row open scoring: both seats mark dead chains with mark_dead { point }, and each accepts with accept_score. Any change to the marking clears both acceptances, and resume_play returns to playing. When both accept, stones plus surrounded empty points decide the game, with komi added to White. A seat may resign_go at any time.",
+    timers: {
+      turnTimer: "The room's configured turn timer applies to every move.",
+      onTimeout:
+        "A seat that runs out of time passes while playing, and accepts the marking while scoring.",
+    },
+  },
+
   reversi: {
     briefing:
       "Reversi on an 8x8 board. Coordinates are zero-based from the top-left; rows increase downward and columns rightward. Seat 1 is black, seat 2 white. Choose a coordinate from legalMoves; all horizontal, vertical and diagonal lines of opponent discs bracketed by your discs flip. A player with no legal move is passed automatically. When neither player can move, the higher disc count wins; equal counts draw.",
@@ -624,6 +636,95 @@ export const GAME_ACTIONS: readonly GameActionSpec[] = [
     title: "End the turn",
     description: "Finish the turn once the roll is resolved. A double must be rolled again first.",
     games: ["monopoly"],
+    data: emptyData,
+  },
+
+  {
+    actionType: "resign_go",
+    title: "Resign",
+    description: "Concede the game. Your opponent wins immediately.",
+    games: ["go"],
+    aliases: ["resign"],
+    data: emptyData,
+  },
+
+  // ── Go ──────────────────────────────────────────────────────
+  {
+    actionType: "place_go_stone",
+    title: "Play a stone",
+    description:
+      "Place one stone on an empty intersection. Points are GTP names: columns A-T skipping I, rows counted from the bottom, so D4 is a point and A9 the top-left on a 9x9 board. You may also send a zero-based row and column with row 0 at the top.",
+    games: ["go"],
+    aliases: ["play"],
+    data: {
+      point: {
+        type: "string",
+        description: "GTP point such as D4 or Q16",
+      },
+      row: {
+        type: "integer",
+        description: "Alternative to point: row index 0-8, 0 is the top row",
+        minimum: 0,
+        maximum: 8,
+      },
+      col: {
+        type: "integer",
+        description: "Alternative to point: column index 0-8, 0 is the left column",
+        minimum: 0,
+        maximum: 8,
+      },
+    },
+  },
+  {
+    actionType: "pass_turn",
+    title: "Pass",
+    description:
+      "Pass instead of playing. Two passes in a row (one from each seat) end the playing phase and open scoring.",
+    games: ["go"],
+    aliases: ["pass"],
+    data: emptyData,
+  },
+  {
+    actionType: "mark_dead",
+    title: "Mark stones dead",
+    description:
+      "During scoring, mark or unmark the whole chain at this point as dead. Any change clears both acceptances.",
+    games: ["go"],
+    aliases: ["dead"],
+    data: {
+      point: {
+        type: "string",
+        description: "GTP point of a stone in the chain, e.g. C3",
+      },
+      row: {
+        type: "integer",
+        description: "Alternative to point: row index 0-8, 0 is the top row",
+        minimum: 0,
+        maximum: 8,
+      },
+      col: {
+        type: "integer",
+        description: "Alternative to point: column index 0-8, 0 is the left column",
+        minimum: 0,
+        maximum: 8,
+      },
+    },
+  },
+  {
+    actionType: "accept_score",
+    title: "Accept the score",
+    description:
+      "During scoring, agree to the current dead-stone marking. When both seats accept, the area score is counted and the match ends.",
+    games: ["go"],
+    aliases: ["accept"],
+    data: emptyData,
+  },
+  {
+    actionType: "resume_play",
+    title: "Resume play",
+    description: "During scoring, go back to playing. The dead-stone marking and both acceptances are cleared.",
+    games: ["go"],
+    aliases: ["resume"],
     data: emptyData,
   },
 
@@ -1070,6 +1171,7 @@ export const KNOWN_GAME_TYPES: readonly GameTypeId[] = [
   "monopoly",
   "chess",
   "xiangqi",
+  "go",
 ] as const;
 
 export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
@@ -1088,6 +1190,7 @@ export const GAME_AVAILABILITY: Readonly<Record<GameTypeId, boolean>> = {
   monopoly: true,
   chess: true,
   xiangqi: true,
+  go: true,
 };
 
 export const ENABLED_GAME_TYPES: readonly GameTypeId[] = KNOWN_GAME_TYPES.filter(
@@ -1118,6 +1221,9 @@ export function normalizeGameType(raw: string): GameTypeId | string {
     case "chinese-chess":
     case "elephant-chess":
       return "xiangqi";
+    case "weiqi":
+    case "baduk":
+      return "go";
     case "connect-4":
       return "connect4";
     case "draughts":

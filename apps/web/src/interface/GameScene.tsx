@@ -930,6 +930,45 @@ function Xiangqi() {
   );
 }
 
+/** Go: a 9×9 grid with a few stones and one star point in the middle. */
+function GoScene() {
+  const bx = 18,
+    by = 6,
+    size = 7;
+
+  let lines = "";
+
+  for (let index = 0; index < 9; index += 1) {
+    lines += R(bx + index * size, by, 1, 8 * size + 1);
+    lines += R(bx, by + index * size, 8 * size + 1, 1);
+  }
+
+  const stones: Array<[number, number, number]> = [
+    [2, 2, 1],
+    [3, 3, 2],
+    [5, 2, 1],
+    [6, 4, 2],
+    [2, 5, 2],
+    [4, 6, 1],
+  ];
+
+  return (
+    <>
+      <Glow fill={c("go-board")} />
+      <F d={R(bx - 5, by - 5, 8 * size + 11, 8 * size + 11)} fill={c("go-board")} />
+      <T d={lines} fill={c("go-line")} level={12} />
+      <F d={oval(bx + 4 * size - 1, by + 4 * size - 1, 3)} fill={c("go-line")} />
+      {stones.map(([x, y, color]) => (
+        <F
+          key={`${x}-${y}`}
+          d={oval(bx + x * size - 4, by + y * size - 4, 8)}
+          fill={color === 1 ? c("go-black") : c("go-white")}
+        />
+      ))}
+    </>
+  );
+}
+
 const scenes = {
   connect4: Connect4,
   checkers: Checkers,
@@ -946,6 +985,7 @@ const scenes = {
   monopoly: Monopoly,
   chess: Chess,
   xiangqi: Xiangqi,
+  go: GoScene,
 } satisfies Record<string, () => ReactElement>;
 
 export function GameScene({ id, className }: { id: string; className?: string }) {

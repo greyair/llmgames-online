@@ -13,6 +13,7 @@ import { Doudizhu } from "./Doudizhu";
 import { Monopoly } from "./Monopoly";
 import { Chess } from "./Chess";
 import { Xiangqi } from "./Xiangqi";
+import { Go } from "./Go";
 import { Battleship } from "./Battleship";
 import { contextoRankStyle } from "./contextoRankStyle";
 import "./final-state.css";
@@ -358,6 +359,13 @@ export function FinalState({
     return (
       <section className="result-board" aria-label={t("match.finalBoard")}>
         <Xiangqi state={final} send={() => {}} />
+      </section>
+    );
+
+  if (state.type === "go")
+    return (
+      <section className="result-board" aria-label={t("match.finalBoard")}>
+        <Go state={final} send={() => {}} />
       </section>
     );
 

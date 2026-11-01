@@ -1102,3 +1102,59 @@ export interface XiangqiGameState extends BaseGameState {
   result: { winner: XiangqiSide | "draw"; reason: XiangqiEndReason } | null;
   winner: string | null; // playerId | "draw"
 }
+
+// --- Go (围棋) ---
+
+export type GoColor = 1 | 2;
+
+export type GoStage = "playing" | "scoring" | "ended";
+
+export interface GoScore {
+  black: number;
+  white: number;
+  komi: number;
+  /** 1 black, 2 white, 0 draw. */
+  winner: number;
+  margin: number;
+  blackStones: number;
+  whiteStones: number;
+  blackTerritory: number;
+  whiteTerritory: number;
+}
+
+export interface GoLastMove {
+  color: GoColor;
+  kind: "play" | "pass";
+  /** Point index for a play, null for a pass. */
+  point: number | null;
+}
+
+export interface GoGameState extends BaseGameState {
+  type: "go";
+  turnState: BaseTurnState & { phase: "waiting" | "play" | "scoring" | "ended" };
+  /** playerId → seat 1 plays Black and moves first, 2 plays White. */
+  seats: Record<string, 1 | 2>;
+  boardSize: number;
+  komi: number;
+  /** boardSize² cells: 0 empty, 1 black, 2 white, index = row * size + col. */
+  cells: number[];
+  /** 1-based move number that placed each stone, 0 when empty. */
+  playedAt: number[];
+  turn: GoColor;
+  /** Stones each colour has captured; index 0 is unused. */
+  captures: number[];
+  /** Consecutive passes; two of them open scoring. */
+  passes: number;
+  stage: GoStage;
+  /** Points marked dead during scoring. */
+  dead: number[];
+  /** Colours that have accepted the current marking. */
+  accepted: number[];
+  score: GoScore | null;
+  /** Superko position keys, oldest first. Hidden from every projection. */
+  history: string[];
+  moves: number;
+  last: GoLastMove | null;
+  lastCaptured: number[];
+  winner: string | null; // playerId | "draw"
+}

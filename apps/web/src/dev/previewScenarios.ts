@@ -161,6 +161,27 @@ export function applyPreviewScenario(
     }
   }
 
+  if (screen === "go" && scenario === "scoring") {
+    s.stage = "scoring";
+    s.passes = 0;
+    s.dead = [];
+    s.accepted = [2];
+    s.legal = [];
+    turn.phase = "scoring";
+    turn.currentPlayerId = null;
+    you.legalActions = ["mark_dead", "accept_score", "resume_play", "resign_go"];
+  }
+
+  if (screen === "go" && scenario === "playing") {
+    s.stage = "playing";
+    s.passes = 0;
+    s.dead = [];
+    s.accepted = [];
+    turn.phase = "play";
+    turn.currentPlayerId = "preview-0";
+    you.legalActions = ["place_go_stone", "pass_turn", "resign_go"];
+  }
+
   if (screen === "xiangqi" && scenario === "midgame") {
     // 1. 炮二平五 馬8進7 2. 馬二進三 車9平8 3. 車一平二 馬2進3 — Red to move.
     s.board = [

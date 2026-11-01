@@ -55,6 +55,12 @@
   --game-ink: var(--palette-xq-red);
   --game-2: var(--palette-xq-black);
 }
+[data-game="go"] {
+  /* Kaya board, black stones: the side that moves first. */
+  --game: var(--palette-go-board);
+  --game-ink: var(--palette-go-black);
+  --game-2: var(--palette-go-white-edge);
+}
 [data-game="checkers"] {
   --game: var(--palette-walnut);
   --game-ink: var(--palette-ivory);

@@ -24,6 +24,7 @@ export interface Env {
   MONOPOLY_ROOM: DurableObjectNamespace;
   CHESS_ROOM: DurableObjectNamespace;
   XIANGQI_ROOM: DurableObjectNamespace;
+  GO_ROOM: DurableObjectNamespace;
 
   EMAIL?: {
     send(message: {

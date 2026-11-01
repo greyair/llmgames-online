@@ -148,6 +148,14 @@ export const GAME_MANIFESTS = {
     detail: "Hobble the horse, screen the cannon, and face the general.",
     i18n: { game: "game.xiangqi" },
   },
+  go: {
+    id: "go",
+    title: "Go",
+    players: "2",
+    category: "Board",
+    detail: "Surround more than you lose. Two passes, then count.",
+    i18n: { game: "game.go" },
+  },
   contexto: {
     id: "contexto",
     title: "Contexto",

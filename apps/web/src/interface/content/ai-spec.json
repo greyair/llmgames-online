@@ -367,7 +367,7 @@
             },
             "gameType": {
               "default": "connect4",
-              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai | doudizhu | monopoly | chess | xiangqi",
+              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai | doudizhu | monopoly | chess | xiangqi | go",
               "type": "string",
               "minLength": 1,
               "maxLength": 40
@@ -559,7 +559,7 @@
           "type": "object",
           "properties": {
             "gameType": {
-              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai | doudizhu | monopoly | chess | xiangqi. Omit for all games.",
+              "description": "connect4 | pokemon | reversi | checkers | codenames | battleship | poker | contexto | gomoku | aeroplane | paodekuai | doudizhu | monopoly | chess | xiangqi | go. Omit for all games.",
               "type": "string",
               "minLength": 1,
               "maxLength": 40
@@ -6494,6 +6494,135 @@
         "controllerId": "00000000-0000-4000-8000-000000000001",
         "roomId": "xiangqi-ABC234",
         "gameType": "xiangqi",
+        "actionType": "guess_word",
+        "data": {
+          "index": 1
+        }
+      },
+      "jev": null
+    },
+    {
+      "id": "go",
+      "instructions": {
+        "briefing": "Go on a 9x9 board with Chinese area scoring, komi 7.5, positional superko and suicide forbidden. Seat 1 plays Black and moves first, seat 2 plays White. points are GTP names: columns A-T skipping I, rows counted from the bottom, so A9 is the top-left and J1 the bottom-right. Place a stone with place_go_stone { point: \"D4\" } (or a zero-based row and column), or pass with pass_turn. Stones with no liberties are captured; a move may not occupy a point, may not leave its own chain without liberties, and may not rebuild any earlier board position. Two passes in a row open scoring: both seats mark dead chains with mark_dead { point }, and each accepts with accept_score. Any change to the marking clears both acceptances, and resume_play returns to playing. When both accept, stones plus surrounded empty points decide the game, with komi added to White. A seat may resign_go at any time.",
+        "timers": {
+          "turnTimer": "The room's configured turn timer applies to every move.",
+          "onTimeout": "A seat that runs out of time passes while playing, and accepts the marking while scoring."
+        }
+      },
+      "actions": [
+        {
+          "actionType": "resign_go",
+          "title": "Resign",
+          "description": "Concede the game. Your opponent wins immediately.",
+          "games": [
+            "go"
+          ],
+          "aliases": [
+            "resign"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "place_go_stone",
+          "title": "Play a stone",
+          "description": "Place one stone on an empty intersection. Points are GTP names: columns A-T skipping I, rows counted from the bottom, so D4 is a point and A9 the top-left on a 9x9 board. You may also send a zero-based row and column with row 0 at the top.",
+          "games": [
+            "go"
+          ],
+          "aliases": [
+            "play"
+          ],
+          "data": {
+            "point": {
+              "type": "string",
+              "description": "GTP point such as D4 or Q16"
+            },
+            "row": {
+              "type": "integer",
+              "description": "Alternative to point: row index 0-8, 0 is the top row",
+              "minimum": 0,
+              "maximum": 8
+            },
+            "col": {
+              "type": "integer",
+              "description": "Alternative to point: column index 0-8, 0 is the left column",
+              "minimum": 0,
+              "maximum": 8
+            }
+          }
+        },
+        {
+          "actionType": "pass_turn",
+          "title": "Pass",
+          "description": "Pass instead of playing. Two passes in a row (one from each seat) end the playing phase and open scoring.",
+          "games": [
+            "go"
+          ],
+          "aliases": [
+            "pass"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "mark_dead",
+          "title": "Mark stones dead",
+          "description": "During scoring, mark or unmark the whole chain at this point as dead. Any change clears both acceptances.",
+          "games": [
+            "go"
+          ],
+          "aliases": [
+            "dead"
+          ],
+          "data": {
+            "point": {
+              "type": "string",
+              "description": "GTP point of a stone in the chain, e.g. C3"
+            },
+            "row": {
+              "type": "integer",
+              "description": "Alternative to point: row index 0-8, 0 is the top row",
+              "minimum": 0,
+              "maximum": 8
+            },
+            "col": {
+              "type": "integer",
+              "description": "Alternative to point: column index 0-8, 0 is the left column",
+              "minimum": 0,
+              "maximum": 8
+            }
+          }
+        },
+        {
+          "actionType": "accept_score",
+          "title": "Accept the score",
+          "description": "During scoring, agree to the current dead-stone marking. When both seats accept, the area score is counted and the match ends.",
+          "games": [
+            "go"
+          ],
+          "aliases": [
+            "accept"
+          ],
+          "data": {}
+        },
+        {
+          "actionType": "resume_play",
+          "title": "Resume play",
+          "description": "During scoring, go back to playing. The dead-stone marking and both acceptances are cleared.",
+          "games": [
+            "go"
+          ],
+          "aliases": [
+            "resume"
+          ],
+          "data": {}
+        }
+      ],
+      "decisionExample": null,
+      "sendActionExample": {
+        "controllerId": "00000000-0000-4000-8000-000000000001",
+        "roomId": "go-ABC234",
+        "gameType": "go",
         "actionType": "guess_word",
         "data": {
           "index": 1

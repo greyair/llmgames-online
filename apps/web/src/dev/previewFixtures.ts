@@ -237,6 +237,53 @@ export function fixture(type: string): ClientView {
     };
   }
 
+  if (type === "go") {
+    const stones = new Map<number, number>([
+      [20, 1],
+      [30, 2],
+      [47, 1],
+      [58, 2],
+      [23, 2],
+      [40, 1],
+    ]);
+
+    const cells = Array.from({ length: 81 }, (_, point) => stones.get(point) ?? 0);
+
+    const legal = cells
+      .map((cell, point) => ({ cell, point }))
+      .filter((entry) => entry.cell === 0)
+      .map(
+        (entry) =>
+          `${"ABCDEFGHJKLMNOPQRST".charAt(entry.point % 9)}${9 - Math.floor(entry.point / 9)}`,
+      );
+
+    return {
+      ...base,
+      seats: { "preview-0": 1, "preview-1": 2 },
+      boardSize: 9,
+      komi: 7.5,
+      cells,
+      turn: 1,
+      captures: [0, 0, 1],
+      passes: 0,
+      stage: "playing",
+      dead: [],
+      accepted: [],
+      score: null,
+      legal,
+      last: { color: 1, kind: "play", point: 40 },
+      lastCaptured: [],
+      moves: 7,
+      turnState: {
+        phase: "play",
+        turnNumber: 8,
+        currentPlayerId: "preview-0",
+        turnTimeRemaining: 48000,
+      },
+      you: { ...base.you, seat: 1, color: "black", legalActions: ["place_go_stone", "pass_turn", "resign_go"] },
+    };
+  }
+
   if (type === "xiangqi") {
     // Rows are rank 0 (Red's back rank) upward, one character per point — the
     // same 90 cells the server sends once they are joined.
