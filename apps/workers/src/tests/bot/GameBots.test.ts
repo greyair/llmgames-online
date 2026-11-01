@@ -3,6 +3,7 @@ import { wireObjectSchema, wireValueSchema, type WireValue } from "@llmgames/gam
 import { z } from "zod";
 
 import { AeroplaneRoom } from "../../durable-objects/AeroplaneRoom";
+import { BOT_WAKE_MS } from "../../durable-objects/BaseGameRoom";
 import { ReversiRoom } from "../../durable-objects/ReversiRoom";
 import type { RoomRuntime } from "../../durable-objects/runtime";
 import type { Env } from "../../types";
@@ -42,8 +43,9 @@ async function createRoom<T extends ReversiRoom | AeroplaneRoom>(
   RoomClass: new (state: RoomRuntime, env: Env) => T,
   body: Record<string, WireValue>,
   code: string,
+  onAlarm?: (at: number | null) => void,
 ) {
-  const runtime = new MemoryRoomRuntime(new Map());
+  const runtime = new MemoryRoomRuntime(new Map(), onAlarm);
 
   runtime.storage.sql = new SqliteRoomSql();
 
@@ -280,5 +282,154 @@ describe("a bot plays real rooms", () => {
 
     // At least one six was rolled and a bot chose to use it.
     expect(launched).toBe(true);
+  });
+
+  it("keeps the bot wake after another alarm is scheduled", async () => {
+    let scheduled: number | null = null;
+
+    const { room, act } = await createRoom(ReversiRoom, { maxPlayers: 2 }, "RV6789", (at) => {
+      scheduled = at;
+    });
+
+    await act("host", "set_host_spectating", { spectating: true });
+    expect(await act("host", "add_rule_bot")).toBe(true);
+    expect(await act("host", "add_rule_bot")).toBe(true);
+    expect(await act("host", "start_game")).toBe(true);
+
+    // `alarm()` ends by recomputing the single alarm the room may hold. Before
+    // the bot term existed in that computation, this wrote the turn timer over
+    // the 150 ms wake and a bot-vs-bot match sat still until a human moved.
+    await room.alarm();
+
+    expect(scheduled).not.toBeNull();
+    expect(scheduled! - Date.now()).toBeLessThanOrEqual(BOT_WAKE_MS * 3);
+  });
+
+  it("finishes a bot match on the wakes it schedules itself", async () => {
+    let scheduled: number | null = null;
+
+    const { room, act, view } = await createRoom(ReversiRoom, { maxPlayers: 2 }, "RV7788", (at) => {
+      scheduled = at;
+    });
+
+    await act("host", "set_host_spectating", { spectating: true });
+    expect(await act("host", "add_rule_bot")).toBe(true);
+    expect(await act("host", "add_rule_bot")).toBe(true);
+    expect(await act("host", "start_game")).toBe(true);
+
+    let finished = false;
+
+    for (let tick = 0; tick < 40; tick++) {
+      // Only follow a wake the room scheduled for itself; a far deadline means
+      // nothing is waiting on a bot any more.
+      if (scheduled === null || scheduled - Date.now() > 1000) break;
+
+      await room.alarm();
+
+      const probe = await room.fetch(new Request("https://room.test/state"));
+
+      if (probe.status === 404) {
+        finished = true;
+        break;
+      }
+
+      if ((await view("host")).status === "ended") {
+        finished = true;
+        break;
+      }
+    }
+
+    expect(finished).toBe(true);
+  });
+});
+
+/** Exposes the protected pause hook and the raw state for restart tests. */
+class StallingReversiRoom extends ReversiRoom {
+  snapshot() {
+    if (!this.gameState) throw new Error("Room fixture has no game state");
+
+    return this.gameState;
+  }
+
+  /** Pause one seat exactly as a failing strategy would. */
+  async pauseSeat(playerId: string) {
+    const seat = this.gameState?.players.find((player) => player.id === playerId);
+
+    if (!seat) throw new Error("No such seat");
+
+    await this.pauseBot(seat, "test-stall");
+  }
+}
+
+describe("a paused bot stays paused", () => {
+  it("restores the paused seats after the room restarts", async () => {
+    const runtime = new MemoryRoomRuntime(new Map());
+
+    runtime.storage.sql = new SqliteRoomSql();
+
+    const room = new StallingReversiRoom(runtime, roomTestEnv(BOT_ENV));
+    await runtime.initialized;
+
+    const created = await room.fetch(
+      new Request("https://room.test/create", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ hostId: "host", hostName: "Host", roomCode: "RV4455", maxPlayers: 2 }),
+      }),
+    );
+
+    expect(created.ok).toBe(true);
+
+    /** Actions answer 200 with `{ ok }`; the body is what has to be true. */
+    const acted = async (
+      playerId: string,
+      actionType: string,
+      data: Record<string, WireValue> = {},
+    ) => {
+      const response = await room.fetch(
+        new Request("https://room.test/agent/action", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ playerId, actionType, data }),
+        }),
+      );
+
+      return z.object({ ok: z.boolean() }).parse(wireValueSchema.parse(await response.json())).ok;
+    };
+
+    const board = async (subject: ReversiRoom) => {
+      const response = await subject.fetch(
+        new Request("https://room.test/agent/view?playerId=host"),
+      );
+
+      return z
+        .object({ state: stateSchema })
+        .parse(wireObjectSchema.parse(await response.json())).state.board;
+    };
+
+    expect(await acted("host", "set_host_spectating", { spectating: true })).toBe(true);
+    expect(await acted("host", "add_rule_bot")).toBe(true);
+    expect(await acted("host", "add_rule_bot")).toBe(true);
+    expect(await acted("host", "start_game")).toBe(true);
+
+    const bots = room.snapshot().players.filter((player) => player.bot);
+
+    expect(bots).toHaveLength(2);
+
+    // Pause both: with either one live, the revived room would move and the
+    // comparison below could not tell a lost pause from a missed turn.
+    for (const bot of bots) await room.pauseSeat(bot.id);
+
+    expect(runtime.storage.values.get("botPaused")).toEqual(bots.map((bot) => bot.id));
+
+    // The same storage, woken in a fresh isolate: the pause has to survive.
+    const revived = new ReversiRoom(runtime, roomTestEnv(BOT_ENV));
+    await runtime.initialized;
+
+    const before = await board(revived);
+
+    await revived.alarm();
+
+    expect(await board(revived)).toEqual(before);
   });
 });

@@ -192,9 +192,10 @@ sandboxRoutes.post("/action", async (c) => {
 
   if (!target) return c.json({ error: "Unknown room" }, 404);
 
-  // The seat acts through the ordinary internal action endpoint, so it gets
-  // the same validation, receipts and audit rows every other player gets.
-  const response = await target.stub.fetch("https://do.internal/agent/action", {
+  // The room decides, not this router: `/sandbox/action` answers only on a
+  // sandbox room in a sandbox deployment, so a real room cannot be driven
+  // through the debug API even if its roomId and a member's playerId leak.
+  const response = await target.stub.fetch("https://do.internal/sandbox/action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

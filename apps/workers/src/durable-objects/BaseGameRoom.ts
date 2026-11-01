@@ -707,8 +707,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
   private botRunning = false;
 
   /**
-   * Seats whose strategy failed. Persisted nowhere on purpose: a paused bot is
-   * a diagnostic state, and the durable `bot_stalled` event records why.
+   * Seats whose strategy failed, so the platform stops asking.
+   *
+   * Persisted with the room: a restart must not quietly re-arm a seat that was
+   * paused for a reason a human has not looked at yet. The durable
+   * `bot_stalled` event still records why each one stopped.
    */
   private botPaused = new Set<string>();
 
@@ -732,15 +735,17 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    */
   private async restorePersistedRoom(): Promise<void> {
     try {
-      const [stored, lastMeaningfulActivityAt, legacyLobbyLastActiveAt, sandboxMode] =
+      const [stored, lastMeaningfulActivityAt, legacyLobbyLastActiveAt, sandboxMode, botPaused] =
         await Promise.all([
           this.state.storage.get<TState>("gameState"),
           this.state.storage.get<number>("lastMeaningfulActivityAt"),
           this.state.storage.get<number>("lobbyLastActiveAt"),
           this.state.storage.get<boolean>("sandboxMode"),
+          this.state.storage.get<string[]>("botPaused"),
         ]);
 
       this.sandboxMode = sandboxMode === true;
+      this.botPaused = new Set(Array.isArray(botPaused) ? botPaused : []);
 
       this.lastMeaningfulActivityAt = lastMeaningfulActivityAt ?? legacyLobbyLastActiveAt ?? 0;
 
@@ -1071,6 +1076,14 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
       if (url.pathname.endsWith("/sandbox/events") && request.method === "GET") {
         return this.handleSandboxEvents(url);
+      }
+
+      // Acting as a seat goes through the ordinary action handler, but only
+      // after `sandboxAllowed()` proved this is a sandbox room in a sandbox
+      // deployment. Routing sandbox actions through `/agent/action` instead
+      // would have let the debug API move pieces in a normal room.
+      if (url.pathname.endsWith("/sandbox/action") && request.method === "POST") {
+        return this.handleAgentAction(request);
       }
 
       return this.jsonResponse(null, 404);
@@ -3346,13 +3359,21 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    * can remove the seat, and the reason is in the durable event log instead of
    * being retried forever.
    */
-  private async pauseBot(seat: BasePlayerInfo, reason: string): Promise<void> {
+  protected async pauseBot(seat: BasePlayerInfo, reason: string): Promise<void> {
     if (this.botPaused.has(seat.id)) return;
 
     this.botPaused.add(seat.id);
+    // Persist before the event: a crash between the two must not leave a seat
+    // that restarts as live without the record explaining why it stopped.
+    await this.persistBotPaused();
     logEvent("bot_stalled", { roomType: this.gameState?.type, reason });
     this.recordEvent("bot_stalled", { playerId: seat.id, name: seat.name, reason });
     this.broadcastState();
+  }
+
+  /** Write the paused seat ids, so a restart keeps them out of the action loop. */
+  private async persistBotPaused(): Promise<void> {
+    await this.state.storage.put("botPaused", [...this.botPaused]);
   }
 
   /** Host action: seat one rule bot when the game ships a policy. */
@@ -3403,6 +3424,8 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     if (bots.length === 0) return "There is no rule bot in this room";
 
     for (const bot of bots) this.botPaused.delete(bot.id);
+
+    await this.persistBotPaused();
 
     state.players = state.players.filter((player) => !player.bot);
     state.updatedAt = Date.now();
@@ -6110,7 +6133,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     }
   }
 
-  /** Wake for the next turn, match, inactivity, hosted decision, or room deadline. */
+  /** Wake for the next turn, match, inactivity, hosted decision, bot seat or room deadline. */
   private async scheduleNextRoomAlarm(): Promise<void> {
     if (!this.gameState || this.gameState.status === "ended") return;
     const expiresAt = this.applyRoomLifetimePolicy();
@@ -6129,6 +6152,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     const alarmAt = Math.min(
       expiresAt,
       this.nextJevAlarm(now),
+      this.nextRuleBotAlarm(now) ?? Number.POSITIVE_INFINITY,
       ...(running
         ? [
             now +
@@ -6149,6 +6173,21 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     );
 
     await this.state.storage.setAlarm(alarmAt);
+  }
+
+  /**
+   * When a bot decision is due, or null.
+   *
+   * A bot burst re-arms its own wake, but every later `scheduleNextRoomAlarm()`
+   * call (a timer tick, a state save, an HTTP handler) recomputes the single
+   * alarm a Durable Object is allowed to have. Without this term those calls
+   * pushed the wake out to the turn timer, so a bot-vs-bot match sat still
+   * until a human moved or the clock fired.
+   */
+  private nextRuleBotAlarm(now: number): number | null {
+    if (this.botRunning) return null;
+
+    return this.currentBotSeat() ? now + BOT_WAKE_MS : null;
   }
 
   /** End and purge a room whose players made no meaningful progress for five minutes. */
