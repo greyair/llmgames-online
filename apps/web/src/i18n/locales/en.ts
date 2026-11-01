@@ -1125,6 +1125,8 @@ export const en = {
   "board.moveHere": ", move here",
 
   "match.gameFallback": "Game",
+  "match.botPaused": "Paused",
+  "match.resumeBot": "Resume bot",
   "match.leave": "Leave game",
   "match.sound": "Sound",
   "match.muteSound": "Mute sound effects",

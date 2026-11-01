@@ -126,6 +126,7 @@ export function PlayerRow({
   self,
   timer,
   activeLabel,
+  paused,
 }: {
   player: NonNullable<ClientView["players"]>[number];
   active: boolean;
@@ -136,6 +137,8 @@ export function PlayerRow({
   self?: boolean;
   timer?: ReactNode;
   activeLabel?: string;
+  /** The platform stopped this bot after a failed decision (C4). */
+  paused?: boolean;
 }) {
   const t = useT();
   const twoTone = gameType === "checkers" || gameType === "reversi";
@@ -165,6 +168,7 @@ export function PlayerRow({
       </span>
       <div className="desk-player-name">
         <PlayerName player={player} extra={roleLabel} />
+        {paused && <span className="desk-player-flag">{t("match.botPaused")}</span>}
       </div>
       <span className="desk-player-meta">
         {active && <span className="desk-active-label">{activeLabel ?? t("match.toMove")}</span>}
@@ -597,6 +601,7 @@ export function MatchDesk({
                             player.id === state.turnState?.currentPlayerId
                           }
                           self={!state.you?.isSpectator && player.id === state.you?.playerId}
+                          paused={state.pausedBots?.includes(player.id)}
                           timer={<TurnProgress state={state} duration={duration} />}
                         />
                       );

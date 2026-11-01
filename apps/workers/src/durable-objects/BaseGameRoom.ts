@@ -121,6 +121,17 @@ export const BOT_MAX_STEPS_PER_TICK = 8;
 /** Re-arm delay when a bot burst ended with another bot still to move. */
 export const BOT_WAKE_MS = 150;
 
+/**
+ * How often one seat may be resumed in a match before the host must remove it.
+ *
+ * A stall is usually structural (no legal move the strategy understands), so an
+ * unbounded resume is just an unbounded retry loop with extra events.
+ */
+export const BOT_RESUME_LIMIT = 3;
+
+/** Persisted per-seat resume budgets (C4). */
+const botResumeCountsSchema = z.record(z.string(), z.number().int().min(0));
+
 /** Durable copy of acknowledged requests, written with the game state. */
 const ACKED_ACTION_KEY = "ackedActionRecords";
 
@@ -516,6 +527,7 @@ const BOT_NON_DECISIONS: ReadonlySet<string> = new Set([
   "set_spectator_chat",
   "add_rule_bot",
   "remove_rule_bot",
+  "resume_rule_bot",
 ]);
 
 /** Whitelist of fields consumed by the generic MCP projection compactor. */
@@ -715,6 +727,9 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    */
   private botPaused = new Set<string>();
 
+  /** Resume attempts per seat, so a structural stall cannot retry for ever. */
+  private botResumeCounts: Record<string, number> = {};
+
   /**
    * Initializes the Durable Object and restores persisted game state.
    * If the stored game was in progress, timers are restarted immediately.
@@ -735,17 +750,30 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    */
   private async restorePersistedRoom(): Promise<void> {
     try {
-      const [stored, lastMeaningfulActivityAt, legacyLobbyLastActiveAt, sandboxMode, botPaused] =
-        await Promise.all([
-          this.state.storage.get<TState>("gameState"),
-          this.state.storage.get<number>("lastMeaningfulActivityAt"),
-          this.state.storage.get<number>("lobbyLastActiveAt"),
-          this.state.storage.get<boolean>("sandboxMode"),
-          this.state.storage.get<string[]>("botPaused"),
-        ]);
+      const [
+        stored,
+        lastMeaningfulActivityAt,
+        legacyLobbyLastActiveAt,
+        sandboxMode,
+        botPaused,
+        botResumeCounts,
+      ] = await Promise.all([
+        this.state.storage.get<TState>("gameState"),
+        this.state.storage.get<number>("lastMeaningfulActivityAt"),
+        this.state.storage.get<number>("lobbyLastActiveAt"),
+        this.state.storage.get<boolean>("sandboxMode"),
+        this.state.storage.get<string[]>("botPaused"),
+        this.state.storage.get<Record<string, number>>("botResumeCounts"),
+      ]);
 
       this.sandboxMode = sandboxMode === true;
       this.botPaused = new Set(Array.isArray(botPaused) ? botPaused : []);
+
+      // Storage is an I/O boundary: parse the persisted budgets instead of
+      // trusting the shape, so a corrupt value cannot reach the resume count.
+      const storedCounts = botResumeCountsSchema.safeParse(botResumeCounts);
+
+      this.botResumeCounts = storedCounts.success ? storedCounts.data : {};
 
       this.lastMeaningfulActivityAt = lastMeaningfulActivityAt ?? legacyLobbyLastActiveAt ?? 0;
 
@@ -3365,15 +3393,44 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     this.botPaused.add(seat.id);
     // Persist before the event: a crash between the two must not leave a seat
     // that restarts as live without the record explaining why it stopped.
-    await this.persistBotPaused();
+    await this.persistBotState();
     logEvent("bot_stalled", { roomType: this.gameState?.type, reason });
     this.recordEvent("bot_stalled", { playerId: seat.id, name: seat.name, reason });
     this.broadcastState();
   }
 
-  /** Write the paused seat ids, so a restart keeps them out of the action loop. */
-  private async persistBotPaused(): Promise<void> {
+  /**
+   * Host action: give one paused seat another chance.
+   *
+   * Bounded on purpose. A strategy that stalls for a structural reason would
+   * otherwise stall again on every wake, so a seat may be resumed
+   * {@link BOT_RESUME_LIMIT} times in a match; after that the host has to
+   * remove it. Resuming does not itself act — it clears the pause and asks the
+   * bot loop, which then goes through the ordinary dispatch path.
+   */
+  protected async resumeRuleBot(playerId?: string): Promise<string | void> {
+    const paused = [...this.botPaused];
+
+    if (paused.length === 0) return "No rule bot is paused";
+
+    const target = playerId && paused.includes(playerId) ? playerId : paused[0]!;
+    const attempts = this.botResumeCounts[target] ?? 0;
+
+    if (attempts >= BOT_RESUME_LIMIT)
+      return `This bot was already resumed ${BOT_RESUME_LIMIT} times; remove it instead`;
+
+    this.botPaused.delete(target);
+    this.botResumeCounts[target] = attempts + 1;
+    await this.persistBotState();
+    this.recordEvent("bot_resumed", { playerId: target, attempt: attempts + 1 });
+    this.broadcastState();
+    await this.advanceRuleBots();
+  }
+
+  /** Write the paused seats and their resume budgets, so a restart keeps them. */
+  private async persistBotState(): Promise<void> {
     await this.state.storage.put("botPaused", [...this.botPaused]);
+    await this.state.storage.put("botResumeCounts", { ...this.botResumeCounts });
   }
 
   /** Host action: seat one rule bot when the game ships a policy. */
@@ -3423,9 +3480,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     if (bots.length === 0) return "There is no rule bot in this room";
 
-    for (const bot of bots) this.botPaused.delete(bot.id);
+    for (const bot of bots) {
+      this.botPaused.delete(bot.id);
+      delete this.botResumeCounts[bot.id];
+    }
 
-    await this.persistBotPaused();
+    await this.persistBotState();
 
     state.players = state.players.filter((player) => !player.bot);
     state.updatedAt = Date.now();
@@ -3620,11 +3680,18 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     const sinceSeq = url.searchParams.get("sinceSeq");
     const limit = url.searchParams.get("limit");
+    const requested = limit === null ? undefined : Number(limit);
 
-    const page = await this.chat().read({
-      sinceSeq: sinceSeq === null ? undefined : Number(sinceSeq),
-      limit: limit === null ? undefined : Number(limit),
-    });
+    // No cursor means "the newest window", the same answer a socket gets on
+    // connect. Reading from sequence 0 would hand the first caller the *oldest*
+    // page instead: after a busy chat an agent would see stale lines and miss
+    // the @mention that just arrived.
+    const page =
+      sinceSeq === null
+        ? await this.chat().recent(
+            normalizeChatLimit(requested, CHAT_DEFAULT_PAGE, CHAT_MAX_PAGE),
+          )
+        : await this.chat().read({ sinceSeq: Number(sinceSeq), limit: requested });
 
     return this.jsonResponse(page);
   }
@@ -4120,6 +4187,16 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
         return (await this.removeRuleBots()) ?? true;
 
+      case "resume_rule_bot": {
+        if (this.gameState.hostId !== player.id) return "Only the host can resume a rule bot";
+
+        const target = isObjectValue(payload.data)
+          ? objectValue(payload.data, "playerId")
+          : undefined;
+
+        return (await this.resumeRuleBot(isString(target) ? target : undefined)) ?? true;
+      }
+
       case "set_spectator_chat": {
         if (this.gameState.hostId !== player.id) return "Only the host can change spectator chat";
 
@@ -4312,6 +4389,15 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         series: { code: this.gameState.series.code, index: this.gameState.series.index },
       });
 
+    // Seats the platform stopped. The host needs to see *why* a seat went
+    // quiet before deciding to resume it or remove it (C4).
+    if (this.botPaused.size > 0)
+      Object.assign(view, {
+        pausedBots: this.gameState.players
+          .filter((player) => this.botPaused.has(player.id))
+          .map((player) => player.id),
+      });
+
     if (JEV_GAMES.has(this.gameState.type))
       Object.assign(view, {
         jev: {
@@ -4364,6 +4450,14 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     if (this.gameState.series)
       Object.assign(common, {
         series: { code: this.gameState.series.code, index: this.gameState.series.index },
+      });
+
+    // Same signal as the browser: which seats the platform stopped (C4).
+    if (this.botPaused.size > 0)
+      Object.assign(common, {
+        pausedBots: this.gameState.players
+          .filter((player) => this.botPaused.has(player.id))
+          .map((player) => player.id),
       });
 
     // A migrated room returns its rule module; a room that only declares a
@@ -4570,6 +4664,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (this.gameState.status === "playing") {
         actions.push("end_game");
       }
+
+      // A stalled bot is only actionable because the host can resume it; the
+      // seat has to stay paused until someone does (C4).
+      if (this.botPaused.size > 0) actions.push("resume_rule_bot");
     }
 
     return actions;
@@ -4654,6 +4752,13 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     if (!firstPlayer) {
       throw new Error("Cannot start a game without a player");
+    }
+
+    // A fresh match gets a fresh resume budget; the pause itself cannot exist
+    // here because bots only run while playing.
+    if (Object.keys(this.botResumeCounts).length > 0) {
+      this.botResumeCounts = {};
+      await this.persistBotState();
     }
 
     const jevSeat = this.jev;

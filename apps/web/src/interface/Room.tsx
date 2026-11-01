@@ -905,6 +905,11 @@ export function Room({
           <div className="room-controls">
             {host && state.status !== "waiting" && state.status !== "ended" && (
               <>
+                {(state.pausedBots?.length ?? 0) > 0 && (
+                  <Button size="sm" variant="ghost" onClick={() => send("resume_rule_bot", {})}>
+                    {t("match.resumeBot")}
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={() => setEnd(true)}>
                   End game
                 </Button>

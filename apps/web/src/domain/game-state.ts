@@ -142,6 +142,8 @@ export type ClientView = {
   roomOptions?: Record<string, string>;
   /** Monopoly: stop after this many rounds, 0 for no limit (C2). */
   roundLimit?: number;
+  /** Player ids whose rule bot the platform stopped after a failed decision (C4). */
+  pausedBots?: string[];
   /** Chess sends one 64-character string, Chinese chess 90 cells; the grid games send a nested array. */
   board?: z.output<typeof numericBoardSchema> | z.output<typeof wordBoardSchema> | string | string[];
   seats?: z.output<typeof seatNumbersSchema> | z.output<typeof cardSeatsSchema>;
@@ -439,6 +441,7 @@ export const clientViewContract = z
     "maxPlayers": z.number().optional(),
     "roomOptions": z.record(z.string(), z.string()).optional(),
     "roundLimit": z.number().optional(),
+    "pausedBots": z.array(z.string()).optional(),
     "board": z
       .union([
         numericBoardSchema,

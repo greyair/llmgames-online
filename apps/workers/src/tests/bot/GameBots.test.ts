@@ -3,7 +3,7 @@ import { wireObjectSchema, wireValueSchema, type WireValue } from "@llmgames/gam
 import { z } from "zod";
 
 import { AeroplaneRoom } from "../../durable-objects/AeroplaneRoom";
-import { BOT_WAKE_MS } from "../../durable-objects/BaseGameRoom";
+import { BOT_RESUME_LIMIT, BOT_WAKE_MS } from "../../durable-objects/BaseGameRoom";
 import { ReversiRoom } from "../../durable-objects/ReversiRoom";
 import type { RoomRuntime } from "../../durable-objects/runtime";
 import type { Env } from "../../types";
@@ -33,7 +33,10 @@ const stateSchema = z.object({
   roll: z.union([z.number(), z.null()]).optional(),
   phase: z.string().optional(),
   turnState: z.object({ phase: z.string(), currentPlayerId: z.union([z.string(), z.null()]) }),
-  you: z.object({ isYourTurn: z.boolean().optional() }).optional(),
+  you: z
+    .object({ isYourTurn: z.boolean().optional(), legalActions: z.array(z.string()).optional() })
+    .optional(),
+  pausedBots: z.array(z.string()).optional(),
   winner: z.union([z.string(), z.null()]).optional(),
 });
 
@@ -361,58 +364,63 @@ class StallingReversiRoom extends ReversiRoom {
   }
 }
 
-describe("a paused bot stays paused", () => {
-  it("restores the paused seats after the room restarts", async () => {
-    const runtime = new MemoryRoomRuntime(new Map());
+/** A started reversi room with two bots and the host spectating. */
+async function startBotRoom(code: string) {
+  const runtime = new MemoryRoomRuntime(new Map());
 
-    runtime.storage.sql = new SqliteRoomSql();
+  runtime.storage.sql = new SqliteRoomSql();
 
-    const room = new StallingReversiRoom(runtime, roomTestEnv(BOT_ENV));
-    await runtime.initialized;
+  const room = new StallingReversiRoom(runtime, roomTestEnv(BOT_ENV));
+  await runtime.initialized;
 
-    const created = await room.fetch(
-      new Request("https://room.test/create", {
+  const created = await room.fetch(
+    new Request("https://room.test/create", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ hostId: "host", hostName: "Host", roomCode: code, maxPlayers: 2 }),
+    }),
+  );
+
+  expect(created.ok).toBe(true);
+
+  /** Actions answer 200 with `{ ok }`; the body is what has to be true. */
+  const acted = async (
+    playerId: string,
+    actionType: string,
+    data: Record<string, WireValue> = {},
+  ) => {
+    const response = await room.fetch(
+      new Request("https://room.test/agent/action", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ hostId: "host", hostName: "Host", roomCode: "RV4455", maxPlayers: 2 }),
+        body: JSON.stringify({ playerId, actionType, data }),
       }),
     );
 
-    expect(created.ok).toBe(true);
+    return z.object({ ok: z.boolean() }).parse(wireValueSchema.parse(await response.json())).ok;
+  };
 
-    /** Actions answer 200 with `{ ok }`; the body is what has to be true. */
-    const acted = async (
-      playerId: string,
-      actionType: string,
-      data: Record<string, WireValue> = {},
-    ) => {
-      const response = await room.fetch(
-        new Request("https://room.test/agent/action", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ playerId, actionType, data }),
-        }),
-      );
+  const view = async (subject: ReversiRoom = room) => {
+    const response = await subject.fetch(
+      new Request("https://room.test/agent/view?playerId=host"),
+    );
 
-      return z.object({ ok: z.boolean() }).parse(wireValueSchema.parse(await response.json())).ok;
-    };
+    return z
+      .object({ state: stateSchema })
+      .parse(wireObjectSchema.parse(await response.json())).state;
+  };
 
-    const board = async (subject: ReversiRoom) => {
-      const response = await subject.fetch(
-        new Request("https://room.test/agent/view?playerId=host"),
-      );
+  expect(await acted("host", "set_host_spectating", { spectating: true })).toBe(true);
+  expect(await acted("host", "add_rule_bot")).toBe(true);
+  expect(await acted("host", "add_rule_bot")).toBe(true);
+  expect(await acted("host", "start_game")).toBe(true);
 
-      return z
-        .object({ state: stateSchema })
-        .parse(wireObjectSchema.parse(await response.json())).state.board;
-    };
+  return { room, runtime, acted, view, bots: room.snapshot().players.filter((p) => p.bot) };
+}
 
-    expect(await acted("host", "set_host_spectating", { spectating: true })).toBe(true);
-    expect(await acted("host", "add_rule_bot")).toBe(true);
-    expect(await acted("host", "add_rule_bot")).toBe(true);
-    expect(await acted("host", "start_game")).toBe(true);
-
-    const bots = room.snapshot().players.filter((player) => player.bot);
+describe("a paused bot stays paused", () => {
+  it("restores the paused seats after the room restarts", async () => {
+    const { runtime, room, view, bots } = await startBotRoom("RV4455");
 
     expect(bots).toHaveLength(2);
 
@@ -426,10 +434,55 @@ describe("a paused bot stays paused", () => {
     const revived = new ReversiRoom(runtime, roomTestEnv(BOT_ENV));
     await runtime.initialized;
 
-    const before = await board(revived);
+    const before = await view(revived);
 
     await revived.alarm();
 
-    expect(await board(revived)).toEqual(before);
+    expect(await view(revived)).toEqual(before);
+  });
+
+  it("offers the host a resume, and stops offering it after the budget", async () => {
+    const { room, acted, view, bots } = await startBotRoom("RV5566");
+    const bot = bots[0]!;
+
+    expect((await view()).you?.legalActions).not.toContain("resume_rule_bot");
+
+    await room.pauseSeat(bot.id);
+
+    expect((await view()).you?.legalActions).toContain("resume_rule_bot");
+    expect((await view()).pausedBots).toEqual([bot.id]);
+
+    // Three attempts are allowed; the fourth has to be refused, because a
+    // structural stall would otherwise retry for ever.
+    for (let attempt = 1; attempt <= BOT_RESUME_LIMIT; attempt++) {
+      expect(await acted("host", "resume_rule_bot", { playerId: bot.id }), `resume ${attempt}`).toBe(
+        true,
+      );
+
+      expect((await view()).pausedBots ?? []).toEqual([]);
+
+      await room.pauseSeat(bot.id);
+    }
+
+    expect(await acted("host", "resume_rule_bot", { playerId: bot.id })).toBe(false);
+  });
+
+  it("lets the resumed bot move again", async () => {
+    const { room, acted, view, bots } = await startBotRoom("RV6677");
+
+    // Both paused first, so a stable board proves nothing is moving at all.
+    for (const bot of bots) await room.pauseSeat(bot.id);
+
+    const stalled = await view();
+
+    await room.alarm();
+
+    expect(await view()).toEqual(stalled);
+
+    for (const bot of bots) expect(await acted("host", "resume_rule_bot", { playerId: bot.id })).toBe(true);
+
+    await room.alarm();
+
+    expect(await view()).not.toEqual(stalled);
   });
 });

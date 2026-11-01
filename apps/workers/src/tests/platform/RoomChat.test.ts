@@ -318,6 +318,19 @@ describe("room chat over WebSocket", () => {
     expect(page.messages.map((message) => message.seq)).toEqual([1, 2, 3]);
   });
 
+  it("answers a read without a cursor with the newest messages", async () => {
+    const fixture = await createRoom();
+
+    for (const text of ["one", "two", "three"]) await fixture.chatSend(fixture.socket, { text });
+
+    const page = pageOf((await readChat(fixture.room, "playerId=host&limit=2")).body);
+
+    // Paging from sequence 0 answers [1, 2] and hides the line that just
+    // arrived, which is exactly what an agent's first read must not do.
+    expect(page.messages.map((message) => message.seq)).toEqual([2, 3]);
+    expect(page.hasMore).toBe(true);
+  });
+
   it("answers a cursor request with only the newer messages", async () => {
     const fixture = await createRoom();
 
@@ -342,7 +355,9 @@ describe("room chat over WebSocket", () => {
     for (let index = 0; index < 4; index++)
       await fixture.chatSend(fixture.socket, { text: `m${index}` });
 
-    const page = pageOf((await readChat(fixture.room, "playerId=host&limit=2")).body);
+    // A cursor asks for "everything after this", oldest first, so a bounded
+    // page starts at the beginning and reports that more follows.
+    const page = pageOf((await readChat(fixture.room, "playerId=host&sinceSeq=0&limit=2")).body);
 
     expect(page.messages).toHaveLength(2);
     expect(page.hasMore).toBe(true);

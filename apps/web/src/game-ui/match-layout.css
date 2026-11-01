@@ -436,6 +436,20 @@
   line-height: var(--leading-none);
   white-space: nowrap;
 }
+.desk-player-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-8);
+  border: var(--stroke-1) solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  font-size: var(--type-micro);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  line-height: var(--leading-none);
+  white-space: nowrap;
+}
 .desk-piece-stat {
   display: inline-flex;
   align-items: center;

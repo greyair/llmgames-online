@@ -50,6 +50,15 @@ describe("projected state contracts", () => {
       expect(clientViewSchema.safeParse({ type: "chess", board }).success).toBe(false);
   });
 
+  it("accepts the paused-bot list the host needs to see", () => {
+    const projection = { type: "reversi", status: "playing", pausedBots: ["bot-1"] };
+
+    expect(clientViewSchema.parse(projection)).toBe(projection);
+
+    // It is a list of seat ids, not free-form state.
+    expect(clientViewSchema.safeParse({ pausedBots: "bot-1" }).success).toBe(false);
+  });
+
   it("retains the source square and capture coordinates of a checker decision", () => {
     const move = { fromRow: 5, fromCol: 0, row: 3, col: 2, capture: { row: 4, col: 1 } };
 

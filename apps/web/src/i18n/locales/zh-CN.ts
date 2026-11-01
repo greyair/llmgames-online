@@ -1114,6 +1114,8 @@ export const zhCN: Messages = {
   "board.moveHere": "，可走到这里",
 
   "match.gameFallback": "游戏",
+  "match.botPaused": "已暂停",
+  "match.resumeBot": "恢复机器人",
   "match.leave": "离开游戏",
   "match.sound": "音效",
   "match.muteSound": "静音音效",
