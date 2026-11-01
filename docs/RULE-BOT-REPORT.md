@@ -219,3 +219,18 @@ pnpm build:all                          # 6 tasks successful
 2. 斗地主/跑得快的最小合法 Bot（只保证不卡桌，不追求强度）。
 3. 暂停后由房主手动"继续"（新增 `resume_rule_bot`），而不是只能移除。
 4. 策略版权：`id` 字段已预留版本位，可做 A/B 或回归对比。
+
+## 11. 复审修正（2026-11-02，推送后）
+
+外部复审指出两处调度/恢复问题，均已复现并修复：
+
+1. **Alarm 被覆盖。** `advanceRuleBots()` 会给自己排一个 `BOT_WAKE_MS`（150ms）的唤醒，但 Durable Object 只能有一个 alarm，随后任何一次 `scheduleNextRoomAlarm()`（`alarm()` 自己就有一次、计时器 tick、状态保存、HTTP 处理）都会把它算成"下一次回合/比赛/闲置"，于是 Bot 对局在完成一批动作后停到下一次回合超时。修复：把 Bot 到期时间并入 `scheduleNextRoomAlarm()` 的最早时间（`nextRuleBotAlarm`），`alarm()` 里的重算不再抹掉它。
+2. **暂停状态不持久。** `botPaused` 只在内存里，DO 回收后暂停丢失，Bot 会在下一次唤醒时重新尝试同一个失败决策。现在暂停集合写入 `botPaused` 键并在恢复时读回；移除 Bot 时同步清理。暂停原因本来就在持久事件 `bot_stalled` 里。
+
+回归用例（都先验证过"没有修复就会失败"）：
+
+- `keeps the bot wake after another alarm is scheduled`：`alarm()` 结束后下一次唤醒必须在 3×150ms 内，而不是回合计时器。
+- `finishes a bot match on the wakes it schedules itself`：只跟随房间自己排的近唤醒，双 Bot 反棋能自己下完。
+- `restores the paused seats after the room restarts`：两个 Bot 都暂停后换一个实例唤醒同一份存储，棋盘不得变化。
+
+计数：`apps/workers` 107 文件 / 955 passed，2 skipped（本报告原为 106 / 949）。

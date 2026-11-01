@@ -180,3 +180,21 @@ docs/LIVE-SANDBOX-REPORT.md
 docs/RULE-BOT-REPORT.md
 docs/PLATFORM-EXTENSIONS-FINAL.md   ← 本文件
 ```
+
+## 8. 外部复审回应（2026-11-02）
+
+外部静态审查提出 P0 一项、P1 两项、P2/P3 若干。逐条复核结果：
+
+| 级别 | 问题 | 复核结论 | 处置 |
+| --- | --- | --- | --- |
+| P0 | Sandbox `/action` 未校验目标房间，可借调试接口操作普通房间 | **成立**。未修时对 `sandbox: false` 的房间发 `leave` 返回 200 且房主真的被移除 | 已修：房间新增 `/sandbox/action`，先过 `sandboxAllowed()`；路由改调它 |
+| P1 | `advanceRuleBots` 设的 150ms 唤醒会被 `scheduleNextRoomAlarm()` 覆盖 | **成立**。`alarm()` 末尾就会重算一次 | 已修：Bot 到期时间并入最早 alarm 计算 |
+| P1 | `botPaused` 只在内存，重启后丢失 | **成立**。原注释写着"故意不持久"，与"暂停到人工处理"的语义矛盾 | 已修：持久化并在恢复时读回 |
+| P2 | 系列赛不继承游戏选项 | 成立，但属于功能缺口而非回归：系列赛 `series/setup` 不传 `options`，Go 一律 9 路 | 记录，未改 |
+| P2 | 大富翁"轮"按存活人数折算，破产后轮数会跳 | 成立（`rounds = floor(turns / alive.length)`） | 记录，未改；改语义需要产品决定 |
+| P2 | 聊天发送失败后草稿已清空 | 成立：`RoomChat.submit()` 立即 `setDraft("")` | 记录，未改 |
+| P3 | 沙盒缺固定种子 / 脚本回放 / Fixture 导出 / Rich-Compact 对照 | 与原报告"暂缓"一致 | 未做 |
+
+修复后门禁：`apps/workers` 107 文件 / 955 passed（2 skipped），`pnpm lint` 通过，`build:all` 46 页。三条回归用例都先确认过"去掉修复就会失败"，不是补一条永远为真的断言。
+
+另外记一条复审没提的：`GAME_OPTIONS` 的可选值 13/19 路在服务端可用，但前端棋盘几何写死 9 路（`VIEW = 8*CELL + 2*MARGIN`），第 9 列之后画在画布外——已在 `e0e1e89` 修掉并补了 `goGeometry` 单测。

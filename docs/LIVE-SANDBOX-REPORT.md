@@ -183,3 +183,19 @@ open http://localhost:3000/dev/sandbox
 1. 增加 `GET /sandbox/agent-view?playerId=` 做 Rich/Compact 对照，配合现有 `compactState`。
 2. 让沙盒支持"固定种子 + 动作脚本重放"，用于回归。
 3. 沙盒内一键导出脱敏 Fixture（去掉 playerId 与时间戳），供 design-preview 使用。
+
+## 10. 复审修正（2026-11-02，推送后）
+
+外部复审指出 `/api/v1/dev/sandbox/action` 的隔离缺口，已复现并修复。
+
+问题：该路由只过 `sandboxEnabled()` 这道部署闸门，然后直接把请求转发到房间的 `/agent/action`。后者只校验 `playerId` 是房间成员，不校验这个房间是不是沙盒房间。于是在**开启了沙盒的非生产部署**上，任何知道房间号和某个成员公开 `playerId` 的调用者，都能替那个成员动棋子——`playerId` 本来就在投影里公开。
+
+修复：房间新增 `/sandbox/action` 端点，和 `/sandbox/seed|view|events` 一样先过 `sandboxAllowed()`（= 本房间由 `sandbox: true` 创建 **且** 部署允许沙盒），再复用 `handleAgentAction`。路由改调它，普通房间直接 404。
+
+回归用例（`apps/workers/src/tests/platform/SandboxRoutes.test.ts`，3 条）：
+
+- 行动必须发到 `/sandbox/action`，不能是 `/agent/action`。
+- 对一个 `sandbox: false` 的房间发 `leave` → 404，且房主仍在房间里（未修时是 200，人真的被移除了）。
+- 生产部署下该路由根本不存在。
+
+仍未做（原计划的"暂缓"项）：固定种子、动作脚本重放、Fixture 导出、Agent Rich/Compact 对照。这些是功能，不是缺口。
