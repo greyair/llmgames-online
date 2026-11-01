@@ -71,6 +71,14 @@ import {
 import type { GameEffect, GamePlugin } from "../games/contract";
 import { compactState } from "../games/agent-decision";
 import { gamePluginFor } from "../games/registry";
+import { RoomChatService } from "./chat/RoomChatService";
+import {
+  CHAT_DEFAULT_PAGE,
+  CHAT_MAX_PAGE,
+  type RoomChatAuthor,
+  type RoomChatEntry,
+} from "./chat/chatTypes";
+import { normalizeChatLimit } from "./chat/chatValidation";
 
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -300,6 +308,40 @@ function parseClientMessage<T>(value: T): ClientMessage | null {
     if (type === "rewatch_saved") return { type: "rewatch_saved" };
 
     return { type: "timer_sync" };
+  }
+
+  if (type === "chat_send") {
+    const payload = objectValue(value, "payload");
+
+    if (!isObjectValue(payload)) return null;
+    const text = objectValue(payload, "text");
+
+    if (!isString(text)) return null;
+    const mentions = objectValue(payload, "mentions");
+    const message: ClientMessage = { type: "chat_send", payload: { text } };
+
+    if (Array.isArray(mentions))
+      message.payload.mentions = mentions.filter((entry): entry is string => isString(entry));
+
+    if (isString(requestId)) message.requestId = requestId;
+
+    return message;
+  }
+
+  if (type === "chat_fetch") {
+    const payload = objectValue(value, "payload");
+
+    if (!isObjectValue(payload)) return { type: "chat_fetch", payload: {} };
+
+    const sinceSeq = optionalNumber(payload, "sinceSeq");
+    const limit = optionalNumber(payload, "limit");
+    const message: ClientMessage = { type: "chat_fetch", payload: {} };
+
+    if (sinceSeq !== undefined) message.payload.sinceSeq = sinceSeq;
+
+    if (limit !== undefined) message.payload.limit = limit;
+
+    return message;
   }
 
   return null;
@@ -565,6 +607,15 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
   /** Used for log prefixes, e.g. "Connect4Room" */
   protected abstract readonly roomLabel: string;
+
+  /**
+   * The room's single chat store.
+   *
+   * Built on first use so a room that never chats pays nothing, and so the
+   * service can resolve authors from the roster that exists at that moment.
+   * Chat never enters `gameState`: `RoomChatService` owns its own tables.
+   */
+  private roomChat: RoomChatService | null = null;
 
   /**
    * Initializes the Durable Object and restores persisted game state.
@@ -930,6 +981,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
       if (url.pathname.endsWith("/agent/wait-turn") && request.method === "POST") {
         return this.handleAgentWaitTurn(request);
+      }
+
+      if (url.pathname.endsWith("/agent/chat")) {
+        if (request.method === "POST") return this.handleAgentChatSend(request);
+
+        if (request.method === "GET") return this.handleAgentChatRead(url);
       }
 
       return new Response("Not Found", { status: 404 });
@@ -2645,6 +2702,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       },
     });
 
+    // The reconnect window: a client that just joined, or just came back, sees
+    // the conversation it can still be part of instead of an empty panel.
+    await this.sendChatHistory(server);
+
     if (reconnectingToEndedRoom) {
       this.initializeFinalDeliveryRecipients();
       this.pendingAgentFinalAcks?.delete(player.id);
@@ -2788,6 +2849,12 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         case "leave":
           this.handlePlayerLeave(player, ws);
           break;
+        case "chat_send":
+          await this.handleChatSend(ws, player, requestId, msg.payload);
+          break;
+        case "chat_fetch":
+          await this.sendChatHistory(ws, msg.payload.sinceSeq, msg.payload.limit);
+          break;
         case "rewatch_saved":
           if (this.gameState?.status === "ended") {
             this.pendingRewatchAcks?.delete(ws);
@@ -2874,6 +2941,196 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         payload: { userId: player.id, name: player.name },
       });
     }
+  }
+
+  // ─── Room chat (C1) ───────────────────────────────────────────
+
+  /**
+   * The room's chat store, created on first use.
+   *
+   * Chat is deliberately *not* part of `gameState`: a message cannot open a
+   * turn, move a clock or appear in a replay frame, because none of those read
+   * from here. The service resolves sender identity through {@link chatAuthor},
+   * so a client can never choose its own display name or seat kind.
+   */
+  protected chat(): RoomChatService {
+    this.roomChat ??= new RoomChatService(this.state.storage, (playerId) =>
+      this.chatAuthor(playerId),
+    );
+
+    return this.roomChat;
+  }
+
+  /** Trusted display identity for one sender, or null when they left the room. */
+  private chatAuthor(playerId: string): RoomChatAuthor | null {
+    const state = this.gameState;
+
+    if (!state) return null;
+
+    const seat = state.players.find((player) => player.id === playerId);
+
+    const spectator = seat ? undefined : this.ensureSpectators().find((s) => s.id === playerId);
+
+    const member = seat ?? spectator;
+
+    if (!member) return null;
+
+    const author: RoomChatAuthor = {
+      playerId,
+      displayName: member.name,
+      seatKind: member.bot ? "bot" : member.isAgent || member.channel === "mcp" ? "mcp" : "human",
+      isHost: state.hostId === playerId,
+      isSpectator: !seat,
+    };
+
+    if (member.codename) author.codename = member.codename;
+
+    if (member.environmentLabel) author.environmentLabel = member.environmentLabel;
+
+    return author;
+  }
+
+  /** Every member id that a mention may address. */
+  private chatMembers(): Set<string> {
+    const state = this.gameState;
+
+    if (!state) return new Set();
+
+    return new Set([
+      ...state.players.map((player) => player.id),
+      ...this.ensureSpectators().map((member) => member.id),
+    ]);
+  }
+
+  private sendChatError(ws: WebSocket, code: string, message: string): void {
+    this.sendTo(ws, { type: "chat_error", payload: { code, message } });
+  }
+
+  /**
+   * Answer one `chat_send`.
+   *
+   * The sender is the socket's seat, never a payload field. A refusal is
+   * reported only to the sender and writes nothing, which is what keeps a
+   * rate-limited client from filling the room's history.
+   */
+  private async handleChatSend(
+    ws: WebSocket,
+    player: Player,
+    requestId: string | undefined,
+    payload: { text: string; mentions?: string[] },
+  ): Promise<void> {
+    if (!this.gameState || !this.isRoomMember(player.id)) {
+      this.sendChatError(ws, "CHAT_NOT_A_MEMBER", "Player or spectator not in room");
+
+      return;
+    }
+
+    const result = await this.chat().append({
+      senderPlayerId: player.id,
+      text: payload.text,
+      mentions: payload.mentions,
+      requestId,
+      isSpectator: this.isSpectator(player.id) || player.isSpectator === true,
+      members: this.chatMembers(),
+    });
+
+    if (!result.ok) {
+      this.sendChatError(ws, result.code, result.message);
+
+      return;
+    }
+
+    if (result.replayed) {
+      // The room already saw this line; only the retrying client needs it back.
+      this.sendTo(ws, { type: "chat_message", payload: result.message });
+
+      return;
+    }
+
+    this.broadcastChatEntry(result.message);
+  }
+
+  /**
+   * Fan one message out to every socket in the room.
+   *
+   * Spectators receive it too — chat is the public conversation of the room —
+   * and read-only broadcast sockets are excluded because they are not room
+   * members and carry no identity.
+   */
+  private broadcastChatEntry(entry: RoomChatEntry): void {
+    this.broadcast({ type: "chat_message", payload: entry });
+  }
+
+  /** Send the newest window to one socket. Called on connect and on `chat_fetch`. */
+  private async sendChatHistory(ws: WebSocket, sinceSeq?: number, limit?: number): Promise<void> {
+    const page =
+      sinceSeq === undefined
+        ? await this.chat().recent(normalizeChatLimit(limit, CHAT_DEFAULT_PAGE, CHAT_MAX_PAGE))
+        : await this.chat().read({ sinceSeq, limit });
+
+    this.sendTo(ws, { type: "chat_history", payload: page });
+  }
+
+  /** `POST /agent/chat` — an MCP agent speaks through the same store and policy. */
+  private async handleAgentChatSend(request: Request): Promise<Response> {
+    try {
+      const input = wireValueSchema.parse(await request.json());
+      const raw = isObjectValue(input) ? input : null;
+      const playerId = raw ? objectValue(raw, "playerId") : undefined;
+
+      if (!isString(playerId) || !this.gameState)
+        return this.jsonResponse({ error: "playerId required" }, 400);
+
+      if (!this.isRoomMember(playerId))
+        return this.jsonResponse({ error: "Player or spectator not in room" }, 403);
+
+      const text = raw ? objectValue(raw, "text") : undefined;
+      const mentions = raw ? objectValue(raw, "mentions") : undefined;
+
+      if (!isString(text)) return this.jsonResponse({ error: "text required" }, 400);
+
+      const result = await this.chat().append({
+        senderPlayerId: playerId,
+        text,
+        mentions,
+        requestId: validRequestId(raw ? objectValue(raw, "requestId") : undefined),
+        isSpectator: this.isSpectator(playerId),
+        members: this.chatMembers(),
+      });
+
+      if (!result.ok)
+        return this.jsonResponse(result, result.code === "CHAT_STORAGE_FAILED" ? 500 : 400);
+
+      if (!result.replayed) this.broadcastChatEntry(result.message);
+
+      return this.jsonResponse({ ok: true, replayed: result.replayed, message: result.message });
+    } catch (error) {
+      console.error(`${this.roomLabel}: agent chat send failed`, error);
+
+      return this.jsonResponse({ error: "Chat is unavailable" }, 500);
+    }
+  }
+
+  /** `GET /agent/chat?playerId=&sinceSeq=&limit=` — bounded read for MCP. */
+  private async handleAgentChatRead(url: URL): Promise<Response> {
+    const playerId = url.searchParams.get("playerId");
+
+    if (!playerId) return this.jsonResponse({ error: "playerId required" }, 400);
+
+    if (!this.gameState) return this.jsonResponse({ error: "Room not found" }, 404);
+
+    if (!this.isRoomMember(playerId))
+      return this.jsonResponse({ error: "Player or spectator not in room" }, 403);
+
+    const sinceSeq = url.searchParams.get("sinceSeq");
+    const limit = url.searchParams.get("limit");
+
+    const page = await this.chat().read({
+      sinceSeq: sinceSeq === null ? undefined : Number(sinceSeq),
+      limit: limit === null ? undefined : Number(limit),
+    });
+
+    return this.jsonResponse(page);
   }
 
   // ─── Action dispatch ───────────────────────────────────────────
@@ -3351,6 +3608,20 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           : undefined;
 
         return (await this.setPlayerSeats(playerIds)) ?? true;
+      }
+
+      case "set_spectator_chat": {
+        if (this.gameState.hostId !== player.id) return "Only the host can change spectator chat";
+
+        const allowed = isObjectValue(payload.data)
+          ? objectValue(payload.data, "allowed")
+          : undefined;
+
+        if (!isBoolean(allowed)) return "allowed must be a boolean";
+
+        await this.chat().setPolicy({ spectatorSpeech: allowed });
+
+        return true;
       }
 
       case "end_game":
@@ -5553,6 +5824,9 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     // request now sees a missing room and cannot enqueue a save that resurrects it.
     this.gameState = null;
     this.jev = null;
+    // Chat storage is deleted with everything else, so the service (and its
+    // sequence counters) must not survive into the next room on this isolate.
+    this.roomChat = null;
     this.eventSeq = 0;
     this.rewatchFrameSeq = 0;
     this.fallbackEventRows = [];

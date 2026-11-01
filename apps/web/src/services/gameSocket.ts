@@ -36,6 +36,9 @@ const serverMessageSchema = z.object({
     "turn_timeout",
     "timer_tick",
     "timer_sync",
+    "chat_message",
+    "chat_history",
+    "chat_error",
     "error",
   ]),
   payload: wireValueSchema,
@@ -205,6 +208,41 @@ export class GameSocket {
     } else {
       this.messageQueue.push(message);
     }
+  }
+
+  /**
+   * Send one public chat line.
+   *
+   * The server decides who the sender is from this socket's seat, so nothing
+   * here can impersonate another member. Chat is not an action: it is not
+   * queued behind the action path and never triggers a turn.
+   */
+  sendChat(text: string, mentions?: string[]): void {
+    const message = JSON.stringify({
+      type: "chat_send",
+      payload: mentions?.length ? { text, mentions } : { text },
+    });
+
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(message);
+    } else {
+      this.messageQueue.push(message);
+    }
+  }
+
+  /**
+   * Read a bounded chat window. `sinceSeq` resumes from a cursor after a
+   * reconnect; omitting it asks for the newest page.
+   */
+  fetchChat(sinceSeq?: number, limit?: number): void {
+    // Absent cursors travel as `null`: the room's parser reads a non-number as
+    // "not supplied", so one shape covers newest-page and resume-from-cursor.
+    const message = JSON.stringify({
+      type: "chat_fetch",
+      payload: { sinceSeq: sinceSeq ?? null, limit: limit ?? null },
+    });
+
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(message);
   }
 
   /**

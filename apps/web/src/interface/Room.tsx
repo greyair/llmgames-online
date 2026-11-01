@@ -32,6 +32,8 @@ import {
 } from "@/features/replay/rewatchPayload";
 import { MatchDesk } from "@/game-ui/MatchDesk";
 import { GameBoard } from "@/game-ui/GameBoard";
+import { RoomChat } from "@/game-ui/RoomChat";
+import { chatEntrySchema, chatPageSchema, mergeChat, type RoomChatEntry } from "@/domain/chat";
 import { Chrome } from "./Chrome";
 import { gameRoute, getGame } from "./catalog";
 import { gameMessage, useLocale, useT, type GameField } from "@/i18n";
@@ -190,7 +192,17 @@ export function Room({
   const [codeCopied, setCodeCopied] = useState(false);
   const [replay, setReplay] = useState<RewatchPayload | null>(null);
   const [frame, setFrame] = useState<number | null>(null);
+  const [chatEntries, setChatEntries] = useState<RoomChatEntry[]>([]);
+  const [chatUnread, setChatUnread] = useState(0);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatError, setChatError] = useState("");
+  const [chatPolicy, setChatPolicy] = useState({ spectatorSpeech: true });
   const socket = useRef<GameSocket | null>(null);
+  /** The socket handlers outlive a render, so identity and panel state live in refs. */
+  const chatOpenRef = useRef(false);
+  const selfIdRef = useRef<string | undefined>(undefined);
+
+  chatOpenRef.current = chatOpen;
 
   // Each game declares how long its matches may run, so the picker adapts.
   const minuteChoices = MATCH_MINUTES.filter(
@@ -315,6 +327,7 @@ export function Room({
         return;
 
       if (incoming.status === "ended") terminalReceived.current = true;
+      selfIdRef.current = incoming.you?.playerId ?? selfIdRef.current;
       setState(receiveClock({ ...incoming, type: room.gameType, roomCode: room.roomCode }));
     };
 
@@ -355,6 +368,47 @@ export function Room({
 
           return next;
         });
+
+      if (message.type === "chat_message") {
+        const entry = chatEntrySchema.safeParse(payload).data;
+
+        if (entry) {
+          setChatEntries((current) =>
+            current.some((line) => line.seq === entry.seq)
+              ? current
+              : [...current, entry].sort((a, b) => a.seq - b.seq),
+          );
+
+          if (!chatOpenRef.current && entry.senderPlayerId !== selfIdRef.current)
+            setChatUnread((count) => count + 1);
+        }
+      }
+
+      if (message.type === "chat_history") {
+        const page = chatPageSchema.safeParse(payload).data;
+
+        // Connect snapshots and cursor pages merge the same way: unique by
+        // sequence, oldest first. A reconnect therefore never duplicates a line.
+        if (page) {
+          setChatEntries((current) => mergeChat(current, page, "append"));
+
+          if (page.policy) setChatPolicy(page.policy);
+        }
+      }
+
+      if (message.type === "chat_error") {
+        const code = isString(payload.code) ? payload.code : "";
+
+        setChatError(
+          code === "CHAT_RATE_LIMITED"
+            ? t("chat.rateLimited")
+            : code === "CHAT_TOO_LONG"
+              ? t("chat.tooLong")
+              : code === "CHAT_SPECTATORS_MUTED"
+                ? t("chat.muted")
+                : t("chat.failed"),
+        );
+      }
 
       if (message.type === "error") {
         const code = isString(payload.code) ? payload.code : null;
@@ -897,6 +951,31 @@ export function Room({
           <GameBoard state={shown} send={send} />
         )}
       </MatchDesk>
+      {!demo && (
+        <RoomChat
+          open={chatOpen}
+          onOpenChange={(next) => {
+            setChatOpen(next);
+
+            if (!next) return;
+            setChatUnread(0);
+            // Catch up on whatever arrived while the panel was closed.
+            socket.current?.fetchChat(chatEntries.at(-1)?.seq);
+          }}
+          entries={chatEntries}
+          members={[...(state.players ?? []), ...(state.spectators ?? [])]}
+          me={{ playerId: state.you?.playerId, isSpectator: state.you?.isSpectator }}
+          unread={chatUnread}
+          connected={connected}
+          readOnly={Boolean(state.replayReadOnly) || frame !== null}
+          muted={!chatPolicy.spectatorSpeech}
+          error={chatError}
+          onSend={(text, mentions) => {
+            setChatError("");
+            socket.current?.sendChat(text, mentions);
+          }}
+        />
+      )}
       <Dialog
         open={exit || end}
         onOpenChange={(open) => {

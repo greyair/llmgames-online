@@ -1,5 +1,7 @@
 import type { RoomErrorCode, WireValue } from "@llmgames/game-catalog";
 import type { D1Database, DurableObjectNamespace, R2Bucket } from "@cloudflare/workers-types";
+import type { RoomChatEntry, RoomChatPage } from "./durable-objects/chat/chatTypes";
+import type { SeatChannel } from "./durable-objects/types";
 
 export interface Env {
   // D1 Database
@@ -98,7 +100,17 @@ export type ClientMessage =
   | { type: "leave" }
   | { type: "start_game"; requestId?: string }
   | { type: "rewatch_saved" }
-  | { type: "timer_sync" };
+  | { type: "timer_sync" }
+  /**
+   * Public room chat. The sender is the socket's own seat; a client cannot name
+   * one. Chat is not an action: it never touches `gameState`.
+   */
+  | {
+      type: "chat_send";
+      requestId?: string;
+      payload: { text: string; mentions?: string[] };
+    }
+  | { type: "chat_fetch"; payload: { sinceSeq?: number; limit?: number } };
 
 export interface RewatchFrame {
   index: number;
@@ -161,7 +173,7 @@ export type ServerMessage =
         codename?: string;
         ownerGamertag?: string;
         environmentLabel?: string;
-        channel?: "browser" | "mcp";
+        channel?: SeatChannel;
         isAgent?: boolean;
       };
     }
@@ -174,7 +186,7 @@ export type ServerMessage =
         codename?: string;
         ownerGamertag?: string;
         environmentLabel?: string;
-        channel?: "browser" | "mcp";
+        channel?: SeatChannel;
       };
     }
   | {
@@ -193,7 +205,7 @@ export type ServerMessage =
         codename?: string;
         ownerGamertag?: string;
         environmentLabel?: string;
-        channel?: "browser" | "mcp";
+        channel?: SeatChannel;
         isSpectator?: boolean;
       };
     }
@@ -226,6 +238,15 @@ export type ServerMessage =
   | { type: "turn_timeout"; payload: { playerId: string; playerName?: string; reason: string } }
   | { type: "timer_tick"; payload: { gameTimeRemaining?: number; turnTimeRemaining?: number } }
   | { type: "timer_sync"; payload: { gameTimeRemaining: number; turnTimeRemaining: number } }
+  /**
+   * One public chat message. Broadcast to every socket in the room, players and
+   * spectators alike; it carries no game state and no private field.
+   */
+  | { type: "chat_message"; payload: RoomChatEntry }
+  /** Bounded chat window: the connect snapshot and every `chat_fetch` answer. */
+  | { type: "chat_history"; payload: RoomChatPage }
+  /** Chat refusal for the sender only; unrelated to game action results. */
+  | { type: "chat_error"; payload: { code: string; message: string } }
   | { type: "error"; payload: RoomErrorPayload };
 
 // Hono app variables

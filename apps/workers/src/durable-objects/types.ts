@@ -1,7 +1,7 @@
 // --- Shared types used by all game room durable objects ---
 
 /** How this seat is connected to the room. */
-export type SeatChannel = "browser" | "mcp";
+export type SeatChannel = "browser" | "mcp" | "bot";
 
 /**
  * Live session seat. Browser humans have a WebSocket; remote MCP agents
@@ -16,6 +16,14 @@ export interface Player {
   joinedAt: number;
   /** True when this seat is an MCP agent (not a browser human). */
   isAgent?: boolean;
+  /**
+   * Server-owned rule bot seat (C4).
+   *
+   * Distinct from an MCP agent on purpose: a bot has no controller, no OAuth
+   * identity and no owner, so it must never appear in `mcp_room_players` or be
+   * rendered as an external agent.
+   */
+  bot?: boolean;
   /**
    * Connection channel:
    * - browser — web app WebSocket human
@@ -56,6 +64,8 @@ export interface BasePlayerInfo {
   role?: string;
   /** MCP agent seat. Omitted or false for browser humans. */
   isAgent?: boolean;
+  /** Server-owned rule bot seat (C4); never an MCP agent and never a human. */
+  bot?: boolean;
   /** browser | mcp — how this seat connected */
   channel?: SeatChannel;
   /** PascalCase AdjectiveObject codename for mcp seats */

@@ -8,8 +8,10 @@
  */
 
 import { randomInt } from "./csprng";
+import type { SeatChannel } from "../durable-objects/types";
 
-export type SeatChannel = "browser" | "mcp";
+/** One seat channel vocabulary for the whole worker; never redeclared locally. */
+export type { SeatChannel };
 
 /** English adjectives (descriptive). */
 export const ADJECTIVES = [
@@ -478,5 +480,7 @@ export function channelLabel(channel: SeatChannel): string {
       return "MCP";
     case "browser":
       return "browser";
+    case "bot":
+      return "rule bot";
   }
 }
