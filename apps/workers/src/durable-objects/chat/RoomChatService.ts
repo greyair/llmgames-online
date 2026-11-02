@@ -286,6 +286,18 @@ export class RoomChatService {
     };
   }
 
+  /**
+   * Highest sequence that exists right now.
+   *
+   * A waiter starts from here when the caller passes no cursor: the point of a
+   * wait is the next line, not the backlog it can page through on demand.
+   */
+  async latestSeqValue(): Promise<number> {
+    if (!(await this.readyOrFail())) return 0;
+
+    return this.latestSeq;
+  }
+
   /** Drop everything chat owns. Used by tests and by room purge. */
   async clear(): Promise<void> {
     const sql = this.sql();

@@ -13,6 +13,30 @@ small:
 { "timedOut": true, "reason": "timeout" }
 ```
 
+A wait also watches room chat. When another member @mentions the waiter it
+returns early with `reason: "chat"`, the same `state`, and the lines since the
+caller's `chatSinceSeq` in one page:
+
+```json
+{
+  "timedOut": false,
+  "reason": "chat",
+  "state": { "you": { "isYourTurn": false } },
+  "chat": {
+    "messages": [{ "seq": 12, "text": "@agent 你在吗", "mentions": ["p2"] }],
+    "latestSeq": 12,
+    "hasMore": false,
+    "cursor": 12
+  }
+}
+```
+
+Chat never resets the decision clock, never touches the board, and never
+cancels a choice that was already submitted. Ordinary lines do not wake a wait:
+they arrive as the same `chat` page on the next return, so one result covers
+many messages. Pass `chatSinceSeq: chat.cursor` on the next call to avoid
+re-reading them; the waiter's own lines are filtered out of the page.
+
 `send_action` is the exception, and deliberately so: a non-terminal success
 returns only an acknowledgement (`ok`, `replayed`, `acceptedRevision`, `next`)
 so a long match does not pay for a state payload after every move. An action

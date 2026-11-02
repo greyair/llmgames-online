@@ -476,16 +476,29 @@ interface AckedActionResult {
   at: number;
 }
 
+/** Public chat a wait picked up, already batched as one page. */
+export interface WaitForTurnChat {
+  messages: RoomChatEntry[];
+  latestSeq: number;
+  hasMore: boolean;
+  /** Pass back as `chatSinceSeq` so the next wait does not re-deliver these. */
+  cursor: number;
+}
+
 export interface WaitForTurnResult {
   timedOut: boolean;
-  reason: "your_turn" | "ended" | "timeout" | "waiting";
+  /** `chat` means only "someone mentioned you"; the match is unchanged. */
+  reason: "your_turn" | "ended" | "timeout" | "waiting" | "chat";
   revision: number;
   state?: unknown;
+  chat?: WaitForTurnChat;
 }
 
 type TurnWaiter = {
   playerId: string;
-  resolve: (result: WaitForTurnResult) => void;
+  /** Cursor the caller handed us; a wake returns everything after it. */
+  chatSinceSeq: number;
+  resolve: (result: WaitForTurnResult | Promise<WaitForTurnResult>) => void;
   timer: ReturnType<typeof setTimeout>;
 };
 
@@ -1898,12 +1911,17 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       const raw = isObjectValue(input) ? input : null;
       const requestedPlayerId = raw ? objectValue(raw, "playerId") : undefined;
       const requestedTimeout = raw ? objectValue(raw, "timeoutMs") : undefined;
+      const requestedChatCursor = raw ? objectValue(raw, "chatSinceSeq") : undefined;
 
       const body = {
         playerId: isString(requestedPlayerId) ? requestedPlayerId : undefined,
         timeoutMs:
           isNumber(requestedTimeout) && Number.isFinite(requestedTimeout)
             ? requestedTimeout
+            : undefined,
+        chatSinceSeq:
+          isNumber(requestedChatCursor) && Number.isInteger(requestedChatCursor)
+            ? Math.max(0, requestedChatCursor)
             : undefined,
       };
 
@@ -1922,7 +1940,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       // Cap for Workers request lifetime; clients should renew on timeout
       const timeoutMs = Math.min(Math.max(body.timeoutMs ?? 25_000, 1_000), 30_000);
 
-      const result = await this.waitForTurnInternal(body.playerId, timeoutMs);
+      // No cursor means "from now on": a wait is about the next line, not the
+      // backlog, which get_room_messages pages through on demand.
+      const chatSinceSeq = body.chatSinceSeq ?? (await this.chat().latestSeqValue());
+
+      const result = await this.waitForTurnInternal(body.playerId, timeoutMs, chatSinceSeq);
 
       const response = this.jsonResponse(result);
 
@@ -2333,17 +2355,81 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     playerId: string,
     timedOut: boolean,
     reason: WaitForTurnResult["reason"],
-  ): WaitForTurnResult {
-    if (timedOut) {
-      return { timedOut: true, reason, revision: this.eventSeq };
-    }
+    chatSinceSeq?: number,
+  ): WaitForTurnResult | Promise<WaitForTurnResult> {
+    const result: WaitForTurnResult = timedOut
+      ? { timedOut: true, reason, revision: this.eventSeq }
+      : {
+          timedOut,
+          reason,
+          revision: this.eventSeq,
+          state: this.gameState
+            ? compactState(this.asProjectionPart(this.buildAgentView(playerId)))
+            : null,
+        };
+
+    if (chatSinceSeq === undefined) return result;
+
+    return this.attachChat(result, chatSinceSeq, playerId);
+  }
+
+  /**
+   * Attach the chat that arrived since the caller's cursor.
+   *
+   * Batched on purpose: a timeout that happens to cross three messages returns
+   * them in one page, so the model is not woken three times for three lines.
+   */
+  /**
+   * Attach the page a wait should report: everything after the cursor except
+   * the caller's own lines, which the caller already knows it sent.
+   */
+  private async attachChat(
+    result: WaitForTurnResult,
+    chatSinceSeq: number,
+    playerId?: string,
+  ): Promise<WaitForTurnResult> {
+    const page = await this.chat().read({ sinceSeq: chatSinceSeq, limit: CHAT_MAX_PAGE });
+
+    const messages = playerId
+      ? page.messages.filter((message) => message.senderPlayerId !== playerId)
+      : page.messages;
+
+    if (messages.length === 0) return result;
 
     return {
-      timedOut,
-      reason,
-      revision: this.eventSeq,
-      state: this.gameState ? compactState(this.asProjectionPart(this.buildAgentView(playerId))) : null,
+      ...result,
+      chat: {
+        messages,
+        latestSeq: page.latestSeq,
+        hasMore: page.hasMore,
+        cursor: page.cursor,
+      },
     };
+  }
+
+  /**
+   * A wait woken by an @mention.
+   *
+   * The state travels with it so the agent can answer and take its turn in the
+   * same reasoning step; a mention must never force an extra round trip while
+   * the decision clock keeps running.
+   */
+  private async buildChatWaitResult(
+    playerId: string,
+    chatSinceSeq: number,
+  ): Promise<WaitForTurnResult> {
+    return this.attachChat(
+      {
+        timedOut: false,
+        reason: "chat",
+        revision: this.eventSeq,
+        state: this.gameState
+          ? compactState(this.asProjectionPart(this.buildAgentView(playerId)))
+          : null,
+      },
+      chatSinceSeq,
+      playerId,
+    );
   }
 
   /**
@@ -2389,7 +2475,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
       if (this.isAgentTurnReady(w.playerId)) {
         clearTimeout(w.timer);
-        w.resolve(this.buildWaitResult(w.playerId, false, "your_turn"));
+        w.resolve(this.buildWaitResult(w.playerId, false, "your_turn", w.chatSinceSeq));
         continue;
       }
 
@@ -2399,37 +2485,81 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     this.turnWaiters = stillWaiting;
   }
 
-  private waitForTurnInternal(playerId: string, timeoutMs: number): Promise<WaitForTurnResult> {
+  private async waitForTurnInternal(
+    playerId: string,
+    timeoutMs: number,
+    chatSinceSeq: number,
+  ): Promise<WaitForTurnResult> {
     if (!this.gameState) {
-      return Promise.resolve(this.buildWaitResult(playerId, false, "ended"));
+      return this.buildWaitResult(playerId, false, "ended");
     }
 
     if (this.gameState.status === "ended") {
-      return Promise.resolve(this.buildWaitResult(playerId, false, "ended"));
+      return this.buildWaitResult(playerId, false, "ended");
     }
 
     if (this.isAgentTurnReady(playerId)) {
-      return Promise.resolve(this.buildWaitResult(playerId, false, "your_turn"));
+      return this.buildWaitResult(playerId, false, "your_turn", chatSinceSeq);
     }
 
-    return new Promise((resolve) => {
+    return new Promise<WaitForTurnResult>((resolve) => {
       const readyIn = Math.max(0, this.agentDecisionReadyAt() - Date.now());
 
       const timer = setTimeout(
         () => {
           this.turnWaiters = this.turnWaiters.filter((w) => w.resolve !== resolve);
           const canAct = this.isAgentTurnReady(playerId);
-          resolve(this.buildWaitResult(playerId, !canAct, canAct ? "your_turn" : "timeout"));
+          resolve(
+            this.buildWaitResult(
+              playerId,
+              !canAct,
+              canAct ? "your_turn" : "timeout",
+              chatSinceSeq,
+            ),
+          );
         },
         readyIn > 0 ? Math.min(timeoutMs, readyIn) : timeoutMs,
       );
 
       this.turnWaiters.push({
         playerId,
+        chatSinceSeq,
         resolve,
         timer,
       });
     });
+  }
+
+  /**
+   * Wake waiters that a new line mentioned.
+   *
+   * Deliberately narrow: an ordinary line does not interrupt anyone (that would
+   * cost a model call per message), chat never touches clocks, timers, pending
+   * choices or the stored state, and a waiter that already saw this sequence is
+   * left alone instead of being woken twice.
+   */
+  private async resolveChatWaiters(entry: RoomChatEntry): Promise<void> {
+    if (this.turnWaiters.length === 0 || entry.mentions.length === 0) return;
+
+    const remaining: TurnWaiter[] = [];
+    const woken: TurnWaiter[] = [];
+
+    for (const waiter of this.turnWaiters) {
+      const mentioned =
+        entry.mentions.includes(waiter.playerId) && entry.senderPlayerId !== waiter.playerId;
+
+      if (!mentioned || waiter.chatSinceSeq >= entry.seq) remaining.push(waiter);
+      else woken.push(waiter);
+    }
+
+    if (woken.length === 0) return;
+
+    this.turnWaiters = remaining;
+
+    for (const waiter of woken) {
+      clearTimeout(waiter.timer);
+      waiter.resolve(this.buildChatWaitResult(waiter.playerId, waiter.chatSinceSeq));
+    }
   }
 
   // ─── Room creation / joining ───────────────────────────────────
@@ -3604,6 +3734,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     }
 
     this.broadcastChatEntry(result.message);
+    await this.resolveChatWaiters(result.message);
   }
 
   /**
@@ -3657,7 +3788,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (!result.ok)
         return this.jsonResponse(result, result.code === "CHAT_STORAGE_FAILED" ? 500 : 400);
 
-      if (!result.replayed) this.broadcastChatEntry(result.message);
+      if (!result.replayed) {
+        this.broadcastChatEntry(result.message);
+        await this.resolveChatWaiters(result.message);
+      }
 
       return this.jsonResponse({ ok: true, replayed: result.replayed, message: result.message });
     } catch (error) {
