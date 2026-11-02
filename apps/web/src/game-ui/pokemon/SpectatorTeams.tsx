@@ -1,6 +1,7 @@
 import type { Side } from "@/features/pokemon/playback";
 import { HealthBar, Sprite } from "./MonsterView";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
+import { moveName, pokemonName } from "./pokemonZh";
 
 /** Only display the public team and move information in the current projection. */
 export function SpectatorTeams({
@@ -15,6 +16,7 @@ export function SpectatorTeams({
   details: Record<string, string | null>;
 }) {
   const t = useT();
+  const locale = useLocale();
 
   return (
     <div className="poke-spectator-teams">
@@ -25,6 +27,7 @@ export function SpectatorTeams({
           ?.split("|");
 
         const remaining = side.pokemon.filter((mon) => !mon.fainted).length;
+        const announced = moveName(move?.[3] ?? "", locale);
 
         return (
           <section
@@ -49,11 +52,11 @@ export function SpectatorTeams({
               <small>{t("board.pokemon.lastMove")}</small>
               {move ? (
                 <>
-                  <strong>{move[3]}</strong>
+                  <strong>{announced}</strong>
                   <span>
                     {t("board.pokemon.usedMove", {
-                      name: move[2]?.replace(/^p[12][a-z]?: /, "") ?? "",
-                      move: move[3] ?? "",
+                      name: pokemonName(move[2]?.replace(/^p[12][a-z]?: /, ""), locale),
+                      move: announced,
                     })}
                   </span>
                 </>
@@ -81,7 +84,8 @@ export function SpectatorTeams({
                     <strong>
                       {mon.hidden
                         ? t("board.pokemon.unknown")
-                        : (mon.name ?? mon.species ?? t("board.pokemon.unknown"))}
+                        : pokemonName(mon.name ?? mon.species, locale) ||
+                          t("board.pokemon.unknown")}
                     </strong>
                     <small>{label}</small>
                     {!mon.hidden && <HealthBar mon={mon} />}

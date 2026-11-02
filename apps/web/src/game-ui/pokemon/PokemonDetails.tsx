@@ -4,7 +4,8 @@ import { Sprite, HealthBar } from "./MonsterView";
 import { TypeBadge } from "./TypeBadge";
 import { BattleInspect } from "./BattleInspect";
 import { effectLabel, effectNote, statusLabel, statLabel } from "./battleLabels";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
+import { moveName, pokemonName } from "./pokemonZh";
 
 export function PokemonDetails({
   mon,
@@ -18,6 +19,7 @@ export function PokemonDetails({
   disabled?: boolean;
 }) {
   const t = useT();
+  const locale = useLocale();
 
   if (mon.hidden)
     return (
@@ -25,7 +27,7 @@ export function PokemonDetails({
         <Sprite mon={mon} />
       </span>
     );
-  const name = mon.name ?? mon.species ?? "Pokémon";
+  const name = pokemonName(mon.name ?? mon.species, locale) || "Pokémon";
 
   return (
     <BattleInspect
@@ -96,7 +98,7 @@ export function PokemonDetails({
             {own && mon.moves?.length ? (
               mon.moves.map((move) => (
                 <div key={move.name}>
-                  <strong>{move.name}</strong>
+                  <strong>{moveName(move.name, locale)}</strong>
                   <span>
                     {move.pp}/{move.maxpp} PP
                   </span>
@@ -105,7 +107,7 @@ export function PokemonDetails({
             ) : mon.revealedMoves?.length ? (
               mon.revealedMoves.map((move) => (
                 <div key={move}>
-                  <strong>{move}</strong>
+                  <strong>{moveName(move, locale)}</strong>
                   <span>{t("board.pokemon.revealed")}</span>
                 </div>
               ))

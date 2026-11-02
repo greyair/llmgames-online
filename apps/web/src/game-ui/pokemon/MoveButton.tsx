@@ -5,18 +5,27 @@ import { Button } from "@/components/ui/button";
 import { TypeBadge } from "./TypeBadge";
 import { BattleInspect } from "./BattleInspect";
 import type { Move } from "./BattleControls";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
+import {
+  categoryName,
+  damageLabel,
+  moveName,
+  moveText,
+  pokemonName,
+  typeName,
+} from "./pokemonZh";
 
 function MoveDetails({ move }: { move: Move }) {
   const t = useT();
+  const locale = useLocale();
 
   return (
     <>
-      <p>{move.fullDescription ?? move.description ?? t("board.pokemon.noEffect")}</p>
+      <p>{moveText(move.name, locale, move.fullDescription ?? move.description) || t("board.pokemon.noEffect")}</p>
       <dl className="poke-move-facts">
         <div>
           <dt>{t(move.damage ? "board.pokemon.damage" : "board.pokemon.basePower")}</dt>
-          <dd>{move.damage ?? (move.power || "—")}</dd>
+          <dd>{damageLabel(move.damage, t) ?? (move.power || "—")}</dd>
         </div>
         <div>
           <dt>{t("board.pokemon.baseAccuracy")}</dt>
@@ -39,7 +48,7 @@ function MoveDetails({ move }: { move: Move }) {
       {move.typeMatchup !== undefined && (
         <p>
           {t("board.pokemon.typeMatchup", {
-            target: move.matchupTarget ?? t("board.pokemon.opponent"),
+            target: pokemonName(move.matchupTarget, locale) || t("board.pokemon.opponent"),
             multiplier: move.typeMatchup,
           })}
         </p>
@@ -71,11 +80,15 @@ export function MoveButton({
   onChoose: () => void;
   index?: number;
 }) {
+  const locale = useLocale();
+
   return (
     <BattleInspect
       className="poke-move-anchor"
-      title={move.name}
-      description={[move.type, move.category].filter(Boolean).join(" · ")}
+      title={moveName(move.name, locale)}
+      description={[typeName(move.type, locale), categoryName(move.category, locale)]
+        .filter(Boolean)
+        .join(" · ")}
       content={<MoveDetails move={move} />}
       disabled={disabled}
     >
@@ -93,7 +106,7 @@ export function MoveButton({
         onClick={onChoose}
       >
         <span className="poke-move-title">
-          <strong>{move.name}</strong>
+          <strong>{moveName(move.name, locale)}</strong>
         </span>
         <span className="poke-move-meta">
           <TypeBadge type={move.type} />

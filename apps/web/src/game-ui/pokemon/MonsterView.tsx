@@ -2,7 +2,9 @@ import { useSyncExternalStore } from "react";
 import { TypeBadge } from "./TypeBadge";
 import { effectLabel, statusLabel, statLabel } from "./battleLabels";
 import type { Monster } from "@/features/pokemon/playback";
-import { useT } from "@/i18n";
+import { knownValue } from "@/domain/view-contracts";
+import { useLocale, useT, type MessageKey, type Translate } from "@/i18n";
+import { pokemonName } from "./pokemonZh";
 
 export function health(mon: Monster) {
   const match = mon.condition?.match(/^(\d+)\/(\d+)/);
@@ -86,19 +88,21 @@ export function Sprite({
 
 export function HealthBar({ mon }: { mon: Monster }) {
   const t = useT();
+  const locale = useLocale();
   const hp = health(mon);
+  const status = mon.condition?.split(" ").slice(1).join(" ");
 
   return (
     <div
       className="poke-health"
       role="meter"
       aria-label={t("board.pokemon.health", {
-        name: mon.name ?? mon.species ?? t("board.pokemon.name"),
+        name: pokemonName(mon.name ?? mon.species, locale) || t("board.pokemon.name"),
       })}
       aria-valuenow={hp ?? undefined}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuetext={mon.condition ?? t("board.pokemon.unknown")}
+      aria-valuetext={status ? statusLabel(status, t) : mon.fainted ? t("board.pokemon.fainted") : undefined}
     >
       <span
         data-range={hp !== null && hp <= 20 ? "low" : hp !== null && hp <= 50 ? "medium" : "high"}
@@ -110,9 +114,22 @@ export function HealthBar({ mon }: { mon: Monster }) {
 
 const statusCode = (status?: string) => status?.split(" ")[0];
 
-/** Gen 1 shows badly poisoned as plain PSN. */
-const statusSticker = (code?: string) =>
-  ({ tox: "PSN", fnt: "FNT" })[code ?? ""] ?? code?.toUpperCase();
+/** Gen 1 shows badly poisoned as plain PSN; both map to one badge per language. */
+const stickerKeys = {
+  par: "board.pokemon.stickerPar",
+  brn: "board.pokemon.stickerBurn",
+  psn: "board.pokemon.stickerPoison",
+  tox: "board.pokemon.stickerToxic",
+  slp: "board.pokemon.stickerSleep",
+  frz: "board.pokemon.stickerFreeze",
+  fnt: "board.pokemon.stickerFaint",
+} satisfies Record<string, MessageKey>;
+
+const statusSticker = (code: string | undefined, t: Translate) => {
+  const key = knownValue(stickerKeys, code ?? "");
+
+  return key ? t(key) : (code ?? "").toUpperCase();
+};
 
 export function MonsterStatus({
   mon,
@@ -124,6 +141,7 @@ export function MonsterStatus({
   own?: boolean;
 }) {
   const t = useT();
+  const locale = useLocale();
 
   if (mon.hidden)
     return (
@@ -145,16 +163,16 @@ export function MonsterStatus({
       data-fainted={mon.fainted || undefined}
     >
       <div className="poke-mon-name">
-        <strong>{mon.name ?? mon.species ?? t("board.pokemon.name")}</strong>
+        <strong>{pokemonName(mon.name ?? mon.species, locale) || t("board.pokemon.name")}</strong>
         <span className="poke-level">Lv{mon.level ?? "?"}</span>
         {mon.fainted ? (
           <span className="poke-status-sticker" data-status="fnt">
-            FNT
+            {statusSticker("fnt", t)}
           </span>
         ) : (
           status && (
             <span className="poke-status-sticker" data-status={code} title={statusLabel(status, t)}>
-              <span aria-hidden="true">{statusSticker(code)}</span>
+              <span aria-hidden="true">{statusSticker(code, t)}</span>
               <span className="sr-only">{statusLabel(status, t)}</span>
             </span>
           )

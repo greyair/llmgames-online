@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { pokemonSidesSchema } from "@/domain/view-contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { applyCue, parseCues, type Cue, type Side } from "@/features/pokemon/playback";
+import { applyCue, parseCues, type Cue, type CueText, type Side } from "@/features/pokemon/playback";
 
 type Item = { cue: Cue | null; sides: Side[]; end: number };
 
@@ -12,6 +12,7 @@ export function usePokemonPlayback(
   roomKey: string,
   replay: boolean,
   onSettled?: () => void,
+  cueText?: CueText,
 ) {
   const [view, setView] = useState<{
     sides: Side[];
@@ -82,7 +83,7 @@ export function usePokemonPlayback(
       return;
     }
 
-    const cues = parseCues(lines.slice(Math.max(0, r.cursor - offset)), r.cursor);
+    const cues = parseCues(lines.slice(Math.max(0, r.cursor - offset)), r.cursor, cueText);
 
     r.cursor = end;
 
@@ -152,7 +153,7 @@ export function usePokemonPlayback(
     }
 
     if (!r.running) pump();
-  }, [snapshot, transcript, offset, roomKey, replay, complete]);
+  }, [snapshot, transcript, offset, roomKey, replay, complete, cueText]);
   useEffect(
     () => () => {
       const r = runtime.current;

@@ -60,7 +60,7 @@ export function Battlefield({
     <section ref={stage} className="poke-field" aria-label={t("board.pokemon.activePokemon")}>
       <span className="poke-sky" aria-hidden="true" />
       <span className="poke-horizon" aria-hidden="true" />
-      <span className="poke-turn">Turn {turn}</span>
+      <span className="poke-turn">{t("board.pokemon.turnLabel", { turn })}</span>
       {sides.map((side) => {
         const mon = side.pokemon.find((p) => p.active) ?? side.pokemon[0];
         const own = side.seat === ownSeat;

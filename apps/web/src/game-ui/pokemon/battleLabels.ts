@@ -74,3 +74,18 @@ export const effectNote = (effect: string, t: Translate): string | null => {
 
   return key ? t(key) : null;
 };
+
+/**
+ * HP plus status, as the protocol writes it (`100/100 par`).
+ *
+ * The HP part is a fraction and needs no translation; the status code behind it
+ * is a protocol token, so a Chinese frame would otherwise read `100/100 par`.
+ */
+export const conditionText = (condition: string | undefined, t: Translate): string => {
+  if (!condition) return "";
+
+  const [hp, ...rest] = condition.split(" ");
+  const status = rest.join(" ");
+
+  return status ? `${hp} ${statusLabel(status, t)}` : (hp ?? "");
+};

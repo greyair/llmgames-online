@@ -1,7 +1,8 @@
 import { knownValue } from "@/domain/view-contracts";
 import { effectLabel, statLabel, statusLabel } from "./battleLabels";
 import { useEffect, useRef } from "react";
-import { useT, type MessageKey, type Translate } from "@/i18n";
+import { useLocale, useT, type MessageKey, type Translate } from "@/i18n";
+import { moveName, pokemonName, type PokemonLocale } from "./pokemonZh";
 
 const mon = (value = "") => value.replace(/^p[12][a-z]?: /, "");
 
@@ -15,16 +16,26 @@ const cantKeys = {
   trapped: "board.pokemon.cantTrapped",
 } satisfies Record<string, MessageKey>;
 
-/** Render public protocol as text; never render protocol HTML or private requests. */
-export function logLine(line: string, t: Translate): string | null {
+/**
+ * Render public protocol as text; never render protocol HTML or private requests.
+ *
+ * The protocol carries English names, so the two interpolated values (the
+ * Pokémon and the move) go through the Chinese dictionary first. Everything
+ * else is already an i18n key.
+ */
+export function logLine(
+  line: string,
+  t: Translate,
+  locale: PokemonLocale = "en",
+): string | null {
   const [, kind, a, b, c] = line.split("|");
-  const name = mon(a);
+  const name = pokemonName(mon(a), locale);
 
   switch (kind) {
     case "turn":
       return t("board.pokemon.logTurn", { turn: a ?? "" });
     case "move":
-      return t("board.pokemon.logMove", { name, move: b ?? "" });
+      return t("board.pokemon.logMove", { name, move: moveName(b ?? "", locale) });
     case "switch":
     case "drag":
       return t("board.pokemon.logEnter", { name });
@@ -116,6 +127,7 @@ export function logLine(line: string, t: Translate): string | null {
 
 export function BattleLog({ lines, offset = 0 }: { lines: string[]; offset?: number }) {
   const t = useT();
+  const locale = useLocale();
 
   const scroll = useRef<HTMLDivElement>(null),
     follow = useRef(true);
@@ -126,9 +138,9 @@ export function BattleLog({ lines, offset = 0 }: { lines: string[]; offset?: num
 
   const entries = lines
     .map((line, index) => {
-      const text = logLine(line, t),
+      const text = logLine(line, t, locale),
         ident = line.split("|")[2] ?? "",
-        name = mon(ident);
+        name = pokemonName(mon(ident), locale);
 
       const named = /^p[12][a-z]?: /.test(ident) && Boolean(name) && text?.startsWith(name);
 

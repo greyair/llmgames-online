@@ -1,7 +1,7 @@
 import type { WireValue } from "@llmgames/game-catalog";
 import type { ClientView } from "@/domain/game-state";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Battlefield } from "./pokemon/Battlefield";
 import { BattleControls, type Decision } from "./pokemon/BattleControls";
 import { BattleLog } from "./pokemon/BattleLog";
@@ -11,7 +11,8 @@ import "./sketch/pokemon.css";
 import { usePokemonPlayback } from "./pokemon/useBattlePlayback";
 import { playerPrimaryName, playerIdentityDetail } from "@/features/shared/playerIdentity";
 import { PokemonPlaybackSettledContext } from "./pokemon/PokemonPlaybackContext";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
+import { cueTextFor, moveName, pokemonName } from "./pokemon/pokemonZh";
 
 export function Pokemon({
   state,
@@ -21,6 +22,8 @@ export function Pokemon({
   send: (name: string, data: WireValue) => void;
 }) {
   const t = useT();
+  const locale = useLocale();
+  const cueText = useMemo(() => cueTextFor(t, locale), [t, locale]);
   const sides = state.sides ?? [];
   const ownSeat = state.yourSeat ?? state.battleSeats?.[state.you?.playerId ?? ""] ?? "p1";
   const onPlaybackSettled = useContext(PokemonPlaybackSettledContext) ?? undefined;
@@ -32,6 +35,7 @@ export function Pokemon({
     String(state.roomCode ?? "pokemon"),
     Boolean(state.replayReadOnly),
     onPlaybackSettled,
+    cueText,
   );
 
   useEffect(() => {
@@ -119,8 +123,8 @@ export function Pokemon({
     playback.cue?.label ||
     (latestMove
       ? t("board.pokemon.moveAnnouncement", {
-          name: latestMove[2]?.replace(/^p[12][a-z]?: /, "") ?? "",
-          move: latestMove[3] ?? "",
+          name: pokemonName(latestMove[2]?.replace(/^p[12][a-z]?: /, ""), locale),
+          move: moveName(latestMove[3] ?? "", locale),
         })
       : t("board.pokemon.waitingFirstMove"));
 

@@ -92,7 +92,64 @@ export function moveVisual(move: string) {
 }
 
 /** Parse resolved Showdown protocol only; requests and sealed choices never enter this queue. */
-export function parseCues(lines: string[], offset: number): Cue[] {
+/**
+ * Playback banner text.
+ *
+ * The transcript is English protocol; the banner is a sentence, so it has to be
+ * built per language. `parseCues` takes one of these instead of hard-coding the
+ * English wording, which keeps the animation timings language-independent.
+ */
+export interface CueText {
+  preparing(name: string, move: string): string;
+  used(name: string, move: string): string;
+  enter(name: string): string;
+  healed(name: string): string;
+  fainted(name: string): string;
+  status(name: string, status: string): string;
+  cured(name: string): string;
+  /** `stat` is the protocol code (`atk`, `spe`, …) so each language can name it. */
+  boost(stat: string, direction: "up" | "down", stages: string): string;
+  message(kind: string): string;
+}
+
+const ENGLISH_CUE_TEXT: CueText = {
+  preparing: (name, move) => `${name} is preparing ${move}`,
+  used: (name, move) => `${name} used ${move}`,
+  enter: (name) => `Go, ${name}!`,
+  healed: (name) => `${name} recovered HP`,
+  fainted: (name) => `${name} fainted`,
+  status: (name, status) => `${name}: ${status}`,
+  cured: (name) => `${name} recovered`,
+  boost: (stat, direction, stages) =>
+    `${
+      (
+        {
+          atk: "Attack",
+          def: "Defense",
+          spa: "Special",
+          spd: "Special",
+          spe: "Speed",
+          accuracy: "Accuracy",
+          evasion: "Evasion",
+        } satisfies Record<string, string>
+      )[stat] ?? stat
+    } ${direction === "up" ? "+" : "−"}${stages} stages`,
+  message: (kind) =>
+    ({
+      "-miss": "Missed!",
+      "-immune": "No effect",
+      "-fail": "But it failed",
+      "-crit": "Critical hit!",
+      "-supereffective": "Super effective!",
+      "-resisted": "Not very effective",
+    })[kind] ?? kind,
+};
+
+export function parseCues(
+  lines: string[],
+  offset: number,
+  text: CueText = ENGLISH_CUE_TEXT,
+): Cue[] {
   return lines.flatMap((line, i): Cue[] => {
     const p = line.split("|");
     const actor = seat(p[2]);
@@ -117,7 +174,7 @@ export function parseCues(lines: string[], offset: number): Cue[] {
           moveId: id(p[3] ?? ""),
           animationPhase: "prepare",
           target: actor,
-          label: `${name(p[2])} is preparing ${p[3]}`,
+          label: text.preparing(name(p[2]), p[3] ?? ""),
           duration: 660,
         },
       ];
@@ -137,7 +194,7 @@ export function parseCues(lines: string[], offset: number): Cue[] {
           kind: "move",
           moveId: id(p[3] ?? ""),
           target: seat(p[4]) ?? (visual.self ? actor : actor === "p1" ? "p2" : "p1"),
-          label: `${name(p[2])} used ${p[3]}`,
+          label: text.used(name(p[2]), p[3] ?? ""),
           ...visual,
           missed,
           duration: 660,
@@ -152,7 +209,7 @@ export function parseCues(lines: string[], offset: number): Cue[] {
           ...base,
           id: base.id + 1,
           kind: "enter",
-          label: `Go, ${name(p[2])}!`,
+          label: text.enter(name(p[2])),
           condition: p[4],
           duration: 300,
         },
@@ -166,7 +223,7 @@ export function parseCues(lines: string[], offset: number): Cue[] {
         {
           ...base,
           kind: "heal",
-          label: `${name(p[2])} recovered HP`,
+          label: text.healed(name(p[2])),
           condition: p[3],
           duration: 330,
         },
@@ -177,7 +234,7 @@ export function parseCues(lines: string[], offset: number): Cue[] {
         {
           ...base,
           kind: "faint",
-          label: `${name(p[2])} fainted`,
+          label: text.fainted(name(p[2])),
           condition: "0 fnt",
           duration: 350,
         },
@@ -188,7 +245,7 @@ export function parseCues(lines: string[], offset: number): Cue[] {
         {
           ...base,
           kind: "status",
-          label: `${name(p[2])}: ${p[3]}`,
+          label: text.status(name(p[2]), p[3] ?? ""),
           condition: p[3],
           duration: 280,
         },
@@ -199,47 +256,27 @@ export function parseCues(lines: string[], offset: number): Cue[] {
         {
           ...base,
           kind: "status",
-          label: `${name(p[2])} recovered`,
+          label: text.cured(name(p[2])),
           condition: "",
           duration: 250,
         },
       ];
 
     if (p[1] === "-boost" || p[1] === "-unboost") {
-      const stat =
-        (
-          {
-            atk: "Attack",
-            def: "Defense",
-            spa: "Special",
-            spd: "Special",
-            spe: "Speed",
-            accuracy: "Accuracy",
-            evasion: "Evasion",
-          } satisfies Record<string, string>
-        )[p[3] ?? ""] ?? p[3];
-
       return [
         {
           ...base,
           kind: "message",
-          label: `${stat} ${p[1] === "-boost" ? "+" : "−"}${p[4]} stages`,
+          label: text.boost(p[3] ?? "", p[1] === "-boost" ? "up" : "down", p[4] ?? ""),
           duration: 650,
         },
       ];
     }
 
-    const messages = {
-      "-miss": "Missed!",
-      "-immune": "No effect",
-      "-fail": "But it failed",
-      "-crit": "Critical hit!",
-      "-supereffective": "Super effective!",
-      "-resisted": "Not very effective",
-    } satisfies Record<string, string>;
+    const messages = ["-miss", "-immune", "-fail", "-crit", "-supereffective", "-resisted"];
 
-    if (knownValue(messages, p[1] ?? ""))
-      return [{ ...base, kind: "message", label: knownValue(messages, p[1]!)!, duration: 180 }];
+    if (messages.includes(p[1] ?? ""))
+      return [{ ...base, kind: "message", label: text.message(p[1]!), duration: 180 }];
 
     return [];
   });
