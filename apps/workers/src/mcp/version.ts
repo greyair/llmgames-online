@@ -5,4 +5,4 @@
  * Bump the minor number whenever the tool surface or the game catalog changes:
  * agents cache the tool list against this string.
  */
-export const MCP_SERVER_VERSION = "0.10.0";
+export const MCP_SERVER_VERSION = "0.11.0";
