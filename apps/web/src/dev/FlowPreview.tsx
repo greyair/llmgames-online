@@ -124,9 +124,10 @@ export function FlowPreview({ screen, mode }: { screen: string; mode: string }) 
             ? "That move could not be accepted. Choose an available action and try again."
             : undefined,
         confirm: mode === "leave-confirmation",
-        chat: mode.startsWith("chat")
-          ? { entries: chatPreviewEntries, unread: 2, open: mode === "chat-open" }
-          : undefined,
+        chat:
+          mode.startsWith("chat") || mode.startsWith("lobby-")
+            ? { entries: chatPreviewEntries, unread: 2, open: mode === "chat-open" }
+            : undefined,
       }}
     />
   );
