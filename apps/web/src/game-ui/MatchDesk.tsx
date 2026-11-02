@@ -212,6 +212,7 @@ export function MatchDesk({
   controls,
   broadcast = false,
   finalReveal,
+  chatAction,
 }: {
   state: ClientView;
   children: ReactNode;
@@ -219,6 +220,8 @@ export function MatchDesk({
   controls?: ReactNode;
   broadcast?: boolean;
   finalReveal?: ClientView | null;
+  /** Room chat entry, owned by the room because only it holds the messages. */
+  chatAction?: ReactNode;
 }) {
   const t = useT();
 
@@ -531,6 +534,7 @@ export function MatchDesk({
                 </div>
                 <div className="desk-bar-end">
                   <MatchClock state={state} />
+                  {chatAction}
                   {!stream && (
                     <>
                       <span className="desk-round-slot">

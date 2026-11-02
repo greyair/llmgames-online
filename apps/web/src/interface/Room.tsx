@@ -34,7 +34,7 @@ import {
 } from "@/features/replay/rewatchPayload";
 import { MatchDesk } from "@/game-ui/MatchDesk";
 import { GameBoard } from "@/game-ui/GameBoard";
-import { RoomChat } from "@/game-ui/RoomChat";
+import { RoomChat, RoomChatButton } from "@/game-ui/RoomChat";
 import { chatEntrySchema, chatPageSchema, mergeChat, type RoomChatEntry } from "@/domain/chat";
 import { Chrome } from "./Chrome";
 import { gameRoute, getGame } from "./catalog";
@@ -901,6 +901,21 @@ export function Room({
         state={shown}
         finalReveal={replay?.frames.at(-1)?.state}
         onExit={() => (state.status === "ended" ? leave() : setExit(true))}
+        chatAction={
+          demo ? undefined : (
+            <RoomChatButton
+              open={chatOpen}
+              unread={chatUnread}
+              onOpenChange={(next) => {
+                setChatOpen(next);
+
+                if (!next) return;
+                setChatUnread(0);
+                socket.current?.fetchChat(chatEntries.at(-1)?.seq);
+              }}
+            />
+          )
+        }
         controls={
           <div className="room-controls">
             {host && state.status !== "waiting" && state.status !== "ended" && (
@@ -1000,7 +1015,6 @@ export function Room({
           entries={chatEntries}
           members={[...(state.players ?? []), ...(state.spectators ?? [])]}
           me={{ playerId: state.you?.playerId, isSpectator: state.you?.isSpectator }}
-          unread={chatUnread}
           connected={connected}
           readOnly={Boolean(state.replayReadOnly) || frame !== null}
           muted={!chatPolicy.spectatorSpeech}

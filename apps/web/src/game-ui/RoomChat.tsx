@@ -19,13 +19,51 @@ import "./room-chat.css";
 
 type Member = GamePlayer & { isAgent?: boolean; bot?: boolean };
 
+/**
+ * The chat entry point.
+ *
+ * It belongs in the match bar, not floating over the board: the old fixed pill
+ * landed on the team roster at common widths and read as part of the game
+ * instead of a control. The bar is always visible, so the entry cannot be
+ * covered by a board, a dock or a card row.
+ */
+export function RoomChatButton({
+  open,
+  unread,
+  onOpenChange,
+}: {
+  open: boolean;
+  unread: number;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const t = useT();
+
+  return (
+    <Button
+      className="room-chat-toggle"
+      variant={open ? "secondary" : "ghost"}
+      size="icon"
+      aria-expanded={open}
+      aria-controls="room-chat-panel"
+      aria-label={open ? t("chat.close") : t("chat.openChat")}
+      onClick={() => onOpenChange(!open)}
+    >
+      <Icon name="chat" size={20} />
+      {!open && unread > 0 && (
+        <span className="room-chat-badge" aria-label={t("chat.newMessages", { count: unread })}>
+          {unread > 99 ? "99+" : unread}
+        </span>
+      )}
+    </Button>
+  );
+}
+
 export function RoomChat({
   open,
   onOpenChange,
   entries,
   members,
   me,
-  unread,
   connected,
   readOnly,
   muted,
@@ -37,7 +75,6 @@ export function RoomChat({
   entries: readonly RoomChatEntry[];
   members: readonly Member[];
   me: { playerId?: string; isSpectator?: boolean };
-  unread: number;
   connected: boolean;
   /** Replay frames and watched broadcasts cannot speak. */
   readOnly: boolean;
@@ -114,23 +151,6 @@ export function RoomChat({
 
   return (
     <>
-      <Button
-        className="room-chat-toggle"
-        variant={open ? "secondary" : "default"}
-        size="sm"
-        aria-expanded={open}
-        aria-controls="room-chat-panel"
-        aria-label={open ? t("chat.close") : t("chat.openChat")}
-        onClick={() => onOpenChange(!open)}
-      >
-        <Icon name="chat" size={18} />
-        {t("chat.open")}
-        {!open && unread > 0 && (
-          <span className="room-chat-badge" aria-label={t("chat.newMessages", { count: unread })}>
-            {unread > 99 ? "99+" : unread}
-          </span>
-        )}
-      </Button>
       <aside
         id="room-chat-panel"
         className="room-chat"
