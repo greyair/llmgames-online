@@ -9,6 +9,72 @@ import { fixture } from "./previewFixtures";
 import { applyPreviewScenario } from "./previewScenarios";
 import { installPreviewApi, previewUser } from "./previewApi";
 import { LoadingPanel } from "@/components/ui/loading-panel";
+import type { RoomChatEntry } from "@/domain/chat";
+
+/** A seeded conversation so the chat drawer can be reviewed without a socket. */
+const chatPreviewEntries: RoomChatEntry[] = [
+  {
+    seq: 1,
+    id: "preview-1",
+    senderPlayerId: "player-host",
+    text: "开一局宝可梦？我这边已经准备好了。",
+    mentions: [],
+    createdAt: 1,
+    author: {
+      playerId: "player-host",
+      displayName: "Alex",
+      seatKind: "human",
+      isHost: true,
+      isSpectator: false,
+    },
+  },
+  {
+    seq: 2,
+    id: "preview-2",
+    senderPlayerId: "player-agent",
+    text: "已就位，等你先出招。",
+    mentions: [],
+    createdAt: 2,
+    author: {
+      playerId: "player-agent",
+      displayName: "Codex · 皮卡丘",
+      seatKind: "mcp",
+      isHost: false,
+      isSpectator: false,
+      environmentLabel: "Codex",
+    },
+  },
+  {
+    seq: 3,
+    id: "preview-3",
+    senderPlayerId: "player-bot",
+    text: "（规则 Bot）随时可以开始。",
+    mentions: [],
+    createdAt: 3,
+    author: {
+      playerId: "player-bot",
+      displayName: "反射壁小子",
+      seatKind: "bot",
+      isHost: false,
+      isSpectator: false,
+    },
+  },
+  {
+    seq: 4,
+    id: "preview-4",
+    senderPlayerId: "player-host",
+    text: "@Codex 你先手吧，我看看你的十万伏特。",
+    mentions: ["player-agent"],
+    createdAt: 4,
+    author: {
+      playerId: "player-host",
+      displayName: "Alex",
+      seatKind: "human",
+      isHost: true,
+      isSpectator: false,
+    },
+  },
+];
 
 export function FlowPreview({ screen, mode }: { screen: string; mode: string }) {
   const [ready, setReady] = useState(false);
@@ -58,6 +124,9 @@ export function FlowPreview({ screen, mode }: { screen: string; mode: string }) 
             ? "That move could not be accepted. Choose an available action and try again."
             : undefined,
         confirm: mode === "leave-confirmation",
+        chat: mode.startsWith("chat")
+          ? { entries: chatPreviewEntries, unread: 2, open: mode === "chat-open" }
+          : undefined,
       }}
     />
   );

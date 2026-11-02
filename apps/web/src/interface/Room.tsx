@@ -150,6 +150,8 @@ export function Room({
     readyState: ClientView;
     error?: string;
     confirm?: boolean;
+    /** Design-preview only: a seeded conversation, with no socket behind it. */
+    chat?: { entries: RoomChatEntry[]; open?: boolean; unread?: number };
   };
 }) {
   const t = useT();
@@ -206,9 +208,9 @@ export function Room({
   const [codeCopied, setCodeCopied] = useState(false);
   const [replay, setReplay] = useState<RewatchPayload | null>(null);
   const [frame, setFrame] = useState<number | null>(null);
-  const [chatEntries, setChatEntries] = useState<RoomChatEntry[]>([]);
-  const [chatUnread, setChatUnread] = useState(0);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatEntries, setChatEntries] = useState<RoomChatEntry[]>(demo?.chat?.entries ?? []);
+  const [chatUnread, setChatUnread] = useState(demo?.chat?.unread ?? 0);
+  const [chatOpen, setChatOpen] = useState(Boolean(demo?.chat?.open));
   const [chatError, setChatError] = useState("");
   const [chatPolicy, setChatPolicy] = useState({ spectatorSpeech: true });
   const socket = useRef<GameSocket | null>(null);
@@ -902,7 +904,7 @@ export function Room({
         finalReveal={replay?.frames.at(-1)?.state}
         onExit={() => (state.status === "ended" ? leave() : setExit(true))}
         chatAction={
-          demo ? undefined : (
+          demo && !demo.chat ? undefined : (
             <RoomChatButton
               open={chatOpen}
               unread={chatUnread}
@@ -1001,7 +1003,7 @@ export function Room({
           <GameBoard state={shown} send={send} />
         )}
       </MatchDesk>
-      {!demo && (
+      {(!demo || Boolean(demo.chat)) && (
         <RoomChat
           open={chatOpen}
           onOpenChange={(next) => {

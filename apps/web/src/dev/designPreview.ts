@@ -19,6 +19,8 @@ export function isFlowState(state: string) {
     state === "signed-out" ||
     state.startsWith("auth-") ||
     state.startsWith("lobby-") ||
+    state === "chat" ||
+    state === "chat-open" ||
     ["room-setup", "host-spectating", "leave-confirmation", "action-error"].includes(state)
   );
 }
