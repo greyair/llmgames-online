@@ -31,8 +31,8 @@ llmgames 的对局权威状态在 Cloudflare DO 上：回合、计时、随机�
 | --- | --- | --- |
 | `/_astro/*`（带哈希） | Cache First | 文件名即版本，永不冲突 |
 | 图片（`/pokemon/*`、图标） | Stale-While-Revalidate + 上限 400 | 755 张精灵图不能全预缓存 |
-| 公共页面 HTML | Network First → 缓存 → `/offline.html` | 优先新页面，断网有交代 |
-| `/room`、`/series` | Network Only → `/offline.html` | 缓存的房间壳会伪装成「已连接」 |
+| 公共页面 HTML | Network First → 缓存 → `/offline` | 优先新页面，断网有交代 |
+| `/room`、`/series` | Network Only → `/offline` | 缓存的房间壳会伪装成「已连接」 |
 | `/api/*`、`/.well-known/*` | 不缓存 | 状态、鉴权、MCP 必须来自服务器 |
 | 非 GET、跨域 | 不拦截 | 同上 |
 | `/sw.js` | 不缓存（`_headers` 里 `no-store`） | 否则更新永远到不了 |
@@ -93,5 +93,6 @@ pnpm --filter @llmgames/web preview    # 产物预览：SW 只在这里注册
 ## 已知取舍
 
 - 开发环境不注册 SW（`import.meta.env.DEV` 直接返回），否则 Vite 的未哈希 HTML 会被缓存，改代码看不到效果。
-- `/offline.html` 是纯 HTML + 内联样式，不依赖应用 bundle：断网时它必须能从缓存里独立渲染。
+- 离线页缓存的是 `/offline`（200），不是 `/offline.html`：托管会把后者 308 到前者，而浏览器拒绝把「重定向过的」缓存响应用于导航。SW 里另有一层兜底，把带 `redirected` 的响应重建成普通 200。
+- 离线页是纯 HTML + 内联样式，不依赖应用 bundle：断网时它必须能从缓存里独立渲染。
 - 站点栏的安装按钮在 ≤1080px 收成图标，避免挤压导航。

@@ -11,7 +11,7 @@
  * images stale-while-revalidate, HTML network-first with an offline fallback.
  */
 
-const VERSION = "llmgames-v3";
+const VERSION = "llmgames-v4";
 
 const SHELL_CACHE = `${VERSION}-shell`;
 
@@ -19,8 +19,10 @@ const ASSET_CACHE = `${VERSION}-assets`;
 
 const IMAGE_CACHE = `${VERSION}-images`;
 
+const OFFLINE_URL = "/offline";
+
 const PRECACHE = [
-  "/offline.html",
+  OFFLINE_URL,
   "/site.webmanifest",
   "/llmgames-icon-192-v3.png",
   "/llmgames-mark-v5.svg",
@@ -68,6 +70,26 @@ const isAsset = (pathname) => pathname.startsWith("/_astro/");
 
 const isImage = (pathname) =>
   /\.(png|gif|jpg|jpeg|webp|avif|svg|ico)$/.test(pathname) || pathname.startsWith("/pokemon/");
+
+/**
+ * The offline page, as a plain 200.
+ *
+ * Hosting redirects `/offline.html` to `/offline`; a cached response that still
+ * carries `redirected` is refused by the browser when it is returned for a
+ * navigation, so it is rebuilt here from the stored body.
+ */
+async function offlinePage() {
+  const hit = (await caches.match(OFFLINE_URL)) ?? (await caches.match("/offline.html"));
+
+  if (!hit) return Response.error();
+
+  if (!hit.redirected) return hit;
+
+  return new Response(await hit.blob(), {
+    status: 200,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
 
 async function put(cacheName, request, response) {
   if (!response || response.status !== 200 || response.type !== "basic") return response;
@@ -163,7 +185,7 @@ self.addEventListener("fetch", (event) => {
     // A live room must come from the network or not at all: serving a cached
     // room shell would look connected while every move fails.
     if (isLiveRoute(url.pathname)) {
-      event.respondWith(fetch(request).catch(async () => (await caches.match("/offline.html")) ?? Response.error()));
+      event.respondWith(fetch(request).catch(() => offlinePage()));
 
       return;
     }
@@ -172,7 +194,7 @@ self.addEventListener("fetch", (event) => {
       networkFirst(request, SHELL_CACHE).then(async (response) => {
         if (response.type !== "error" || response.status !== 0) return response;
 
-        return (await caches.match("/offline.html")) ?? response;
+        return offlinePage();
       }),
     );
 
