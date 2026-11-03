@@ -118,3 +118,31 @@
     border-radius: var(--radius-lg);
   }
 }
+
+/*
+ * Window Controls Overlay, as a transition guard.
+ *
+ * The manifest used to request `window-controls-overlay`, which lets the title
+ * bar float over the page: the site bar ended up under the minimise/maximise
+ * buttons, its right edge was clipped, and there was no strip left to drag the
+ * window by. The manifest no longer asks for it, but an installed app keeps its
+ * last window mode until it relaunches, so this reserves the overlay strip and
+ * makes it draggable while that is still true. In a normal standalone window the
+ * media query never matches.
+ */
+@media (display-mode: window-controls-overlay) {
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: var(--z-menu);
+    height: env(titlebar-area-height);
+    background: var(--canvas);
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  .site-bar-slot {
+    padding-top: env(titlebar-area-height);
+  }
+}

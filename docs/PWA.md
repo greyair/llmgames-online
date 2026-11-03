@@ -12,7 +12,7 @@ llmgames 的对局权威状态在 Cloudflare DO 上：回合、计时、随机�
 
 | 能力 | 位置 | 说明 |
 | --- | --- | --- |
-| `display: standalone` | `public/site.webmanifest` | 安装后独立窗口；另加 `display_override` 支持 Windows 的 window-controls-overlay |
+| `display: standalone` | `public/site.webmanifest` | 安装后独立窗口；`display_override` 只保留 `standalone` / `minimal-ui`（不用 window-controls-overlay，见下） |
 | 图标 | `public/llmgames-icon-192-v3.png` 等 | 沿用现有 192/512/maskable，未另做 |
 | iOS/macOS meta | `astro/layouts/BaseLayout.astro` | `apple-mobile-web-app-capable`、状态栏样式 |
 | 安装入口 | `src/pwa/InstallApp.tsx` | 站点栏按钮；已安装/独立模式自动隐藏 |
@@ -96,3 +96,4 @@ pnpm --filter @llmgames/web preview    # 产物预览：SW 只在这里注册
 - 离线页缓存的是 `/offline`（200），不是 `/offline.html`：托管会把后者 308 到前者，而浏览器拒绝把「重定向过的」缓存响应用于导航。SW 里另有一层兜底，把带 `redirected` 的响应重建成普通 200。
 - 离线页是纯 HTML + 内联样式，不依赖应用 bundle：断网时它必须能从缓存里独立渲染。
 - 站点栏的安装按钮在 ≤1080px 收成图标，避免挤压导航。
+- **不用 `window-controls-overlay`**：它让系统标题栏浮在页面之上，站点栏会被最小化/最大化按钮压住、右端被裁掉，而且没有可拖拽的窗口区域。`display_override` 因此只保留 `standalone` 与 `minimal-ui`；`pwa.css` 里另有一段 `@media (display-mode: window-controls-overlay)` 的兜底，给还停留在旧窗口模式的已安装实例留出拖拽条。
