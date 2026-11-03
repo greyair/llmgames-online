@@ -30,11 +30,16 @@ function announce() {
   listeners.forEach((listener) => listener());
 }
 
-/** Reload once the new worker takes over; guard against a reload loop. */
-function reloadOnce() {
-  if (reloading) return;
+/**
+ * Reload only after we swapped a waiting worker in ourselves.
+ *
+ * `clients.claim()` also fires `controllerchange` on the very first visit; that
+ * is not an update, and reloading there would reload the page the user just
+ * opened — and keep doing it on every visit.
+ */
+function reloadAfterUpdate() {
+  if (!reloading) return;
 
-  reloading = true;
   window.location.reload();
 }
 
@@ -76,11 +81,7 @@ export function registerServiceWorker(): void {
   if (document.readyState === "complete") register();
   else window.addEventListener("load", register, { once: true });
 
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    // Only a deliberate `applyUpdate` sets `reloading`; an unexpected takeover
-    // still needs the new assets, so reload once.
-    reloadOnce();
-  });
+  navigator.serviceWorker.addEventListener("controllerchange", reloadAfterUpdate);
 }
 
 function track(registration: ServiceWorkerRegistration) {
@@ -108,6 +109,7 @@ function track(registration: ServiceWorkerRegistration) {
 export function applyUpdate(): void {
   if (!waiting) return;
 
+  reloading = true;
   waiting.postMessage({ type: "SKIP_WAITING" });
   waiting = null;
   announce();
