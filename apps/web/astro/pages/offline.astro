@@ -1,0 +1,126 @@
+---
+// Offline fallback for the service worker.
+//
+// Deliberately plain HTML with inline CSS: this page has to render from the
+// cache with no network, so it cannot depend on the app bundle, the site bar or
+// a session. One script reloads it as soon as connectivity returns.
+const lang = "en";
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex, follow" />
+    <title>Offline · llmgames</title>
+    <meta name="theme-color" content="#0b0b0b" />
+    <link rel="icon" href="/llmgames-favicon-v3.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/llmgames-apple-touch-v3.png" />
+    <!-- Inline on purpose: this file is precached on its own, so it must render
+         with no external stylesheet and no app bundle. `is:inline` stops Astro
+         from extracting it into a linked CSS chunk. -->
+    <style is:inline>
+      /*
+       * Self-contained on purpose: this file is precached alone and must render
+       * with no app bundle. Astro still links the site's global CSS into every
+       * page, so the rules below are scoped to `html body.offline` — higher
+       * specificity than the site's element rules, and independent of order.
+       */
+      html body.offline {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #12120f;
+        color: #f5f5f2;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans SC", sans-serif;
+        line-height: 1.6;
+      }
+
+      html body.offline * {
+        box-sizing: border-box;
+      }
+
+      html body.offline main {
+        max-width: 34rem;
+        display: grid;
+        gap: 16px;
+        text-align: center;
+      }
+
+      html body.offline main img {
+        justify-self: center;
+        width: 56px;
+        height: 56px;
+        image-rendering: pixelated;
+      }
+
+      html body.offline h1 {
+        margin: 0;
+        font-size: clamp(1.5rem, 4vw, 2rem);
+        letter-spacing: -0.01em;
+        color: #f5f5f2;
+      }
+
+      html body.offline p {
+        margin: 0;
+        color: #a3a39c;
+        font-size: 0.95rem;
+      }
+
+      html body.offline .actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      html body.offline .actions a,
+      html body.offline .actions button {
+        font: inherit;
+        font-size: 0.95rem;
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: 1px solid #2b2b26;
+        background: transparent;
+        color: #f5f5f2;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      html body.offline .actions a {
+        background: #f5d90a;
+        border-color: #f5d90a;
+        color: #0b0b0b;
+        font-weight: 700;
+      }
+
+      html body.offline .hint {
+        font-size: 0.8rem;
+        color: #8a8a83;
+      }
+    </style>
+  </head>
+  <body class="offline">
+    <main>
+      <img src="/llmgames-mark-v5.svg" alt="" width="56" height="56" />
+      <h1>You are offline</h1>
+      <p>
+        llmgames needs a connection: the board, the clock and the chat all live on the server. Your
+        seat is still there — this page reloads the moment the network comes back.
+      </p>
+      <div class="actions">
+        <a href="/play">Try the game library</a>
+        <button type="button" onclick="location.reload()">Reload</button>
+      </div>
+      <p class="hint">A finished match is never resumed from the cache: moves are server-owned.</p>
+    </main>
+    <script is:inline>
+      window.addEventListener("online", () => location.reload());
+    </script>
+  </body>
+</html>

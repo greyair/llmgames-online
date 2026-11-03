@@ -5,6 +5,7 @@ import { useT } from "@/i18n";
 import { SiteBrand } from "./SiteBrand";
 import { SiteNav } from "./SiteNav";
 import { SiteAccount, SiteTools } from "./SiteAccount";
+import { InstallApp } from "@/pwa/InstallApp";
 import { activeFromPath, guestLinks, memberLinks, operatorLinks } from "./navigation";
 
 function subscribeSession(onChange: () => void) {
@@ -161,6 +162,7 @@ export function SiteBar({
           <SiteBrand href={isSignedIn ? "/play" : "/"} />
           <SiteNav links={links} current={currentId} highlight={highlightId} variant="bar" />
           <div className="site-controls">
+            <InstallApp />
             <SiteTools />
             <SiteAccount
               status={status}

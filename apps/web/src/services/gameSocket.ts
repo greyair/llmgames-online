@@ -1,4 +1,5 @@
 import { wireValueSchema, wireObjectSchema, type WireValue } from "@llmgames/game-catalog";
+import { QUEUE_DROPPED_EVENT } from "@/pwa/events";
 import { z } from "zod";
 
 /**
@@ -73,6 +74,14 @@ interface CreateRoomOptions {
   settings?: WireValue;
 }
 
+/** A move older than this is no longer the move the player made. */
+const ACTION_TTL_MS = 8_000;
+
+/** Chat is more forgiving than a move, but a line from ten minutes ago is noise. */
+const CHAT_TTL_MS = 60_000;
+
+type QueuedMessage = { message: string; at: number; kind: "action" | "chat" };
+
 let activeSocket: GameSocket | null = null;
 
 export function getActiveSocket(): GameSocket | null {
@@ -90,7 +99,13 @@ export class GameSocket {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private messageQueue: string[] = [];
+  /**
+   * Messages written while the socket was down.
+   *
+   * Queued moves expire: a PWA can sit in the background for minutes, and a
+   * move replayed on resume would be a move for a turn that no longer exists.
+   */
+  private messageQueue: QueuedMessage[] = [];
   private isConnecting = false;
   private pendingConnect: { roomCode?: string } | null = null;
   private reconnectEnabled = true;
@@ -98,7 +113,27 @@ export class GameSocket {
   constructor(roomId: string) {
     this.roomId = roomId;
     activeSocket = this;
+
+    // A backgrounded PWA stops receiving the socket without necessarily seeing
+    // a close, and the retry backoff can outlast the match. Coming back to the
+    // foreground is an explicit signal to retry now.
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", this.onVisible);
+      window.addEventListener("online", this.onVisible);
+    }
   }
+
+  private readonly onVisible = () => {
+    if (document.visibilityState === "hidden") return;
+
+    if (!this.reconnectEnabled || this.pendingConnect === null) return;
+
+    if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) return;
+
+    clearTimeout(this.reconnectTimer);
+    this.reconnectAttempts = 0;
+    this.tryConnect();
+  };
 
   /**
    * Connect to the game room
@@ -132,10 +167,23 @@ export class GameSocket {
       this.isConnecting = false;
       this.reconnectAttempts = 0;
 
+      const now = Date.now();
+      let dropped = 0;
+
       while (this.messageQueue.length > 0) {
-        const msg = this.messageQueue.shift()!;
-        this.ws?.send(msg);
+        const queued = this.messageQueue.shift()!;
+        const ttl = queued.kind === "action" ? ACTION_TTL_MS : CHAT_TTL_MS;
+
+        if (now - queued.at > ttl) {
+          dropped += 1;
+          continue;
+        }
+
+        this.ws?.send(queued.message);
       }
+
+      if (dropped > 0)
+        window.dispatchEvent(new CustomEvent(QUEUE_DROPPED_EVENT, { detail: { count: dropped } }));
     };
 
     this.ws.onmessage = (event) => {
@@ -208,7 +256,7 @@ export class GameSocket {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(message);
     } else {
-      this.messageQueue.push(message);
+      this.messageQueue.push({ message, at: Date.now(), kind: "action" });
     }
   }
 
@@ -228,7 +276,7 @@ export class GameSocket {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(message);
     } else {
-      this.messageQueue.push(message);
+      this.messageQueue.push({ message, at: Date.now(), kind: "chat" });
     }
   }
 
@@ -268,6 +316,12 @@ export class GameSocket {
    */
   disconnect(): void {
     this.reconnectEnabled = false;
+
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", this.onVisible);
+      window.removeEventListener("online", this.onVisible);
+    }
+
     clearTimeout(this.reconnectTimer);
     this.messageQueue = [];
     this.maxReconnectAttempts = 0;

@@ -26,6 +26,9 @@ import { play } from "@/lib/sound";
 import { GameSocket, createGameRoom, joinGameRoom } from "@/services/gameSocket";
 import { clientViewContract, clientViewSchema, type ClientView } from "@/domain/game-state";
 import { gameOptionsFor } from "@llmgames/game-catalog";
+import { isOnline } from "@/pwa/connectivity";
+import { holdMatch } from "@/pwa/matchGuard";
+import { useWakeLock } from "@/pwa/useWakeLock";
 import { optionChoiceLabel, optionTitle } from "@/game-ui/gameOptions";
 import {
   parseRewatch,
@@ -211,6 +214,19 @@ export function Room({
   const [chatEntries, setChatEntries] = useState<RoomChatEntry[]>(demo?.chat?.entries ?? []);
   const [chatUnread, setChatUnread] = useState(demo?.chat?.unread ?? 0);
   const [chatOpen, setChatOpen] = useState(Boolean(demo?.chat?.open));
+
+  // Play (and the lobby before it) counts as a live session: reloading it would
+  // cost a seat, so the update prompt waits until the room is left.
+  const liveSession = Boolean(demo) === false && state?.status !== "ended";
+
+  useEffect(() => {
+    if (!liveSession) return undefined;
+
+    return holdMatch();
+  }, [liveSession]);
+
+  // Phones sleep mid-match; the board is turn-based and can sit idle for a minute.
+  useWakeLock(liveSession);
   const [chatError, setChatError] = useState("");
   const [chatPolicy, setChatPolicy] = useState({ spectatorSpeech: true });
   const socket = useRef<GameSocket | null>(null);
@@ -555,6 +571,12 @@ export function Room({
       if (action === "start_game") setState(demo.readyState);
 
       return;
+    }
+
+    if (!isOnline()) {
+      setError(t("pwa.offline"));
+
+      return false;
     }
 
     if (!connected || !socket.current?.isConnected) {

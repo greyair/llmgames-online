@@ -4,6 +4,7 @@ import { ClientRouter } from 'astro:transitions';
 import { HOME_TITLE, HOME_DESCRIPTION, SITE_NAME, SITE_URL, SOCIAL_IMAGE, SOCIAL_IMAGE_ALT } from '../../src/lib/siteMetadata';
 import { SiteBar } from '../../src/interface/Chrome';
 import { InteractionFeedback } from '../../src/interface/Feedback';
+import { PwaRuntime } from '../../src/pwa/PwaRuntime';
 
 interface Props { title?: string; description?: string; canonicalPath?: string; noindex?: boolean; }
 
@@ -55,11 +56,29 @@ const structuredData = {
     <meta name="color-scheme" content="light dark" />
     <meta name="application-name" content={SITE_NAME} />
     <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="icon" href="/llmgames-favicon-v3.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" type="image/svg+xml" href="/llmgames-mark-v5.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/llmgames-icon-32-v3.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/llmgames-apple-touch-v3.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <script is:inline>
+      // Chromium fires this once, usually before React is ready. Stash it so the
+      // install button can still use it after hydration.
+      window.__llmgamesPwa = window.__llmgamesPwa || { prompt: null, installed: false };
+
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault();
+        window.__llmgamesPwa.prompt = event;
+        window.dispatchEvent(new Event('llmgames:installable'));
+      });
+
+      window.addEventListener('appinstalled', function () {
+        window.__llmgamesPwa.installed = true;
+      });
+    </script>
     {canonicalPath === '/' && <script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData).replace(/</g, '\\u003c')} />}
   </head>
   <body data-app-shell={preview ? undefined : true}>
@@ -75,6 +94,7 @@ const structuredData = {
       ))}
     </svg>
     <InteractionFeedback client:load transition:persist="feedback" />
+    <PwaRuntime client:load transition:persist="pwa-runtime" />
     <script>
       import { navigate } from 'astro:transitions/client';
 

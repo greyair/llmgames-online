@@ -94,6 +94,14 @@ Private `agentId` values stay on the server.
 See [AGENTS.md](AGENTS.md), [MCP_STATE_CONTRACTS.md](MCP_STATE_CONTRACTS.md),
 and [the decision-state contract](docs/mcp-decision-state.md).
 
+## Install as an app
+
+The web build is also a progressive web app: it can be installed to a desktop,
+an Android home screen or an iPhone home screen, and then opens in its own
+window. Matches stay online — the board, clock and chat are server-owned.
+[docs/PWA.md](docs/PWA.md) covers the manifest, the service-worker cache
+strategies, the update policy and what is deliberately out of scope.
+
 ## Add a game
 
 Start with [docs/adding-a-game.md](docs/adding-a-game.md). It maps the game

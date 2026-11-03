@@ -1,0 +1,120 @@
+/*
+ * PWA chrome: the install entry, its instructions, the offline bar and the
+ * update chip. Nothing here changes the board — these are delivery-layer
+ * affordances that sit around it.
+ */
+
+/* Site bar entry. The label collapses first: the icon still names itself. */
+.site-install {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+@media (max-width: 1080px) {
+  .site-install-label {
+    display: none;
+  }
+}
+
+/* Install instructions */
+.pwa-install-dialog {
+  display: grid;
+  gap: var(--space-16);
+}
+
+.pwa-install-steps h3 {
+  margin: var(--space-0) var(--space-0) var(--space-8);
+  font-size: var(--type-small);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pwa-install-steps ol {
+  display: grid;
+  gap: var(--space-8);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+
+.pwa-install-steps li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: var(--space-10);
+  font-size: var(--type-small);
+  line-height: var(--leading-snug);
+}
+
+.pwa-install-steps li > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  font-size: var(--type-micro);
+}
+
+.pwa-install-note {
+  margin: var(--space-0);
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+}
+
+/*
+ * Connectivity + update bars.
+ *
+ * Fixed above the action row rather than in the site bar: during a match the
+ * site bar is out of view, and these two messages only matter then.
+ */
+.pwa-bar {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-16);
+  translate: -50% 0;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  max-width: min(560px, calc(100vw - var(--space-32)));
+  padding: var(--space-10) var(--space-16);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--type-small);
+}
+
+.pwa-bar[data-tone="warning"] {
+  border-color: color-mix(in oklab, var(--danger) 45%, var(--line));
+}
+
+.pwa-bar-actions {
+  display: flex;
+  gap: var(--space-8);
+  flex: none;
+}
+
+.pwa-bar button {
+  font-size: var(--type-micro);
+}
+
+/* The offline bar must not cover the mobile action row. */
+@media (max-width: 899px) {
+  .pwa-bar {
+    bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
+    left: var(--space-12);
+    right: var(--space-12);
+    translate: none;
+    max-width: none;
+    border-radius: var(--radius-lg);
+  }
+}
