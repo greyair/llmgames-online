@@ -1,0 +1,202 @@
+/*
+ * MCP personal access tokens.
+ *
+ * The panel sits in the same grid as the other credential panels, so it reuses
+ * their type scale and only adds what is specific to a one-time secret.
+ */
+
+.mcp-token-settings {
+  display: grid;
+  gap: var(--space-16);
+  min-width: 0;
+}
+
+.mcp-token-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-16);
+}
+
+.mcp-token-heading p {
+  margin: var(--space-6) var(--space-0) var(--space-0);
+  color: var(--text-muted);
+  font-size: var(--type-small);
+  line-height: var(--leading-snug);
+  max-width: 46ch;
+}
+
+.mcp-token-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  flex-wrap: wrap;
+}
+
+.mcp-token-count {
+  font-family: var(--font-code);
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-8);
+}
+
+.mcp-token-count[data-full] {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 45%, var(--line));
+}
+
+/* The one-time secret: loud on purpose, and only ever in this block. */
+.mcp-token-reveal {
+  display: grid;
+  gap: var(--space-10);
+  padding: var(--space-12);
+  border: 1px dashed color-mix(in oklab, var(--accent) 55%, var(--line));
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--accent) 8%, var(--surface-2));
+}
+
+.mcp-token-reveal > strong {
+  font-size: var(--type-small);
+}
+
+.mcp-token-reveal p {
+  margin: var(--space-0);
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  line-height: var(--leading-snug);
+}
+
+.mcp-token-secret {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.mcp-token-usage code {
+  display: block;
+  overflow-x: auto;
+  padding: var(--space-8) var(--space-10);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  font-family: var(--font-code);
+  font-size: var(--type-micro);
+  white-space: nowrap;
+  user-select: all;
+}
+
+.mcp-token-secret {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.mcp-token-usage span {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.mcp-token-reveal-actions,
+.mcp-token-form-actions {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.mcp-token-form {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
+.mcp-token-field {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.mcp-token-field label {
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mcp-token-select {
+  height: var(--control);
+  padding: var(--space-0) var(--space-10);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text);
+  font: inherit;
+}
+
+.mcp-token-list {
+  display: grid;
+  gap: var(--space-8);
+  margin: var(--space-0);
+  padding: var(--space-0);
+  list-style: none;
+}
+
+.mcp-token-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: var(--space-10) var(--space-12);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.mcp-token-row[data-inactive] {
+  opacity: 0.6;
+}
+
+.mcp-token-identity {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.mcp-token-identity strong {
+  font-size: var(--type-small);
+}
+
+.mcp-token-identity small {
+  color: var(--text-muted);
+  font-size: var(--type-micro);
+}
+
+.mcp-token-state {
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-8);
+  white-space: nowrap;
+}
+
+.mcp-token-empty,
+.mcp-token-footnote {
+  margin: var(--space-0);
+  color: var(--text-muted);
+  font-size: var(--type-micro);
+  line-height: var(--leading-snug);
+}
+
+@media (max-width: 640px) {
+  .mcp-token-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mcp-token-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

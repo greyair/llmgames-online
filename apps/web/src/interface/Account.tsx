@@ -1,5 +1,6 @@
 import { TypeSafeSettings } from "./TypeSafeSettings";
 import { AgentWebhookSettings } from "./AgentWebhookSettings";
+import { McpTokenSettings } from "./McpTokenSettings";
 import { PlayerAvatar } from "@/components/ui/player-avatar";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -689,9 +690,19 @@ function Profile({ user, returnTo }: { user: User; returnTo: string }) {
             <AgentWebhookSettings />
           </div>
           <section
-            className="panel profile-settings-panel reveal"
+            className="panel profile-tokens-panel reveal"
             style={
               { "--i": 5 } satisfies CSSProperties & {
+                [property: `--${string}`]: string | number | undefined;
+              }
+            }
+          >
+            <McpTokenSettings />
+          </section>
+          <section
+            className="panel profile-settings-panel reveal"
+            style={
+              { "--i": 6 } satisfies CSSProperties & {
                 [property: `--${string}`]: string | number | undefined;
               }
             }

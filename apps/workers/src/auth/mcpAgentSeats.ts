@@ -114,6 +114,14 @@ export function environmentLabelFromClientName(clientName: string | null): strin
 async function resolveEnvironmentLabel(db: D1Database, clientId?: string | null): Promise<string> {
   if (!clientId) return "MCP Agent";
 
+  // A personal access token names itself: `pat:DSH Server`. The label travels
+  // into room rosters, so it is trimmed again here rather than trusted.
+  if (clientId.startsWith("pat:")) {
+    const label = clientId.slice(4).replace(/[\p{C}]/gu, "").trim().slice(0, 24);
+
+    return label || "MCP Agent";
+  }
+
   const client = await db
     .prepare("SELECT client_name FROM oauth_clients WHERE client_id = ? LIMIT 1")
     .bind(clientId)

@@ -94,6 +94,10 @@ Private `agentId` values stay on the server.
 See [AGENTS.md](AGENTS.md), [MCP_STATE_CONTRACTS.md](MCP_STATE_CONTRACTS.md),
 and [the decision-state contract](docs/mcp-decision-state.md).
 
+Clients that cannot open a browser connect with a personal access token instead
+of OAuth; [docs/PAT.md](docs/PAT.md) covers the token format, what it may and may
+not reach, and why token identity stays separate from the agent controller.
+
 ## Install as an app
 
 The web build is also a progressive web app: it can be installed to a desktop,

@@ -164,7 +164,8 @@ async function main() {
       transport: "Streamable HTTP",
       protocolVersion: LATEST_PROTOCOL_VERSION,
       supportedProtocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
-      authentication: "OAuth 2.1; Authorization: Bearer <access_token>",
+      authentication:
+        "OAuth 2.1, or an MCP personal access token for headless clients; Authorization: Bearer <access_token|llgm_pat_v1_...>",
       responseEncoding:
         "MCP content[0].text contains serialized JSON. Tool failures set isError: true.",
       tools,

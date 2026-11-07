@@ -19,6 +19,11 @@ import { createLlmgamesMcpServer } from "../mcp/createServer";
 import { MCP_SERVER_VERSION } from "../mcp/version";
 import { mcpWwwAuthenticate } from "../auth/mcpOAuthRoutes";
 import { mcpResourceUrl } from "../auth/mcpOAuth";
+import {
+  isPersonalToken,
+  personalTokenClientId,
+  verifyPersonalToken,
+} from "../auth/mcpPersonalTokens";
 import { logEvent } from "../lib/observability";
 import { ENABLED_GAME_TYPES, GAME_INSTRUCTIONS } from "@llmgames/game-catalog";
 
@@ -48,6 +53,16 @@ mcpRoutes.get("/info", (c) => {
         registrationEndpoint: `${origin}/api/v1/oauth/register`,
         scopes: ["mcp"],
         userLogin: "Google or GitHub (same as web app)",
+      },
+      // For clients that cannot open a browser: a Linux box, a CLI, a runner.
+      personalAccessToken: {
+        header: "Authorization: Bearer llgm_pat_v1_<id>.<secret>",
+        endpoint: `${origin}/api/v1/mcp`,
+        manageAt: `${origin}/profile`,
+        scope: "mcp",
+        revocable: "Each token expires and can be revoked on its own; revocation applies immediately.",
+        notASession: "A token authenticates the account for MCP only. It cannot read or change account settings.",
+        agents: "Token identity and agent identity stay separate: agent_claim still issues a controllerId per task.",
       },
     },
     agents: {
@@ -140,6 +155,61 @@ mcpRoutes.get("/info", (c) => {
  * (Grok, Cursor, Claude, …) can start the OAuth browser login flow.
  * Authenticated: Bearer MCP access JWT (OAuth).
  */
+/**
+ * Personal access tokens — accepted here and nowhere else.
+ *
+ * The token proves which *user* is calling. It does not prove which agent task
+ * is calling: that is still `agent_claim`, and each token still gets its own
+ * controllers. Mounting this on the MCP router (rather than in the global
+ * session middleware) is what keeps a PAT out of the account and credential
+ * APIs.
+ */
+mcpRoutes.use("/", async (c, next) => {
+  if (c.get("user")) return next();
+
+  const bearer = c.req.header("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+
+  // Not our prefix: leave the request to the OAuth branch below, which answers
+  // with the discovery challenge a browser-capable client needs.
+  if (!bearer || !isPersonalToken(bearer)) return next();
+
+  const verified = await verifyPersonalToken(c.env.DB, c.env.ENCRYPTION_SECRET, bearer).catch(
+    () => null,
+  );
+
+  if (!verified) {
+    logEvent("mcp_auth_failed", { stage: "personal_token" });
+
+    const origin = new URL(c.req.url).origin;
+
+    return c.json(
+      {
+        error: "invalid_token",
+        error_description:
+          "This MCP access token is unknown, expired or revoked. Create a new one in settings.",
+        resource: mcpResourceUrl(origin),
+      },
+      401,
+      { "WWW-Authenticate": mcpWwwAuthenticate(origin), "Cache-Control": "no-store" },
+    );
+  }
+
+  const expiresAt = Math.floor(Date.now() / 1000) + 60;
+
+  c.set("user", verified.user);
+  // The seat label is the token's own name, so a roster shows "DSH Server"
+  // rather than a generic agent.
+  c.set("mcpClientId", personalTokenClientId(verified.tokenName));
+  c.set("session", {
+    userId: verified.user.id,
+    email: verified.user.email,
+    name: verified.user.name,
+    expiresAt,
+  });
+
+  return next();
+});
+
 mcpRoutes.all("/", async (c) => {
   const origin = new URL(c.req.url).origin;
   const user = c.get("user");

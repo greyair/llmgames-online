@@ -52,6 +52,41 @@ export function installPreviewApi(options?: {
 
   let webhooks: AgentWebhook[] = [];
 
+  // Seeded MCP tokens: obviously fake secrets, but the states a real list can
+  // show (active, expired) so the panel can be reviewed without a server.
+  const nowSeconds = Math.floor(Date.now() / 1000);
+
+  interface PreviewPersonalToken {
+    id: string;
+    name: string;
+    createdAt: number;
+    expiresAt: number;
+    lastUsedAt: number | null;
+    revokedAt: number | null;
+    expired: boolean;
+  }
+
+  let personalTokens: PreviewPersonalToken[] = [
+    {
+      id: "0123456789abcdef",
+      name: "DSH server",
+      createdAt: nowSeconds - 6 * 86400,
+      expiresAt: nowSeconds + 84 * 86400,
+      lastUsedAt: nowSeconds - 3600,
+      revokedAt: null,
+      expired: false,
+    },
+    {
+      id: "fedcba9876543210",
+      name: "Local Codex CLI",
+      createdAt: nowSeconds - 120 * 86400,
+      expiresAt: nowSeconds - 30 * 86400,
+      lastUsedAt: nowSeconds - 31 * 86400,
+      revokedAt: null,
+      expired: true,
+    },
+  ];
+
   let agents = [
     {
       codename: "SwiftAnchor",
@@ -102,6 +137,44 @@ export function installPreviewApi(options?: {
       }
 
       return Response.json(typesafe);
+    }
+
+    if (path.endsWith("/users/me/mcp-tokens") || path.includes("/users/me/mcp-tokens/")) {
+      const id = path.split("/mcp-tokens/")[1]?.split("/")[0];
+
+      if (method === "POST") {
+        const created = {
+          id: crypto.randomUUID().replace(/-/g, "").slice(0, 16),
+          name: String(payload.name ?? "Preview token"),
+          createdAt: nowSeconds,
+          expiresAt: nowSeconds + 90 * 86400,
+          lastUsedAt: null,
+          revokedAt: null,
+          expired: false,
+        };
+
+        personalTokens = [created, ...personalTokens];
+
+        return Response.json({
+          token: "llgm_pat_v1_0000000000000000.preview-preview-preview-preview-preview",
+          record: created,
+        });
+      }
+
+      if (method === "DELETE") {
+        personalTokens = personalTokens.map((token) =>
+          token.id === id ? { ...token, revokedAt: nowSeconds } : token,
+        );
+
+        return Response.json({ revoked: true, id });
+      }
+
+      return Response.json({
+        tokens: personalTokens,
+        maxActive: 10,
+        defaultDays: 90,
+        maxDays: 365,
+      });
     }
 
     if (path.includes("/users/me/agent-webhooks")) {

@@ -3,6 +3,7 @@ import { isBoolean, isString } from "@llmgames/game-catalog";
 import { refreshFeaturedVods } from "../lib/featuredGames";
 import { jevCredentialRoutes } from "./jevCredentials";
 import { agentWebhookRoutes } from "./agentWebhooks";
+import { mcpTokenRoutes } from "./mcpTokenRoutes";
 import { Hono } from "hono";
 import type { Env, Variables } from "../types";
 import { googleAuth, googleCallback, logout, startGoogleOAuth } from "./google";
@@ -23,6 +24,9 @@ export const authRoutes = new Hono<{ Bindings: Env; Variables: Variables }>();
 authRoutes.route("/users/me/typesafe", jevCredentialRoutes);
 
 authRoutes.route("/users/me/agent-webhooks", agentWebhookRoutes);
+
+// MCP personal access tokens. Session-only: bearer credentials are refused here.
+authRoutes.route("/users/me/mcp-tokens", mcpTokenRoutes);
 
 authRoutes.post("/email/request", emailRequestGuard, verifyTurnstile, requestEmailCode);
 
