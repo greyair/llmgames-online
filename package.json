@@ -17,7 +17,7 @@
     "preview": "turbo run preview --filter=@llmgames/web",
     "deploy": "pnpm run deploy:workers && pnpm run deploy:web",
     "deploy:workers": "pnpm --filter @llmgames/workers deploy:prod",
-    "deploy:web": "pnpm run build && pnpm exec wrangler pages deploy dist --project-name llmgames-online --branch main --commit-dirty=true",
+    "deploy:web": "pnpm run build && pnpm --filter @llmgames/workers exec wrangler pages deploy ../../dist --project-name llmgames-online --branch main --commit-dirty=true",
     "db:migrate": "pnpm --filter @llmgames/workers db:migrate",
     "db:migrate:prod": "pnpm --filter @llmgames/workers db:migrate:prod",
     "agent": "pnpm --filter @llmgames/cli start --",
