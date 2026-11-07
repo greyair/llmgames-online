@@ -1,4 +1,11 @@
 /** Public series records contain participant references, never agent credentials. */
+/**
+ * Two-seat games a series can schedule.
+ *
+ * A series always seats exactly two participants, so three-player games such
+ * as doudizhu and Codenames (4+) stay out: their rules cannot start a match
+ * with the roster a series creates.
+ */
 export const SERIES_GAMES = [
   "connect4",
   "checkers",
@@ -7,6 +14,13 @@ export const SERIES_GAMES = [
   "battleship",
   "poker",
   "contexto",
+  "gomoku",
+  "aeroplane",
+  "paodekuai",
+  "monopoly",
+  "chess",
+  "xiangqi",
+  "go",
 ] as const;
 
 export const SERIES_DEFAULT_MATCH_TIME = 900_000;

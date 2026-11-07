@@ -99,7 +99,14 @@
                           "pokemon",
                           "battleship",
                           "poker",
-                          "contexto"
+                          "contexto",
+                          "gomoku",
+                          "aeroplane",
+                          "paodekuai",
+                          "monopoly",
+                          "chess",
+                          "xiangqi",
+                          "go"
                         ]
                       },
                       "repeats": {

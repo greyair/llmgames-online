@@ -73,6 +73,7 @@ import type { GameEffect, GameIntent, GamePlugin, RuleBotStrategy } from "../gam
 import { compactState } from "../games/agent-decision";
 import { gamePluginFor } from "../games/registry";
 import { RoomChatService } from "./chat/RoomChatService";
+import { SeriesChatProxy, type ChatStore } from "./chat/SeriesChatProxy";
 import {
   CHAT_DEFAULT_PAGE,
   CHAT_MAX_PAGE,
@@ -714,9 +715,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    *
    * Built on first use so a room that never chats pays nothing, and so the
    * service can resolve authors from the roster that exists at that moment.
-   * Chat never enters `gameState`: `RoomChatService` owns its own tables.
+   * Chat never enters `gameState`: the chat service owns its own storage.
+   * A series match points at the series conversation instead of a room-local
+   * one, so history survives from one game to the next.
    */
-  private roomChat: RoomChatService | null = null;
+  private roomChat: ChatStore | null = null;
 
   /**
    * This room was created as a Live Sandbox room (C3).
@@ -1009,6 +1012,23 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
         return this.jsonResponse({ ok: true, expiresAt: this.gameState.expiresAt });
       });
+    }
+
+    // A line posted from the series page is already stored in the series DO.
+    // The live match room only has to fan it out and wake any MCP waiter that
+    // is listening for a mention, so this path never reads the chat store.
+    if (url.pathname === "/series/chat/notify" && request.method === "POST") {
+      const body = await request
+        .json<{ code: string; entry: RoomChatEntry }>()
+        .catch(() => null);
+
+      if (!body || body.code !== this.gameState?.series?.code || !body.entry)
+        return this.jsonResponse({ error: "Invalid chat notification" }, 400);
+
+      this.broadcastChatEntry(body.entry);
+      await this.resolveChatWaiters(body.entry);
+
+      return this.jsonResponse({ ok: true });
     }
 
     // Internal Worker check only. Inviting does not reserve a seat or renew activity.
@@ -3639,10 +3659,15 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
    * from here. The service resolves sender identity through {@link chatAuthor},
    * so a client can never choose its own display name or seat kind.
    */
-  protected chat(): RoomChatService {
-    this.roomChat ??= new RoomChatService(this.state.storage, (playerId) =>
-      this.chatAuthor(playerId),
-    );
+  protected chat(): ChatStore {
+    if (this.roomChat) return this.roomChat;
+
+    const series = this.gameState?.series;
+    const resolveAuthor = (playerId: string) => this.chatAuthor(playerId);
+
+    this.roomChat = series
+      ? new SeriesChatProxy(this.env, series.code, resolveAuthor)
+      : new RoomChatService(this.state.storage, resolveAuthor);
 
     return this.roomChat;
   }

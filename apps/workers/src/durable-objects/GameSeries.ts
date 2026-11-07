@@ -5,7 +5,10 @@ import {
   type SeriesView,
   type SeriesParticipant,
   type SeriesResult,
+  type WireValue,
 } from "@llmgames/game-catalog";
+import { SeriesChatService } from "./chat/SeriesChatService";
+import type { RoomChatAuthor } from "./chat/chatTypes";
 import type { Env } from "../types";
 import { seriesConfigSchema } from "../lib/series";
 import { generateSecureRoomCode, getRoomNamespace, roomIdFor } from "../lib/roomRouting";
@@ -51,10 +54,12 @@ const TERMINAL_DELIVERY_MS = 30_000;
 export class GameSeries {
   private record: RecordState | null = null;
   private waiters = new Set<() => void>();
+  private readonly chat: SeriesChatService;
   constructor(
     private state: RoomRuntime,
     private env: Env,
   ) {
+    this.chat = new SeriesChatService(state.storage);
     state.blockConcurrencyWhile(async () => {
       this.record = (await state.storage.get<RecordState>("series")) ?? null;
 
@@ -156,6 +161,37 @@ export class GameSeries {
 
     return view;
   }
+
+  /** Trusted identity for a line written from the series page itself. */
+  private chatAuthor(
+    r: RecordState,
+    participant: Member | undefined,
+    userId: string,
+  ): RoomChatAuthor {
+    if (participant) {
+      const author: RoomChatAuthor = {
+        playerId: participant.id,
+        displayName: participant.name,
+        seatKind: participant.kind === "agent" ? "mcp" : "human",
+        isHost: userId === r.hostId,
+        isSpectator: false,
+      };
+
+      if (participant.environmentLabel)
+        author.environmentLabel = participant.environmentLabel;
+
+      return author;
+    }
+
+    return {
+      playerId: `series-host:${userId}`,
+      displayName: r.hostName,
+      seatKind: "human",
+      isHost: true,
+      isSpectator: true,
+    };
+  }
+
   async fetch(request: Request): Promise<Response> {
     // Wait outside the serialized mutation section, so results and alarms can advance.
     if (new URL(request.url).pathname === "/wait") {
@@ -214,6 +250,19 @@ export class GameSeries {
             participant?: Member;
             result?: SeriesResult;
             roomId?: string;
+            text?: string;
+            mentions?: WireValue;
+            requestId?: string;
+            senderPlayerId?: string;
+            members?: string[];
+            author?: RoomChatAuthor;
+            isSpectator?: boolean;
+            sinceSeq?: number;
+            limit?: number;
+            mode?: "cursor" | "recent";
+            spectatorSpeech?: boolean;
+            /** Only internal match-room calls set this; the public API strips it. */
+            roomProxy?: boolean;
           }
         >()
         .catch(() => null);
@@ -322,8 +371,49 @@ export class GameSeries {
         (p) => p.id === body.participantId || p.browserId === body.userId,
       );
 
-      if (body.userId !== r.hostId && !participant && path !== "/join")
+      // A match room proxies its chat here so the whole series shares one
+      // conversation. Those calls carry a trusted author snapshot and no browser
+      // identity; the public series API never forwards `roomProxy`.
+      const roomProxy = path.startsWith("/chat/") && body.roomProxy === true;
+
+      if (!roomProxy && body.userId !== r.hostId && !participant && path !== "/join")
         return json({ error: "Join this series to view it" }, 403);
+
+      if (path === "/chat/append") {
+        const author = body.author ?? this.chatAuthor(r, participant, body.userId);
+
+        if (!body.text || !author)
+          return json({ error: "Chat identity or message is missing" }, 400);
+
+        const result = await this.chat.append({
+          senderPlayerId: body.senderPlayerId ?? author.playerId,
+          text: body.text,
+          mentions: body.mentions,
+          requestId: body.requestId,
+          isSpectator: body.isSpectator ?? author.isSpectator,
+          members: new Set(body.members ?? r.participants.map((p) => p.id)),
+          author,
+        });
+
+        return json(result, result.ok ? 200 : 400);
+      }
+
+      if (path === "/chat/read") {
+        const page =
+          body.mode === "recent" || body.sinceSeq === undefined
+            ? await this.chat.recent(body.limit)
+            : await this.chat.read({ sinceSeq: body.sinceSeq, limit: body.limit });
+
+        return json(page);
+      }
+
+      if (path === "/chat/latest")
+        return json({ latestSeq: await this.chat.latestSeqValue() });
+
+      if (path === "/chat/policy")
+        return json(
+          await this.chat.setPolicy({ spectatorSpeech: body.spectatorSpeech !== false }),
+        );
 
       if (path === "/join") {
         if (!participant) {

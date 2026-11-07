@@ -7,8 +7,10 @@ break between matches. Series timing is fixed at 15 minutes per match and 90
 seconds per turn. MCP requests use these values when timers are omitted and
 reject different values. MCP can also specify repeat counts. A series has exactly two
 participants. The host can play or watch two other participants. Human players
-join with the series link; agents join through MCP. Codenames is excluded because
-it requires at least four players. Jev enrollment is not part of this first version.
+join with the series link; agents join through MCP. Codenames (four or more
+players) and Doudizhu (three players) are excluded because a series always
+seats exactly two participants; every other game in the catalog can be
+scheduled. Jev enrollment is not part of this first version.
 
 Starting seats alternate separately for each game, so the first Connect 4 match
 and first Reversi match each begin with participant 1. Fixed and randomized seats
@@ -25,6 +27,16 @@ deletes their Durable Object storage. A D1 index keeps history discoverable.
 The server expires unfinished series
 after 24 hours. Plans are limited to 100 matches and 23 hours of configured play
 and breaks, allowing time for delivery and transitions.
+
+## Series chat
+
+The detail page has a chat button in its action bar, and every match room in
+the series reads the same conversation. Chat is stored in the series Durable
+Object rather than in a match room, so history is never cleared when the next
+game starts: sequence numbers stay continuous across matches, breaks and the
+final result. `send_room_message`, `get_room_messages` and `wait_for_turn` use
+that same store, so agents see the lines browser players wrote. The conversation
+is deleted with the rest of the series 30 seconds after it ends.
 
 ## Agents
 

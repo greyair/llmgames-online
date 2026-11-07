@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { seriesViewSchema } from "@/domain/series-contracts";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { chatPageSchema, mergeChat, type RoomChatEntry } from "@/domain/chat";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Icon } from "@/components/ui/icon";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "framer-motion";
 import {
@@ -19,6 +20,8 @@ import { getCurrentUser, type User } from "@/services/auth";
 import { go, useBrowserHref } from "@/lib/navigate";
 import { Chrome } from "./Chrome";
 import { Room } from "./Room";
+import { RoomChat, RoomChatButton } from "@/game-ui/RoomChat";
+import "@/game-ui/room-chat.css";
 import { GameMark } from "./GameMark";
 import { gameMessage, useT, type Translate } from "@/i18n";
 import "./series.css";
@@ -857,6 +860,125 @@ export function Series() {
   );
 }
 
+/**
+ * The series conversation lives in the series, not in one match room, so the
+ * detail page reads the same history the players see inside every game.
+ */
+function useSeriesChat(code: string, open: boolean) {
+  const [entries, setEntries] = useState<RoomChatEntry[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [error, setError] = useState("");
+  const cursor = useRef(0);
+  const seen = useRef(false);
+  const openRef = useRef(open);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  const pull = useCallback(async () => {
+    try {
+      const query = seen.current
+        ? `?sinceSeq=${cursor.current}&limit=200`
+        : "?limit=200";
+
+      const page = await request(
+        chatPageSchema,
+        `/${encodeURIComponent(code)}/chat${query}`,
+      );
+
+      cursor.current = page.cursor;
+
+      if (page.messages.length > 0) {
+        setEntries((current) =>
+          mergeChat(current, page, seen.current ? "append" : "snapshot"),
+        );
+
+        if (seen.current && !openRef.current)
+          setUnread((count) => count + page.messages.length);
+      }
+
+      seen.current = true;
+    } catch {
+      // The series view poll reports connectivity; chat retries on its own.
+    }
+  }, [code]);
+
+  useEffect(() => {
+    cursor.current = 0;
+    seen.current = false;
+    setEntries([]);
+    setUnread(0);
+    setError("");
+
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const tick = async () => {
+      await pull();
+
+      if (active) timer = setTimeout(() => void tick(), 2000);
+    };
+
+    void tick();
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [pull]);
+
+  const send = useCallback(
+    async (text: string, mentions: string[]) => {
+      setError("");
+
+      try {
+        const response = await fetch(
+          `/api/v1/series/${encodeURIComponent(code)}/chat`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text, mentions, requestId: crypto.randomUUID() }),
+          },
+        );
+
+        const data: unknown = await response.json().catch(() => null);
+
+        const accepted = z.object({ ok: z.literal(true) }).safeParse(data);
+
+        if (response.ok && accepted.success) {
+          await pull();
+
+          return;
+        }
+
+        const rejection = z
+          .object({ message: z.string(), error: z.string() })
+          .partial()
+          .safeParse(data);
+
+        const detail = rejection.success
+          ? rejection.data.message ?? rejection.data.error
+          : undefined;
+
+        throw new Error(detail || "Chat is unavailable");
+      } catch (e) {
+        setError(message(e));
+      }
+    },
+    [code, pull],
+  );
+
+  return {
+    entries,
+    unread,
+    clearUnread: () => setUnread(0),
+    error,
+    send,
+  };
+}
+
 function statusHeadline(view: SeriesView, now: number, t: Translate) {
   return view.status === "break"
     ? view.nextAt && view.nextAt > now
@@ -897,8 +1019,17 @@ function SeriesDetail({
   openMatch: () => void;
 }) {
   const t = useT();
+  const [chatOpen, setChatOpen] = useState(false);
+  const chat = useSeriesChat(view.code, chatOpen);
   const live = ["playing", "preparing", "break"].includes(view.status);
   const progress = view.totalMatches ? view.results.length / view.totalMatches : 0;
+
+  const chatMembers = view.participants.map((participant) => ({
+    id: participant.id,
+    name: participant.name,
+    isAgent: participant.kind === "agent",
+    environmentLabel: participant.environmentLabel,
+  }));
 
   const schedule = view.config.rounds.map((round, index) => {
     const start = view.config.rounds.slice(0, index).reduce((sum, item) => sum + item.repeats, 0);
@@ -991,6 +1122,15 @@ function SeriesDetail({
               {t("series.cancel")}
             </Button>
           )}
+          <RoomChatButton
+            open={chatOpen}
+            unread={chat.unread}
+            onOpenChange={(next) => {
+              setChatOpen(next);
+
+              if (next) chat.clearUnread();
+            }}
+          />
           <Button variant="secondary" onClick={download}>
             <Icon name="download" size={18} />
             {t("series.export")}
@@ -1184,6 +1324,22 @@ function SeriesDetail({
           </ol>
         </section>
       )}
+      <RoomChat
+        open={chatOpen}
+        onOpenChange={(next) => {
+          setChatOpen(next);
+
+          if (next) chat.clearUnread();
+        }}
+        entries={chat.entries}
+        members={chatMembers}
+        me={{ playerId: view.you ?? undefined, isSpectator: !view.you }}
+        connected
+        readOnly={["completed", "cancelled", "failed"].includes(view.status)}
+        muted={false}
+        error={chat.error}
+        onSend={(text, mentions) => void chat.send(text, mentions)}
+      />
     </>
   );
 }

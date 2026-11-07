@@ -17,6 +17,7 @@ import { createLlmgamesMcpServer } from "../../mcp/createServer";
 import { GameSeries } from "../../durable-objects/GameSeries";
 import { seriesConfigSchema, seriesRequest } from "../../lib/series";
 import {
+  SERIES_GAMES,
   seriesStandings,
   type SeriesConfig,
   type SeriesView,
@@ -487,6 +488,102 @@ describe("server-managed game series", () => {
       expect((await h.archived()).ok).toBe(true);
     }
   });
+  it("admits the two-seat games added after series launched", () => {
+    const added = [
+      "gomoku",
+      "aeroplane",
+      "paodekuai",
+      "monopoly",
+      "chess",
+      "xiangqi",
+      "go",
+    ] as const;
+
+    for (const gameType of added) {
+      const parsed = seriesConfigSchema.safeParse({
+        ...config,
+        rounds: [{ ...config.rounds[0]!, gameType }],
+      });
+
+      expect(parsed.success).toBe(true);
+    }
+
+    // Doudizhu needs three seats; a two-participant series cannot start it.
+    expect(SERIES_GAMES).not.toContain("doudizhu");
+    expect(
+      seriesConfigSchema.safeParse({
+        ...config,
+        rounds: [{ ...config.rounds[0]!, gameType: "doudizhu" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps one conversation across matches and rejects outsiders", async () => {
+    const h = harness();
+
+    await h.create();
+    await h.post("/start");
+
+    const append = async <T extends object>(body: T, userId = "host") =>
+      (
+        await h.post("/chat/append", body, userId)
+      ).json<{
+        ok: boolean;
+        replayed?: boolean;
+        message?: { seq: number; text: string };
+      }>();
+
+    const first = await append({ text: "before the first game", requestId: "line-1" });
+
+    expect(first.ok).toBe(true);
+    expect(first.message?.seq).toBe(1);
+
+    const replay = await append({ text: "before the first game", requestId: "line-1" });
+
+    expect(replay.ok).toBe(true);
+    expect(replay.replayed).toBe(true);
+    expect(replay.message?.seq).toBe(1);
+
+    // A match room proxies its line with a trusted author snapshot.
+    const roomLine = await append({
+      text: "inside game one",
+      roomProxy: true,
+      senderPlayerId: "room-player-1",
+      members: ["room-player-1"],
+      author: {
+        playerId: "room-player-1",
+        displayName: "First",
+        seatKind: "human",
+        isHost: true,
+        isSpectator: false,
+      },
+    });
+
+    expect(roomLine.ok).toBe(true);
+    expect(roomLine.message?.seq).toBe(2);
+
+    // A finished match must not reset the conversation.
+    await h.report();
+
+    const page = await (
+      await h.post("/chat/read", { mode: "recent", limit: 50 })
+    ).json<{
+      messages: Array<{ text: string; author: { displayName: string } }>;
+      latestSeq: number;
+    }>();
+
+    expect(page.messages.map((entry) => entry.text)).toEqual([
+      "before the first game",
+      "inside game one",
+    ]);
+    expect(page.messages[1]?.author.displayName).toBe("First");
+    expect(page.latestSeq).toBe(2);
+
+    const outsider = await h.post("/chat/append", { text: "not invited" }, "stranger");
+
+    expect(outsider.status).toBe(403);
+  });
+
   it("validates configuration limits before expansion", () => {
     const defaults = seriesConfigSchema.parse({
       ...config,
