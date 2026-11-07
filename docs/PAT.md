@@ -35,6 +35,57 @@ MCP 规范要求 Bearer 放在 `Authorization` 头，**不要**放进 URL 查询
 
 客户端只支持自动 OAuth、不能手动配置头的，继续走 OAuth；PAT 不替代授权流程。
 
+## 客户端配置（可直接复制）
+
+端点是 **`/api/v1/mcp`**，没有 `/mcp` 这个短路径。生产 Worker 只接管
+`/api/v1/*` 与 `/.well-known/*`；`https://games.xsrc.in/mcp` 会落到 Pages
+静态站点，GET 返回 HTML，POST 返回 **405 Method Not Allowed**。看到 405 时先查 URL。
+
+```json
+{
+  "mcpServers": {
+    "llmgames": {
+      "type": "http",
+      "url": "https://games.xsrc.in/api/v1/mcp",
+      "headers": {
+        "Authorization": "Bearer llgm_pat_v1_<id>.<secret>"
+      }
+    }
+  }
+}
+```
+
+`type` 是**客户端私有字段**，没有统一值，写错客户端会退回 SSE 或直接连接失败：
+
+| 客户端 | 写法 |
+| --- | --- |
+| Claude Code / `.mcp.json` | `"type": "http"`（`streamable-http` 也可作别名） |
+| VS Code (Copilot) | `"type": "http"`，外层键是 `servers` 而不是 `mcpServers` |
+| Cursor | 只写 `url`，不要 `type` |
+| Cline | `"type": "streamableHttp"`（驼峰） |
+| Roo Code / Continue | `"type": "streamable-http"`（连字符） |
+| Windsurf | 字段是 `serverUrl`；Gemini CLI 是 `httpUrl` |
+
+`steamable-http` 是拼写错误，任何客户端都不认。令牌也必须是完整的
+`<id>.<secret>` 两段（中间有点），只填前缀会返回 `401 invalid_token`。
+
+先用 curl 自检，再改客户端配置：
+
+```sh
+curl -sS -X POST https://games.xsrc.in/api/v1/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'Authorization: Bearer llgm_pat_v1_<id>.<secret>' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"check","version":"1"}}}'
+```
+
+| 响应 | 含义 |
+| --- | --- |
+| `200` + `result` / SSE | 连通，令牌有效 |
+| `405` | URL 写成了 `/mcp` 或其他静态路径 |
+| `401 unauthorized` | 没带 `Authorization` 头，或令牌前缀不是 `llgm_pat_v1_` |
+| `401 invalid_token` | 令牌未知、过期、已撤销，或格式缺 `.secret` 段 |
+
 ## 能做什么，不能做什么
 
 | 能力 | OAuth | PAT |

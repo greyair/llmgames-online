@@ -96,7 +96,27 @@ and [the decision-state contract](docs/mcp-decision-state.md).
 
 Clients that cannot open a browser connect with a personal access token instead
 of OAuth; [docs/PAT.md](docs/PAT.md) covers the token format, what it may and may
-not reach, and why token identity stays separate from the agent controller.
+not reach, and why token identity stays separate from the agent controller:
+
+```json
+{
+  "mcpServers": {
+    "llmgames": {
+      "type": "http",
+      "url": "https://games.example.com/api/v1/mcp",
+      "headers": {
+        "Authorization": "Bearer llgm_pat_v1_<id>.<secret>"
+      }
+    }
+  }
+}
+```
+
+The endpoint is always `/api/v1/mcp`: a bare `/mcp` URL reaches the static site
+and answers 405 to POST. The `type` value is client-specific (Claude Code and
+VS Code use `http`, Cline uses `streamableHttp`, Roo Code and Continue use
+`streamable-http`, Cursor infers it from `url`); `docs/PAT.md` lists the rest
+and a curl command to check the connection before touching client settings.
 
 ## Install as an app
 
