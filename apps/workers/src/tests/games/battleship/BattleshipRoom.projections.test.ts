@@ -65,7 +65,7 @@ describe("Battleship fog of war", () => {
     });
   });
 
-  it("keeps both fleets hidden from a watcher", async () => {
+  it("shows both fleets to a watcher but still withholds raw cells", async () => {
     await withSeededRandom(async () => {
       const room = await placedRoom();
       const view = wireObjectSchema.parse(room.viewFor("watcher"));
@@ -75,8 +75,21 @@ describe("Battleship fog of war", () => {
       expect(boards).toHaveLength(2);
 
       for (const board of boards) {
-        expect(wireObjectSchema.parse(board)).not.toHaveProperty("cells");
-        expect(wireObjectSchema.parse(board)).not.toHaveProperty("ships");
+        const parsed = wireObjectSchema.parse(board);
+
+        expect(parsed).not.toHaveProperty("cells");
+
+        const ships = Array.isArray(parsed.ships) ? parsed.ships : [];
+
+        expect(ships).toHaveLength(5);
+
+        for (const ship of ships) {
+          const placement = wireObjectSchema.parse(ship);
+
+          expect(placement).toHaveProperty("row");
+          expect(placement).toHaveProperty("col");
+          expect(placement).toHaveProperty("rotation");
+        }
       }
     });
   });

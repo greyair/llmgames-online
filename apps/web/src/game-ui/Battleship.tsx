@@ -1048,7 +1048,9 @@ export function Battleship({
             const showFleet =
               finalResult ||
               Boolean(state.replayReadOnly) ||
-              (!watching && (id === "own" || placement));
+              watching ||
+              id === "own" ||
+              placement;
 
             return (
               <section

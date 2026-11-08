@@ -24,10 +24,13 @@ export function useBattleshipEffects(state: ClientView) {
 
   const spectatorBoards = state.spectatorBoards ?? [];
 
+  // Board ids must match the order `Battleship` renders: the first spectator
+  // board is the left "target" grid, the second is the right "own" grid. The
+  // reverse mapping painted every scan on the other fleet.
   const incomingRadarByBoard: Record<string, Point[]> = state.you?.isSpectator
     ? {
-        own: spectatorBoards[0]?.radarScans ?? [],
-        target: spectatorBoards[1]?.radarScans ?? [],
+        target: spectatorBoards[0]?.radarScans ?? [],
+        own: spectatorBoards[1]?.radarScans ?? [],
       }
     : {
         own: state.yourBoard?.radarScans ?? [],

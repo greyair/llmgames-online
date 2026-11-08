@@ -283,7 +283,10 @@ export function rewatchView(state: BattleshipGameState) {
 
 /**
  * Public dual-board view for watch-only connections.
- * Both fleets stay hidden; only hit/miss pegs, sunk ships, and shot log are shown.
+ *
+ * A watcher holds no seat, so neither fleet is secret to them: both boards carry
+ * their ships, with hit/miss pegs, sunk ships and the shot log on top. Captain
+ * projections still hide the enemy fleet — this exception is spectator-only.
  */
 export function projectSpectatorState(state: BattleshipGameState) {
   for (const b of state.boards) normalizeBoard(b);
@@ -332,6 +335,13 @@ export function projectSpectatorState(state: BattleshipGameState) {
           hits: ship?.sunk ? spec.length : undefined,
         };
       }),
+      ships: board.ships.map((ship) => ({
+        id: ship.id,
+        row: ship.row,
+        col: ship.col,
+        rotation: ship.rotation,
+        sunk: ship.sunk,
+      })),
       sunkShips: board.ships
         .filter((s) => s.sunk)
         .map((s) => ({
@@ -383,7 +393,7 @@ export function projectSpectatorState(state: BattleshipGameState) {
       turnReward: BATTLESHIP_TURN_POINT_REWARD,
       damageReward: BATTLESHIP_DAMAGE_POINT_REWARD,
       costs: { ...BATTLESHIP_WEAPON_COSTS },
-      note: "Spectator view — fleets hidden; hit/miss pegs and sunk ships only.",
+      note: "Spectator view — both fleets visible; hit/miss pegs and sunk ships are marked.",
     },
     weaponsCatalog: BATTLESHIP_WEAPONS_CATALOG,
     /** Both boards as public attack views (no own-ship cells). */
