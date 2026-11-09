@@ -5,6 +5,8 @@ import {
   normalizeGameType,
 } from "@llmgames/game-catalog";
 
+import { gameMessage, type Translate } from "@/i18n";
+
 /**
  * Library display order.
  *
@@ -37,5 +39,20 @@ export const visibleGames = gameCatalog.filter((game) => isGameEnabled(game.id))
 
 export const getGame = (id?: string) =>
   gameCatalog.find((game) => game.id === normalizeGameType(id ?? ""));
+
+/**
+ * Localised game title.
+ *
+ * Match chrome, result cards and archives used to read the manifest's English
+ * `title` directly, so a Chinese session still said "Battleship". The manifest
+ * stays the fallback for an id that has no copy yet.
+ */
+export function gameTitle(t: Translate, id?: string): string {
+  const gameId = normalizeGameType(id ?? "");
+  const key = gameMessage(gameId, "title");
+  const text = t(key);
+
+  return text === key ? (getGame(gameId)?.title ?? gameId) : text;
+}
 
 export const gameRoute = (id: string) => `/${gameRouteSlug(id)}`;

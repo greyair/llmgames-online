@@ -13,7 +13,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { play } from "@/lib/sound";
 import type { ClientView } from "@/domain/game-state";
 import { Button } from "@/components/ui/button";
-import { getGame } from "@/interface/catalog";
+import { gameTitle, getGame } from "@/interface/catalog";
 import { playerPrimaryName } from "@/features/shared/playerIdentity";
 import { GamePlayerAvatar } from "./GamePlayerAvatar";
 import { PlayerName } from "./PlayerName";
@@ -347,7 +347,7 @@ export function MatchResult({
             {!broadcast && (
               <span className="result-game">
                 {t("match.gameFinal", {
-                  game: getGame(state.type)?.title ?? t("match.gameFallback"),
+                  game: getGame(state.type) ? gameTitle(t, state.type) : t("match.gameFallback"),
                 })}
               </span>
             )}

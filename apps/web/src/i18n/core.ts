@@ -173,6 +173,14 @@ export function gameMessage(id: string, field: GameField): MessageKey {
   return `game.${id}.${field}` as MessageKey;
 }
 
+/** Localised hull name for one Battleship fleet id. */
+export function shipMessage(id: string): MessageKey {
+  // SAFETY: every fleet id in BATTLESHIP_FLEET has a `board.ships.<id>` label in
+  // both tables; an unknown id falls back to the key itself, which is still a
+  // readable fleet id rather than markup.
+  return `board.ships.${id}` as MessageKey;
+}
+
 /** Translator bound to the live locale, so components re-render on a switch. */
 export function useT(): Translate {
   const locale = useLocale();

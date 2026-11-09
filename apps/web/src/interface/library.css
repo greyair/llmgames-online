@@ -355,7 +355,10 @@
 .library-filters button:active {
   scale: 0.97;
 }
-.library-filters button span {
+/* Only the count badge: `BilingualText` also renders spans, and styling those
+   overrode its `display: none`, so the inactive language appeared next to the
+   active one and inherited the badge's fixed height. */
+.library-filters button > span.tabular {
   display: grid;
   place-items: center;
   min-width: var(--control-xs);
@@ -371,7 +374,7 @@
   --doodle-fill: var(--invert);
   color: var(--invert-text);
 }
-.library-filters button[aria-pressed="true"] span {
+.library-filters button[aria-pressed="true"] > span.tabular {
   background: var(--invert-2);
   color: var(--invert-text);
 }

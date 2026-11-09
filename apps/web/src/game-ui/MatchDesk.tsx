@@ -11,7 +11,7 @@ import type { ClientView } from "@/domain/game-state";
 import { Button } from "@/components/ui/button";
 import "./match-layout.css";
 import { SoundControl, playTurnTick, playTurnStart } from "@/interface/Feedback";
-import { getGame } from "@/interface/catalog";
+import { gameTitle, getGame } from "@/interface/catalog";
 import { isAgentIdentity } from "@/features/shared/playerIdentity";
 import { JevStatusContext, PlayerName } from "./PlayerName";
 import {
@@ -444,7 +444,7 @@ export function MatchDesk({
 
   const dockControls = !stream && (replay || state.status === "ended");
   const visibleControls = resultPending ? null : controls;
-  const title = getGame(state.type)?.title ?? t("match.gameFallback");
+  const title = getGame(state.type) ? gameTitle(t, state.type) : t("match.gameFallback");
 
   const subtitle =
     state.status === "waiting"

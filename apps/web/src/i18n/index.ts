@@ -6,6 +6,7 @@ export {
   isLocale,
   localeFromLanguages,
   setLocale,
+  shipMessage,
   translate,
   useLocale,
   useT,

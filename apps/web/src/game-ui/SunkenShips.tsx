@@ -1,6 +1,6 @@
 import { DoodleShip } from "./DoodleShip";
 import "./sunken-ships.css";
-import { useT } from "@/i18n";
+import { shipMessage, useT } from "@/i18n";
 
 export type ShipFootprint = {
   id: string;
@@ -41,8 +41,8 @@ export function FleetStatus({
       </span>
       <div className="sea-fleet-status" aria-label={t("board.ships.fleetStatus")}>
         {fleet.map((ship) => {
-          const name = ship.shortName ?? ship.name ?? ship.id,
-            status = lost.has(ship.id) ? "sunk" : "afloat";
+          const name = t(shipMessage(ship.id)),
+            status = t(lost.has(ship.id) ? "board.ships.statusSunk" : "board.ships.statusAfloat");
 
           const width = (Math.max(...ship.shape.map((p) => p.dc)) + 1) * 100,
             height = (Math.max(...ship.shape.map((p) => p.dr)) + 1) * 100;

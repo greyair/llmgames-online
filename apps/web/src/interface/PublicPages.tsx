@@ -9,7 +9,8 @@ import { GameGlyph } from "./Library";
 import legal from "./content/legal.json";
 import "./public.css";
 import { McpInstallCommand } from "./McpInstallCommand";
-import { BilingualText, useT } from "@/i18n";
+import { BilingualText, gameMessage, useT } from "@/i18n";
+import { gameTitle } from "./catalog";
 
 const steps = [
   [
@@ -123,6 +124,7 @@ export function LegalPage({ kind }: { kind: "privacy" | "terms" }) {
 
 export function GameInfo({ id }: { id: string }) {
   const game = getGame(id)!;
+  const t = useT();
 
   return (
     <Chrome>
@@ -130,8 +132,8 @@ export function GameInfo({ id }: { id: string }) {
         <div className="game-info-copy">
           <GameMark id={game.id} size={36} />
 
-          <h1>{game.title}</h1>
-          <p>{game.detail}</p>
+          <h1>{gameTitle(t, game.id)}</h1>
+          <p>{t(gameMessage(game.id, "detail"))}</p>
           <div className="page-actions">
             <ButtonLink href={gameRoute(game.id)} size="lg">
               Play {game.title}

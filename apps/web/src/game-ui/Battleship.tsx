@@ -17,7 +17,7 @@ import { FleetStatus, SunkenFleet, type SunkenShip } from "./SunkenShips";
 import { BattleshipEffects, useBattleshipEffects } from "./BattleshipEffects";
 import "./battleship.css";
 import "./sketch/battleship.css";
-import { useT, type MessageKey } from "@/i18n";
+import { shipMessage, useT, type MessageKey } from "@/i18n";
 
 type Point = { row: number; col: number };
 
@@ -963,7 +963,7 @@ export function Battleship({
                       variant="secondary"
                       data-sound="place"
                       aria-pressed={selectedShip === ship.id}
-                      aria-label={ship.shortName ?? ship.name}
+                      aria-label={t(shipMessage(ship.id))}
                       disabled={!can("place_fleet")}
                       style={
                         { "--i": index } satisfies CSSProperties & {
@@ -991,8 +991,10 @@ export function Battleship({
                         </svg>
                       </span>
                       <span className="fleet-choice-text" aria-hidden="true">
-                        <span className="fleet-choice-name">{ship.shortName ?? ship.name}</span>
-                        <span className="fleet-choice-size">{ship.shape.length} cells</span>
+                        <span className="fleet-choice-name">{t(shipMessage(ship.id))}</span>
+                        <span className="fleet-choice-size">
+                          {t("board.ships.cellCount", { count: ship.shape.length })}
+                        </span>
                       </span>
                     </Button>
                   );
@@ -1319,7 +1321,7 @@ export function Battleship({
                                       top: `${Math.max(3, row * 10)}%`,
                                     }}
                                     aria-label={t("board.ships.rotate", {
-                                      ship: spec.shortName ?? spec.name,
+                                      ship: t(shipMessage(spec.id)),
                                     })}
                                     title={t("board.ships.rotateNinety")}
                                     data-sound="flip"
