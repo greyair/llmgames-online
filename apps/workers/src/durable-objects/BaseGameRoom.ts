@@ -60,6 +60,7 @@ import {
   type JevSeat,
 } from "../agents/jev";
 import { generateJevFleets } from "../agents/jevBattleship";
+import { availableDecisionProviders, type DecisionProviderId } from "../agents/decisionProviders";
 import { getJevCredential, decryptJevKey, reservePersonalJevCall } from "../agents/jevCredentials";
 import {
   classifyActionError,
@@ -4255,13 +4256,19 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     switch (payload.actionType) {
       case "add_jev":
-      case "remove_jev":
+      case "remove_jev": {
         if (this.gameState.hostId !== player.id) return "Only the host can manage Jev";
 
         if (this.gameState.status !== "waiting")
           return "Jev can only be managed in a private lobby";
 
-        return (await this.manageJev(payload.actionType === "add_jev")) ?? true;
+        const requested = isObjectValue(payload.data) ? payload.data.provider : undefined;
+
+        const provider: DecisionProviderId = requested === "clef" ? "clef" : "typesafe";
+
+        return (await this.manageJev(payload.actionType === "add_jev", provider)) ?? true;
+      }
+
       case "start_game":
         if (this.gameState.hostId !== player.id) return "Only the host can start";
 
@@ -4557,14 +4564,18 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
           .map((player) => player.id),
       });
 
-    if (JEV_GAMES.has(this.gameState.type))
+    if (JEV_GAMES.has(this.gameState.type)) {
+      const jevProviders = availableDecisionProviders(this.env);
+
       Object.assign(view, {
         jev: {
-          available: Boolean(this.env?.TYPESAFE_API_KEY),
+          available: jevProviders.length > 0,
+          providers: jevProviders,
           playerId: this.jevMember()?.id,
           status: this.jev?.status ?? "ready",
         },
       });
+    }
 
     return view;
   }
@@ -4805,7 +4816,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         actions.push("start_game", "move_player_to_spectator", "set_player_seats", "end_game");
         actions.push("set_host_spectating");
 
-        if (JEV_GAMES.has(this.gameState.type) && this.env?.TYPESAFE_API_KEY) {
+        if (
+          JEV_GAMES.has(this.gameState.type) &&
+          availableDecisionProviders(this.env).length > 0
+        ) {
           if (this.jevMember()) actions.push("remove_jev");
           else if (this.gameState.players.length < this.gameState.maxPlayers)
             actions.push("add_jev");
@@ -4922,7 +4936,9 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
 
     const jevSeat = this.jev;
 
-    if (jevSeat && !jevSeat.credentialId) {
+    // Clef is sponsored without a personal key, so it must not consume the
+    // single TypeSafe trial that gates the other provider.
+    if (jevSeat && !jevSeat.credentialId && jevSeat.provider !== "clef") {
       // A host may connect TypeSafe from the lobby after adding Jev but before starting.
       const credential = await getJevCredential(this.env, jevSeat.ownerId);
 
@@ -6172,7 +6188,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
     );
   }
 
-  private async manageJev(add: boolean): Promise<string | void> {
+  private async manageJev(
+    add: boolean,
+    provider: DecisionProviderId = "typesafe",
+  ): Promise<string | void> {
     const state = this.gameState!;
 
     if (!JEV_GAMES.has(state.type)) return "Jev is not available for this game";
@@ -6191,13 +6210,22 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       const ownerId = await this.broadcastHostOwner();
 
       if (!ownerId) return "A signed-in host is required to add Jev";
-      const credential = await getJevCredential(this.env, ownerId);
 
-      if (!credential && !this.env.TYPESAFE_API_KEY)
-        return "Connect TypeSafe in Profile settings to add Jev";
+      // Personal TypeSafe credentials apply to TypeSafe only; Clef is sponsored.
+      const credential =
+        provider === "typesafe" ? await getJevCredential(this.env, ownerId) : null;
 
-      if (!credential && !(await hasSponsoredJevTrial(this.env, ownerId))) {
-        return "Your free Jev game has been used. Connect TypeSafe in Profile settings to keep playing";
+      // A personal key makes TypeSafe usable even when the site has no key.
+      if (!availableDecisionProviders(this.env).includes(provider) && !credential)
+        return "That decision model is not configured";
+
+      if (provider === "typesafe") {
+        if (!credential && !this.env.TYPESAFE_API_KEY)
+          return "Connect TypeSafe in Profile settings to add Jev";
+
+        if (!credential && !(await hasSponsoredJevTrial(this.env, ownerId))) {
+          return "Your free Jev game has been used. Connect TypeSafe in Profile settings to keep playing";
+        }
       }
 
       // Another request may have filled a seat, added Jev, or started the match.
@@ -6210,10 +6238,11 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       )
         return "The lobby changed; try again";
       const playerId = crypto.randomUUID();
+
       this.jev = {
         playerId,
         ownerId,
-
+        provider,
         calls: 0,
         attempts: 0,
         retryAt: 0,
@@ -6225,10 +6254,10 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
       if (state.type === "battleship") this.jev.fleets = generateJevFleets();
       state.players.push({
         id: playerId,
-        name: "Jev",
-        codename: "Jev",
+        name: provider === "clef" ? "Clef" : "Jev",
+        codename: provider === "clef" ? "Clef" : "Jev",
         isAgent: true,
-        environmentLabel: "TypeSafe",
+        environmentLabel: provider === "clef" ? "Clef" : "TypeSafe",
         hostedAgent: "jev",
       });
     }
@@ -6363,7 +6392,7 @@ export abstract class BaseGameRoom<TState extends BaseGameState> {
         await this.state.storage.put("jevSeat", seat);
 
         if (this.pendingJevDecision()?.key !== key) throw new JevError();
-      });
+      }, seat.provider ?? "typesafe");
 
       // A human action, timeout, departure or room end may occur during the fetch.
       if (this.pendingJevDecision()?.key !== key) return;

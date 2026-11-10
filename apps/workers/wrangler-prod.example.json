@@ -169,6 +169,9 @@
       ]
     }
   ],
+  "ai": {
+    "binding": "AI"
+  },
   "vars": {
     "EMAIL_FROM": "noreply@example.com",
     "GOOGLE_CLIENT_ID": "replace-with-your-google-oauth-client-id",

@@ -435,6 +435,7 @@ export function LobbySetup({
   const canAddBot = host && allowed && legalActions.includes("add_rule_bot");
   const canRemoveBot = host && allowed && legalActions.includes("remove_rule_bot");
 
+  const jevProviders = state.jev?.providers ?? [];
   const jevCanAdd = Boolean(jevAccess && (jevAccess.connected || jevAccess.trialAvailable));
 
   const jevAddLabel = jevAccess?.connected
@@ -507,13 +508,15 @@ export function LobbySetup({
             <p>
               {state.jev.playerId
                 ? t("board.lobby.jevSeated")
-                : !jevAccess
-                  ? t("board.lobby.jevChecking")
-                  : jevAccess.connected
-                    ? t("board.lobby.jevConnected")
-                    : jevAccess.trialAvailable
-                      ? t("board.lobby.jevTrial")
-                      : t("board.lobby.jevExhausted")}
+                : jevProviders.includes("clef")
+                  ? t("board.lobby.jevClefHint")
+                  : !jevAccess
+                    ? t("board.lobby.jevChecking")
+                    : jevAccess.connected
+                      ? t("board.lobby.jevConnected")
+                      : jevAccess.trialAvailable
+                        ? t("board.lobby.jevTrial")
+                        : t("board.lobby.jevExhausted")}
             </p>
           </div>
           <div className="lobby-jev-actions">
@@ -527,17 +530,31 @@ export function LobbySetup({
               >
                 {t("board.lobby.removeJev")}
               </Button>
-            ) : jevCanAdd ? (
-              <Button
-                size="sm"
-                aria-label={jevAddLabel}
-                disabled={!allowed || players.length >= maximum}
-                onClick={() => request("add_jev")}
-              >
-                <JevLogo size={18} /> {jevAddLabel}
-              </Button>
-            ) : null}
-            {!state.jev.playerId && !jevAccess?.connected && (
+            ) : (
+              <>
+                {jevProviders.includes("typesafe") && jevCanAdd && (
+                  <Button
+                    size="sm"
+                    aria-label={jevAddLabel}
+                    disabled={!allowed || players.length >= maximum}
+                    onClick={() => request("add_jev", { provider: "typesafe" })}
+                  >
+                    <JevLogo size={18} /> {jevAddLabel}
+                  </Button>
+                )}
+                {jevProviders.includes("clef") && (
+                  <Button
+                    size="sm"
+                    aria-label={t("board.lobby.jevClef")}
+                    disabled={!allowed || players.length >= maximum}
+                    onClick={() => request("add_jev", { provider: "clef" })}
+                  >
+                    <JevLogo size={18} /> {t("board.lobby.jevClef")}
+                  </Button>
+                )}
+              </>
+            )}
+            {!state.jev.playerId && jevProviders.includes("typesafe") && !jevAccess?.connected && (
               <ButtonLink
                 size="sm"
                 variant="ghost"

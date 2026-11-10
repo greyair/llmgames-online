@@ -52,6 +52,8 @@ export type CardRecord = {
 export type ClientView = {
   jev?: {
     available: boolean;
+    /** Decision models this deployment can seat, in display order. */
+    providers?: ("typesafe" | "clef")[];
     playerId?: string;
     status: "ready" | "thinking" | "retrying" | "unavailable" | "limit_reached";
   };
@@ -320,6 +322,7 @@ export const clientViewContract = z
     "jev": z
       .object({
         "available": z.boolean(),
+        "providers": z.array(z.enum(["typesafe", "clef"])).optional(),
         "playerId": z.string().optional(),
         "status": z.union([
           z.literal("ready"),

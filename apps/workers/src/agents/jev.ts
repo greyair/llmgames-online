@@ -10,6 +10,14 @@ import {
   type JevFleet,
   type JevRadarScan,
 } from "./jevBattleship";
+import {
+  DecisionProviderError,
+  requestDecision,
+  type DecisionAnswers,
+  type DecisionCriterion,
+  type DecisionProviderId,
+  type DecisionQuestion,
+} from "./decisionProviders";
 
 export const JEV_GAMES = new Set([
   "connect4",
@@ -24,6 +32,8 @@ export const JEV_GAMES = new Set([
 export interface JevSeat {
   playerId: string;
   ownerId: string;
+  /** Which decision model answers for this seat. Absent means TypeSafe Jev. */
+  provider?: DecisionProviderId;
   /** Pinned when added; removed/replaced credentials never fall back to sponsored billing. */
   credentialId?: string;
   calls: number;
@@ -67,13 +77,7 @@ export interface JevAction {
     | Record<string, never>;
 }
 
-export type JevCriterion =
-  | string
-  | number
-  | boolean
-  | null
-  | JevCriterion[]
-  | { [key: string]: JevCriterion };
+export type JevCriterion = DecisionCriterion;
 
 export interface JevDecision {
   state: {
@@ -250,13 +254,6 @@ const viewSchema = z.object({
     .nullable()
     .optional(),
 });
-
-const choiceAnswerSchema = z.object({
-  type: z.literal("choice"),
-  choice: z.string(),
-});
-
-const answerSchema = z.object({ answers: z.record(z.string(), choiceAnswerSchema) });
 
 /** Accept only the existing seat projection, never the authoritative game state. */
 export const parseJevView = viewSchema.passthrough().nullable().catch(null).parse;
@@ -503,11 +500,13 @@ export class JevLimitError extends JevError {}
 
 /** One bounded remote decision. Response strings never become executable intents. */
 export async function chooseJev(
-  env: Pick<Env, "TYPESAFE_API_KEY">,
+  env: Pick<Env, "TYPESAFE_API_KEY" | "AI" | "CLEF_MODEL">,
   decision: JevDecision,
   beforeRequest?: () => Promise<void>,
+  provider: DecisionProviderId = "typesafe",
 ): Promise<JevAction> {
-  if (decision.state.game === "contexto") return chooseContextoJev(env, decision, beforeRequest);
+  if (decision.state.game === "contexto")
+    return chooseContextoJev(env, decision, beforeRequest, provider);
 
   const instructions =
     decision.state.game === "connect4"
@@ -562,7 +561,15 @@ export async function chooseJev(
     };
   }
 
-  const answers = await requestJev(env, decision.state, questions, beforeRequest);
+  const answers = await requestJev(
+    env,
+    decision.state,
+    questions,
+    beforeRequest,
+    undefined,
+    provider,
+  );
+
   const move = answers.move;
 
   if (!move || !Object.hasOwn(questions.move!.criteria, move.choice)) throw new JevError();
@@ -633,56 +640,25 @@ export async function reserveJevCall(env: Env, ownerId: string): Promise<boolean
   return Boolean(result);
 }
 
-export interface JevQuestion {
-  type: "choice";
-  instructions: string;
-  criteria: Record<string, JevCriterion>;
-}
+export type JevQuestion = DecisionQuestion;
 
 async function requestJev(
-  env: Pick<Env, "TYPESAFE_API_KEY">,
+  env: Pick<Env, "TYPESAFE_API_KEY" | "AI" | "CLEF_MODEL">,
   state: JevDecision["state"],
   questions: Record<string, JevQuestion>,
   beforeRequest?: () => Promise<void>,
   maxBytes = 30_000,
-) {
-  const body = JSON.stringify({ model: "jev-latest", state, questions });
-
-  if (!env.TYPESAFE_API_KEY || new TextEncoder().encode(body).length > maxBytes)
-    throw new JevError();
-  await beforeRequest?.();
-  let response: Response;
-
+  provider: DecisionProviderId = "typesafe",
+): Promise<DecisionAnswers> {
   try {
-    response = await fetch("https://api.typesafe.ai/v1/systemone", {
-      method: "POST",
-      // Workers rejects "error"; manual redirects fail the response.ok check below.
-      redirect: "manual",
-      headers: {
-        Authorization: `Bearer ${env.TYPESAFE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body,
-      signal: AbortSignal.timeout(12_000),
-    });
-  } catch {
-    throw new JevError(true);
+    return await requestDecision(env, provider, { state, questions }, maxBytes, beforeRequest);
+  } catch (error) {
+    // Quota refusals are raised by the reservation callback and must stay
+    // `JevLimitError`; only transport failures become a retryable `JevError`.
+    if (error instanceof DecisionProviderError) throw new JevError(error.retryable);
+
+    throw error;
   }
-
-  if (!response.ok) throw new JevError([429, 500, 502, 503, 504, 529].includes(response.status));
-  let result: unknown;
-
-  try {
-    result = await response.json();
-  } catch {
-    throw new JevError();
-  }
-
-  const parsed = answerSchema.safeParse(result);
-
-  if (!parsed.success) throw new JevError();
-
-  return parsed.data.answers;
 }
 
 const contextoInstructions =
@@ -729,9 +705,10 @@ export function contextoJevBatches(decision: JevDecision): Record<string, JevQue
 }
 
 async function chooseContextoJev(
-  env: Pick<Env, "TYPESAFE_API_KEY">,
+  env: Pick<Env, "TYPESAFE_API_KEY" | "AI" | "CLEF_MODEL">,
   decision: JevDecision,
   beforeRequest?: () => Promise<void>,
+  provider: DecisionProviderId = "typesafe",
 ): Promise<JevAction> {
   const finalists: Record<string, string | null> = {};
   const batches = contextoJevBatches(decision);
@@ -744,7 +721,9 @@ async function chooseContextoJev(
     for (const _questions of wave) await beforeRequest?.();
 
     const results = await Promise.allSettled(
-      wave.map((questions) => requestJev(env, decision.state, questions, undefined, 60_000)),
+      wave.map((questions) =>
+        requestJev(env, decision.state, questions, undefined, 60_000, provider),
+      ),
     );
 
     for (let index = 0; index < results.length; index++) {
@@ -774,6 +753,8 @@ async function chooseContextoJev(
       },
     },
     beforeRequest,
+    undefined,
+    provider,
   );
 
   const word = answers.move?.choice;

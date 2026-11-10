@@ -46,6 +46,32 @@ billing owner IDs, room codes, API keys, and private opponent teams are excluded
 from model inputs. The TypeSafe credential is never sent to a browser, saved in
 rewatches, or logged.
 
+## Decision providers
+
+A lobby can seat either TypeSafe Jev or Cloudflare Clef. Both are decision
+models with the same `state` + typed `questions` shape, so they share the game
+adapter, the compact projections, the retry rules and the failure handling;
+only the transport and model selector differ.
+
+| Provider | Configuration | Billing | Trial |
+| --- | --- | --- | --- |
+| TypeSafe Jev | `TYPESAFE_API_KEY`, or a personal key from Profile | Site key or the player's own key | One sponsored match per account |
+| Clef | Workers AI binding `AI` | Site Cloudflare account (input tokens) | None; every call is sponsored |
+
+Clef uses `@cf/cloudflare/clef` with `model: "clef"`; set `CLEF_MODEL=clef-flash`
+for the faster 9B variant. Adding Clef does not consume the TypeSafe trial, and
+it never uses a personal TypeSafe credential.
+
+Both providers share the existing request budget: `JEV_DAILY_CALL_LIMIT`
+(global), `JEV_USER_DAILY_CALL_LIMIT` (per host) and the 200-request room cap.
+A zero daily limit disables sponsored calls for either provider, so raise it
+before testing Clef. These are request counts, not dollar caps; Workers AI bills
+by input token on the account.
+
+Deploying Clef needs `"ai": { "binding": "AI" }` in the Worker configuration and
+a Workers AI-enabled account. A deployment without AI simply offers TypeSafe,
+and a deployment without `TYPESAFE_API_KEY` simply offers Clef.
+
 ## Local setup
 
 Store `TYPESAFE_API_KEY` in the ignored `apps/workers/.dev.vars` file, then run:

@@ -830,6 +830,8 @@ export const en = {
   "board.lobby.jevExhausted": "Your free Jev game has been used. Connect TypeSafe to keep playing.",
   "board.lobby.jevAdd": "Add Jev",
   "board.lobby.jevTry": "Try Jev for a game",
+  "board.lobby.jevClef": "Try Clef",
+  "board.lobby.jevClefHint": "Clef is provided by this site on Cloudflare Workers AI; no TypeSafe account needed.",
   "board.pokemon.name": "Pokémon",
   "board.pokemon.battleControls": "Battle controls",
   "board.pokemon.fainted": "Fainted",

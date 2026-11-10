@@ -23,6 +23,7 @@ import { PokerRoom } from "../../durable-objects/PokerRoom";
 import { BATTLESHIP_FALLBACK_FLEET, type BattleshipGameState } from "../../durable-objects/types";
 import type { Env } from "../../types";
 import { chooseJev, jevDecision } from "../../agents/jev";
+import type { DecisionProviderRequest } from "../../agents/decisionProviders";
 import { encryptJevKey } from "../../agents/jevCredentials";
 
 type RoomConstructor = new (state: RoomRuntime, env: Env) => BaseGameRoom<BaseGameState>;
@@ -211,6 +212,38 @@ describe("hosted Jev seats", () => {
       await action(h.room, "host", "drop_disc", { col: 6 });
     await h.room.alarm();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("seats Clef and asks Workers AI instead of TypeSafe", async () => {
+    const setup = harness();
+
+    const run = vi.fn(
+      async (_model: string, inputs: DecisionProviderRequest & { model: string }) => ({
+        answers: Object.fromEntries(
+          Object.entries(inputs.questions).map(([id, question]) => [
+            id,
+            { type: "choice", choice: Object.keys(question.criteria)[0] },
+          ]),
+        ),
+      }),
+    );
+
+    setup.env.AI = { run };
+    await create(setup.room);
+    expect((await action(setup.room, "host", "add_jev", { provider: "clef" })).status).toBe(200);
+    expect((await view(setup.room)).players.find((player) => player.name === "Clef")).toBeTruthy();
+    expect(setup.storage.get("jevSeat")).toMatchObject({ provider: "clef" });
+    expect((await post(setup.room, "/agent/start", { playerId: "host" })).status).toBe(200);
+
+    if ((await view(setup.room)).turnState.currentPlayerId === "host")
+      await action(setup.room, "host", "drop_disc", { col: 6 });
+    await setup.room.alarm();
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run.mock.calls[0]?.[0]).toBe("@cf/cloudflare/clef");
+    expect(run.mock.calls[0]?.[1]).toMatchObject({ model: "clef" });
+    expect(setup.storage.get("jevSeat")).toMatchObject({ status: "ready" });
+    expect(JSON.stringify((await view(setup.room)).board)).toContain("2");
   });
 
   it("allows one seat, only the host, supported games, available capacity, and lobby removal", async () => {

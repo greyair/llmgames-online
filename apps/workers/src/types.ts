@@ -3,6 +3,8 @@ import type { D1Database, DurableObjectNamespace, R2Bucket } from "@cloudflare/w
 import type { RoomChatEntry, RoomChatPage } from "./durable-objects/chat/chatTypes";
 import type { SeatChannel } from "./durable-objects/types";
 
+import type { WorkersAiBinding } from "./agents/decisionProviders";
+
 export interface Env {
   // D1 Database
   DB: D1Database;
@@ -51,6 +53,14 @@ export interface Env {
   FRONTEND_URL: string;
   /** Comma-separated extra CORS origins (e.g. apex + www) */
   ALLOWED_ORIGINS?: string;
+
+  /**
+   * Workers AI binding for Cloudflare's Clef decision model.
+   * Optional: a Jev-only deployment has no AI binding and still runs.
+   */
+  AI?: WorkersAiBinding;
+  /** Clef model selector: "clef" (default) or "clef-flash". */
+  CLEF_MODEL?: string;
 
   // Secrets
   TYPESAFE_API_KEY?: string;

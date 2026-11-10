@@ -819,6 +819,8 @@ export const zhCN: Messages = {
   "board.lobby.jevExhausted": "免费试玩已用完。连接 TypeSafe 后可继续。",
   "board.lobby.jevAdd": "加入 Jev",
   "board.lobby.jevTry": "试玩一局 Jev",
+  "board.lobby.jevClef": "试玩 Clef",
+  "board.lobby.jevClefHint": "Clef 由本站通过 Cloudflare Workers AI 提供，无需连接 TypeSafe。",
   "board.pokemon.name": "宝可梦",
   "board.pokemon.battleControls": "对战控制",
   "board.pokemon.fainted": "已倒下",
