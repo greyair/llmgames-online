@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { isString } from "@llmgames/game-catalog";
 
+import { escapeHtml } from "../lib/html";
+
+export { escapeHtml };
+
 /**
  * MCP OAuth 2.1 helpers — PKCE, tokens, client store, redirect validation.
  * Authorization server is co-located with the Worker (same origin as MCP).
@@ -1270,10 +1274,3 @@ export function htmlPage(
   });
 }
 
-export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SQLiteD1 } from "../fixtures/sqlite-d1";
+import { consentCallback } from "../fixtures/consentCallback";
 import { testEnv } from "../fixtures/env";
 import { URL } from "node:url";
 import { DatabaseSync } from "node:sqlite";
@@ -147,8 +148,8 @@ describe("email code sign-in", () => {
       h.env,
     );
 
-    expect(approved.status).toBe(303);
-    const callback = new URL(approved.headers.get("Location")!);
+    expect(approved.status).toBe(200);
+    const callback = await consentCallback(approved);
     expect(callback.searchParams.get("state")).toBe("original-client-state");
 
     const exchangeBody = {

@@ -25,7 +25,6 @@ import type { Env, Variables, User } from "../types";
 import {
   MCP_SCOPE,
   PENDING_REQ_TTL,
-  browserContentSecurityPolicy,
   clientAllowsRedirect,
   createAccessToken,
   createAuthCode,
@@ -46,6 +45,7 @@ import {
 } from "./mcpOAuth";
 import { startBrowserLogin } from "./email";
 import { renderOAuthConsent } from "./renderOAuthConsent";
+import { oauthCallbackHandoff } from "./oauthHandoff";
 import { cleanupExpiredOAuthRows, enforceRateLimit } from "./oauthSecurity";
 import { clearSessionCookie, revokeBrowserSession } from "./session";
 
@@ -468,6 +468,25 @@ async function loadPending(c: {
   return loadPendingById(c.env.DB, reqId);
 }
 
+/**
+ * Hands the browser to the callback this request was validated against.
+ *
+ * An http(s) callback cannot be reached with a 303 from a form POST: Chrome
+ * keeps the submission flag across the redirect chain, so the hop a provider
+ * relay adds after us is blocked by `form-action`. Such callbacks get a document
+ * that navigates instead. Native schemes keep the direct redirect because a
+ * document cannot launch them.
+ */
+function finishConsent(
+  c: Context<{ Bindings: Env; Variables: Variables }>,
+  callback: URL,
+): Response {
+  if (callback.protocol === "http:" || callback.protocol === "https:")
+    return oauthCallbackHandoff(callback.toString());
+
+  return c.redirect(callback.toString(), 303);
+}
+
 mcpOAuthApiRoutes.get("/consent", async (c) => {
   const pending = await loadPending(c);
 
@@ -600,7 +619,6 @@ mcpOAuthApiRoutes.post("/consent", async (c) => {
   }
 
   const redirect = new URL(pending.redirect_uri);
-  c.header("Content-Security-Policy", browserContentSecurityPolicy(pending.redirect_uri));
 
   if (decision !== "allow") {
     redirect.searchParams.set("error", "access_denied");
@@ -609,7 +627,7 @@ mcpOAuthApiRoutes.post("/consent", async (c) => {
     if (pending.state) redirect.searchParams.set("state", pending.state);
     await c.env.DB.prepare(`DELETE FROM oauth_pending_requests WHERE id = ?`).bind(reqId).run();
 
-    return c.redirect(redirect.toString(), 303);
+    return finishConsent(c, redirect);
   }
 
   const user = c.get("user");
@@ -640,7 +658,7 @@ mcpOAuthApiRoutes.post("/consent", async (c) => {
   if (pending.state) redirect.searchParams.set("state", pending.state);
 
   // A consent form POST must become a GET at HTTP and custom-scheme callbacks.
-  return c.redirect(redirect.toString(), 303);
+  return finishConsent(c, redirect);
 });
 
 mcpOAuthApiRoutes.post("/handoff-status", async (c) => {

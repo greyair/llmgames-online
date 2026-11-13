@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { testDatabase } from "../fixtures/auth";
+import { consentCallback } from "../fixtures/consentCallback";
 import { testEnv } from "../fixtures/env";
 
 import { Hono } from "hono";
@@ -13,6 +14,7 @@ import {
 } from "../../auth/google";
 import { browserContentSecurityPolicy, createAccessToken } from "../../auth/mcpOAuth";
 import { mcpOAuthApiRoutes } from "../../auth/mcpOAuthRoutes";
+import { oauthCallbackHandoff } from "../../auth/oauthHandoff";
 
 const secret = "test-secret-that-is-long-enough-for-hmac";
 
@@ -29,7 +31,10 @@ type PendingRequest = {
   created_at: number;
 };
 
-function consentHarness(redirectUri = "http://127.0.0.1:4567/callback") {
+function consentHarness(
+  redirectUri = "http://127.0.0.1:4567/callback",
+  options: { signedIn?: boolean } = {},
+) {
   const now = Math.floor(Date.now() / 1000);
 
   const pending: PendingRequest = {
@@ -82,7 +87,7 @@ function consentHarness(redirectUri = "http://127.0.0.1:4567/callback") {
 
   const app = new Hono<{ Bindings: Env; Variables: Variables }>();
   app.use("*", async (c, next) => {
-    c.set("user", user);
+    if (options.signedIn ?? true) c.set("user", user);
     await next();
   });
   app.route("/", mcpOAuthApiRoutes);
@@ -169,8 +174,9 @@ describe("MCP OAuth browser flow", () => {
     expect(cookies).toContain("Max-Age=0");
   });
 
-  it("keeps repeated loopback approvals usable for direct handoff", async () => {
-    const { app, sqlite, env } = consentHarness();
+  it("hands a browser callback to the client with a document instead of a redirect", async () => {
+    const relay = "https://oauth-redirect.googleusercontent.com/r/gemini";
+    const { app, sqlite, env } = consentHarness(relay);
 
     const approve = () =>
       app.request(
@@ -185,15 +191,19 @@ describe("MCP OAuth browser flow", () => {
 
     const first = await approve();
     const second = await approve();
-    const firstCallback = new URL(first.headers.get("Location")!);
-    const secondCallback = new URL(second.headers.get("Location")!);
+    const html = await first.clone().text();
+    const firstCallback = await consentCallback(first);
+    const secondCallback = await consentCallback(second);
 
-    expect(first.status).toBe(303);
-    expect(second.status).toBe(303);
-    expect(first.headers.get("Content-Security-Policy")).toContain(
-      "frame-src 'self' http://127.0.0.1:4567",
-    );
-    expect(firstCallback.origin).toBe("http://127.0.0.1:4567");
+    // A redirect here is what Chrome refuses once the relay adds another hop.
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(first.headers.get("Location")).toBeNull();
+    expect(first.headers.get("Cache-Control")).toContain("no-store");
+    expect(first.headers.get("Content-Security-Policy")).toContain("form-action 'none'");
+    expect(html).toContain('http-equiv="refresh"');
+    expect(html).toContain("Continue");
+    expect(firstCallback.origin).toBe("https://oauth-redirect.googleusercontent.com");
     expect(firstCallback.searchParams.get("state")).toBe("client-state");
     expect(secondCallback.searchParams.get("state")).toBe("client-state");
     expect(firstCallback.searchParams.get("code")).toBeTruthy();
@@ -205,6 +215,82 @@ describe("MCP OAuth browser flow", () => {
 
     expect(authorizationCodes).toHaveLength(2);
     expect(authorizationCodes.every((code) => code.pending_request_id === "request-1")).toBe(true);
+  });
+
+  it("hands a denied request back with the error and the original state", async () => {
+    const { app, env } = consentHarness("https://oauth-redirect.googleusercontent.com/r/gemini");
+
+    const response = await app.request(
+      "https://example.test/consent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ req: "request-1", decision: "deny" }),
+      },
+      env,
+    );
+
+    const callback = await consentCallback(response);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Location")).toBeNull();
+    expect(callback.searchParams.get("error")).toBe("access_denied");
+    expect(callback.searchParams.get("state")).toBe("client-state");
+  });
+
+  it("escapes the callback out of the handoff document", async () => {
+    const response = oauthCallbackHandoff(
+      'https://client.example/cb?next="><script>alert(1)</script>&x=1',
+    );
+
+    const html = await response.text();
+
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
+  });
+
+  it("asks an expired session to sign in again without losing the request", async () => {
+    const { app, env } = consentHarness("https://oauth-redirect.googleusercontent.com/r/gemini", {
+      signedIn: false,
+    });
+
+    env.FRONTEND_URL = "https://games.xsrc.in";
+
+    const response = await app.request(
+      "https://example.test/consent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ req: "request-1", decision: "allow" }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(303);
+    expect(new URL(response.headers.get("Location")!).searchParams.get("return_to")).toBe(
+      "/api/v1/oauth/consent?req=request-1",
+    );
+  });
+
+  it("refuses a consent POST for a request that already expired", async () => {
+    const { app, sqlite, env } = consentHarness();
+    sqlite
+      .prepare("UPDATE oauth_pending_requests SET expires_at = ?")
+      .run(Math.floor(Date.now() / 1000) - 1);
+
+    const response = await app.request(
+      "https://example.test/consent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ req: "request-1", decision: "allow" }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(410);
+    expect(await response.text()).toContain("This request is no longer available");
   });
 
   it("reports success only after the client redeems the authorization code", async () => {

@@ -2,6 +2,7 @@ import type { WireObject } from "@llmgames/game-catalog";
 import { Hono } from "hono";
 import { z } from "zod";
 import { testEnv } from "../fixtures/env";
+import { consentCallback } from "../fixtures/consentCallback";
 import { mcpOAuthApiRoutes } from "../../auth/mcpOAuthRoutes";
 import type { Env, Variables } from "../../types";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -104,8 +105,8 @@ it("completes CIMD consent, PKCE exchange, and refresh using public authenticati
     expect(auth.status).toBe(302);
     const consentUrl = new URL(auth.headers.get("location")!);
     const approved = await app.request("https://example.test/consent", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ req: consentUrl.searchParams.get("req")!, decision: "allow" }) }, env);
-    expect(approved.status).toBe(303);
-    const callback = new URL(approved.headers.get("location")!);
+    expect(approved.status).toBe(200);
+    const callback = await consentCallback(approved);
     expect(callback.searchParams.get("state")).toBe("test-state");
     const exchange = { grant_type: "authorization_code", client_id: clientId, redirect_uri: redirect, code: callback.searchParams.get("code"), code_verifier: verifier, resource: "https://example.test/api/v1/mcp" };
     const post = (data: WireObject) => app.request("https://example.test/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }, env);
